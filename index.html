@@ -140,23 +140,6 @@ input,textarea,select{font-family:inherit;font-size:inherit;outline:none;color:v
 #sidebar.collapsed *{opacity:0;pointer-events:none}
 #sidebar *{transition:opacity .15s;opacity:1}
 
-/* Botão toggle sidebar */
-#sb-toggle{
-  position:absolute;top:50%;transform:translateY(-50%);
-  left:0;z-index:200;
-  width:20px;height:48px;
-  background:#2a1f18;
-  border:1px solid rgba(255,255,255,.1);
-  border-left:none;
-  border-radius:0 8px 8px 0;
-  display:flex;align-items:center;justify-content:center;
-  cursor:pointer;transition:all .2s;
-  color:rgba(255,255,255,.4);
-}
-#sb-toggle:hover{background:#3d2e24;color:rgba(255,255,255,.9);width:22px}
-#sb-toggle svg{transition:transform .25s;flex-shrink:0}
-#sidebar.collapsed + #main #sb-toggle,
-#app.sb-collapsed #sb-toggle svg{transform:rotate(180deg)}
 #app{position:relative}
 #main{position:relative}
 .sb-logo{
@@ -197,6 +180,8 @@ input,textarea,select{font-family:inherit;font-size:inherit;outline:none;color:v
 /* ── MAIN ── */
 #main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
 #sb-toggle-hdr{width:34px;height:34px;color:var(--tx2)}
+#sb-toggle-hdr svg{transition:transform .25s}
+#app.sb-collapsed #sb-toggle-hdr svg{transform:rotate(180deg)}
 #header{
   height:var(--header-h);background:var(--surface);border-bottom:1px solid var(--border);
   display:flex;align-items:center;gap:12px;padding:0 20px;flex-shrink:0;
@@ -935,9 +920,6 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
   </aside>
 
   <div id="main">
-    <button id="sb-toggle" onclick="toggleSidebar()" title="Mostrar/ocultar menu">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="width:12px;height:12px"><polyline points="15 18 9 12 15 6"/></svg>
-    </button>
     <header id="header">
       <button class="ico-btn" id="sb-toggle-hdr" onclick="toggleSidebar()" title="Menu" style="margin-right:4px">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:18px;height:18px"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
@@ -3678,13 +3660,12 @@ function toggleSidebar(){
   const app=document.getElementById('app');
   const isCollapsed=sb.classList.toggle('collapsed');
   app.classList.toggle('sb-collapsed',isCollapsed);
-  // Persistir preferência
   sessionStorage.setItem('ff_sb_collapsed',isCollapsed?'1':'0');
-  // Atualizar posição do botão flutuante
-  const btn=document.getElementById('sb-toggle');
-  if(btn){
-    btn.style.left=isCollapsed?'0':'var(--sidebar-w, 222px)';
-    btn.querySelector('svg').style.transform=isCollapsed?'rotate(180deg)':'rotate(0deg)';
+  // Rotacionar ícone do botão no header
+  const hdrBtn=document.getElementById('sb-toggle-hdr');
+  if(hdrBtn){
+    const svgEl=hdrBtn.querySelector('svg');
+    if(svgEl) svgEl.style.transform=isCollapsed?'rotate(180deg)':'rotate(0deg)';
   }
 }
 
@@ -3694,15 +3675,8 @@ function initSidebarState(){
     const sb=document.getElementById('sidebar');
     const app=document.getElementById('app');
     if(sb){sb.classList.add('collapsed');app.classList.add('sb-collapsed');}
-    const btn=document.getElementById('sb-toggle');
-    if(btn){
-      btn.style.left='0';
-      const svgEl=btn.querySelector('svg');
-      if(svgEl)svgEl.style.transform='rotate(180deg)';
-    }
-  } else {
-    const btn=document.getElementById('sb-toggle');
-    if(btn) btn.style.left='var(--sidebar-w, 222px)';
+    const hdrBtn=document.getElementById('sb-toggle-hdr');
+    if(hdrBtn){const svgEl=hdrBtn.querySelector('svg');if(svgEl)svgEl.style.transform='rotate(180deg)';}
   }
 }
 
