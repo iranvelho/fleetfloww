@@ -705,6 +705,12 @@ select.fi{appearance:none;cursor:pointer;padding-right:28px;background-image:url
 .tck-locked{cursor:not-allowed!important;opacity:.55;background:var(--surface2)!important;border-color:var(--border)!important;}
 .fi:disabled{opacity:.5;cursor:not-allowed;background:var(--surface2)!important;}
 .tck-locked:hover{background:var(--surface2)!important;border-color:var(--border)!important;transform:none!important;}
+/* ── TASK ORIGIN BADGE ── */
+.task-origin{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;letter-spacing:.3px;padding:2px 7px;border-radius:20px;white-space:nowrap;flex-shrink:0}
+.task-origin.mine{background:rgba(61,107,140,.12);color:#3d6b8c;border:1px solid rgba(61,107,140,.2)}
+.task-origin.assigned{background:rgba(124,92,74,.10);color:var(--accent);border:1px solid rgba(124,92,74,.2)}
+tr.task-assigned td:first-child{border-left:3px solid var(--accent)}
+tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
 /* ── MEMBER CHECKBOXES ── */
 .member-check-grid{display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto;padding:2px}
 .member-check-grid::-webkit-scrollbar{width:4px}
@@ -2077,21 +2083,20 @@ function renderTasks(){
 
 function renderTasksList(c,arr){
   if(!arr.length){c.innerHTML=empty('Nenhuma tarefa encontrada');return;}
-  // Group by visibility
-  const globals=arr.filter(t=>!t.visibility||t.visibility==='global');
-  const privs=arr.filter(t=>t.visibility==='private');
+  // Separar: tarefas que eu criei vs tarefas que me incluíram
+  const mine   = arr.filter(t => t.createdBy === CUR.user.id);
+  const assigned = arr.filter(t => t.createdBy !== CUR.user.id && (t.integrateFor||[]).includes(CUR.user.name));
+  // Tarefas globais sem integração que eu posso ver mas não criei
+  const other  = arr.filter(t => t.createdBy !== CUR.user.id && !(t.integrateFor||[]).includes(CUR.user.name));
 
-  let html='';
-  if(globals.length){
-    html+=taskGroupHTML('🌐 Tarefas Globais',globals,'global-group');
-  }
-  if(privs.length){
-    html+=taskGroupHTML('🔒 Tarefas Privadas',privs,'priv-group');
-  }
-  c.innerHTML=html;
+  let h='';
+  if(mine.length)     h+=taskGroupHTML('✏️ Criadas por mim', mine, 'mine-group', 'mine');
+  if(assigned.length) h+=taskGroupHTML('📥 Integradas a mim', assigned, 'assigned-group', 'assigned');
+  if(other.length)    h+=taskGroupHTML('🌐 Outras do grupo', other, 'other-group', 'other');
+  c.innerHTML=h;
 }
 
-function taskGroupHTML(label,tasks,gid){
+function taskGroupHTML(label,tasks,gid,originType=''){
   return`<div class="task-group">
     <div class="task-group-hd" onclick="toggleGroup(this)">
       <svg class="tg-arr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
@@ -2100,25 +2105,42 @@ function taskGroupHTML(label,tasks,gid){
     </div>
     <div class="task-group-body">
       <div class="t-wrap" style="border-radius:0;border:none"><table class="t-tbl">
-        <thead><tr><th>Tarefa</th><th>Integrado</th><th>Freq.</th><th>Prioridade</th><th>Status</th><th>Vis.</th><th></th></tr></thead>
-        <tbody>${tasks.map(t=>`<tr onclick="openEditTask('${t.id}')">
-          <td><div class="tc">
-            <button class="tck ${t.status==='done'?'done':''} ${!canToggleTask(t)?'tck-locked':''}" onclick="event.stopPropagation();toggleTask('${t.id}')" title="${!canToggleTask(t)?'Somente membros integrados podem alterar':''}">${t.status==='done'?ICK:(!canToggleTask(t)?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:11px;height:11px;opacity:.4"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>':'')}</button>
-            <span class="${t.status==='done'?'s':''}" style="font-size:12.5px;font-weight:500">${t.title}</span>
-          </div></td>
-          <td><div style="display:flex;flex-wrap:wrap;gap:4px">${(t.integrateFor||[]).map(m=>`<div class="tc" style="gap:5px">${memberAvatar(m)}<span style="font-size:11.5px">${m}</span></div>`).join('')||'<span style="color:var(--tx3);font-size:12px">—</span>'}</div></td>
-          <td>${fbadge(t.frequency||'once')}</td>
-          <td>${pbadge(t.priority)}</td>
-          <td>${sbadge(t.status)}</td>
-          <td>${visbadge(t.visibility)}</td>
-          <td><div style="display:flex;gap:4px;align-items:center">
-            <button class="btn-sec" style="padding:4px 8px;font-size:11px;gap:4px" onclick="event.stopPropagation();openComments('${t.id}')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-              <span>${((getG().comments||{})[t.id]||[]).length||''}</span>
-            </button>
-            <button class="del-btn" onclick="event.stopPropagation();deleteTask('${t.id}')">${IDEL}</button>
-          </div></td>
-        </tr>`).join('')}</tbody>
+        <thead><tr><th>Tarefa</th><th>Integrado</th><th>Freq.</th><th>Prioridade</th><th>Status</th><th></th></tr></thead>
+        <tbody>${tasks.map(t=>{
+          const isMine = t.createdBy===CUR.user.id;
+          const isAssigned = !isMine && (t.integrateFor||[]).includes(CUR.user.name);
+          const rowClass = isMine?'task-mine':isAssigned?'task-assigned':'';
+          const originBadge = isMine
+            ? '<span class="task-origin mine">Minha</span>'
+            : isAssigned
+              ? '<span class="task-origin assigned">Integrada</span>'
+              : '';
+          const creator = (_cache.members||[]).find(m=>m.id===t.createdBy);
+          const creatorName = creator ? creator.name : '—';
+          return`<tr class="${rowClass}" onclick="openEditTask('${t.id}')">
+            <td><div class="tc" style="gap:8px">
+              <button class="tck ${t.status==='done'?'done':''} ${!canToggleTask(t)?'tck-locked':''}" onclick="event.stopPropagation();toggleTask('${t.id}')" title="${!canToggleTask(t)?'Somente membros integrados podem alterar o status':''}">${t.status==='done'?ICK:(!canToggleTask(t)?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:11px;height:11px;opacity:.4"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>':'')}</button>
+              <div style="min-width:0">
+                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                  <span class="${t.status==='done'?'s':''}" style="font-size:12.5px;font-weight:500">${t.title}</span>
+                  ${originBadge}
+                </div>
+                ${!isMine?`<div style="font-size:11px;color:var(--tx3);margin-top:2px">Criada por ${creatorName}</div>`:''}
+              </div>
+            </div></td>
+            <td><div style="display:flex;flex-wrap:wrap;gap:4px">${(t.integrateFor||[]).map(m=>`<div class="tc" style="gap:5px">${memberAvatar(m)}<span style="font-size:11.5px">${m}</span></div>`).join('')||'<span style="color:var(--tx3);font-size:12px">—</span>'}</div></td>
+            <td>${fbadge(t.frequency||'once')}</td>
+            <td>${pbadge(t.priority)}</td>
+            <td>${sbadge(t.status)}</td>
+            <td><div style="display:flex;gap:4px;align-items:center">
+              <button class="btn-sec" style="padding:4px 8px;font-size:11px;gap:4px" onclick="event.stopPropagation();openComments('${t.id}')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                <span>${((_cache.comments||{})[t.id]||[]).length||''}</span>
+              </button>
+              ${isMine?`<button class="del-btn" onclick="event.stopPropagation();deleteTask('${t.id}')">${IDEL}</button>`:''}
+            </div></td>
+          </tr>`;
+        }).join('')}</tbody>
       </table></div>
     </div>
   </div>`;
