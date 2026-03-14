@@ -315,22 +315,42 @@ input,textarea,select{font-family:inherit;font-size:inherit;outline:none;color:v
 .kc-ft{display:flex;align-items:center;gap:5px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:10.5px;color:var(--tx3)}
 
 /* ── MY WORK ── */
-.mw-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.mw-col{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden;box-shadow:var(--sh)}
-.mw-hd{padding:10px 15px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;background:var(--surface2)}
-.mw-hd .col-ttl{font-size:12px;font-weight:700;flex:1}
-.mw-ct{font-size:10px;font-weight:700;background:var(--surface);border:1px solid var(--border);padding:1px 6px;border-radius:99px;color:var(--tx3)}
-.mw-items{padding:7px;display:flex;flex-direction:column;gap:4px;max-height:330px;overflow-y:auto}
-.mw-card{display:flex;align-items:flex-start;gap:8px;padding:9px 10px;border-radius:var(--r);border:1px solid var(--border);background:var(--surface2);transition:all var(--t);cursor:pointer}
-.mw-card:hover{border-color:var(--border2)}
-.mw-card.late-c{border-left:2px solid var(--red);background:rgba(184,60,43,.03)}
-.mw-card.grace-c{border-left:2px solid var(--amber);background:rgba(184,114,10,.03)}
+/* ── MEU TRABALHO — layout lista completa ── */
+.mw-section{margin-bottom:18px}
+.mw-section-hd{display:flex;align-items:center;gap:10px;padding:0 2px;margin-bottom:8px;cursor:pointer;user-select:none}
+.mw-section-hd svg.arr{transition:transform .2s;flex-shrink:0}
+.mw-section-hd.collapsed svg.arr{transform:rotate(-90deg)}
+.mw-section-label{font-size:11.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;flex:1}
+.mw-section-ct{font-size:10.5px;font-weight:700;background:var(--surface);border:1px solid var(--border);padding:2px 8px;border-radius:99px;color:var(--tx3)}
+.mw-section-body{display:flex;flex-direction:column;gap:6px}
+.mw-section-body.collapsed{display:none}
+.mw-card{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);transition:all .15s;cursor:pointer}
+.mw-card:hover{border-color:var(--border2);box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.mw-card.late-c{border-left:3px solid var(--red);background:rgba(184,60,43,.02)}
+.mw-card.grace-c{border-left:3px solid var(--amber);background:rgba(184,114,10,.02)}
+.mw-card.done-c{opacity:.6}
 .mw-info{flex:1;min-width:0}
-.mw-nm{font-size:12.5px;font-weight:500;line-height:1.35}
+.mw-nm{font-size:13.5px;font-weight:500;line-height:1.4;color:var(--tx)}
 .mw-nm.s{text-decoration:line-through;color:var(--tx3)}
 .mw-nm.late-n{color:var(--red)}
 .mw-nm.grace-n{color:var(--amber)}
-.mw-tm{font-size:11px;color:var(--tx3);display:flex;align-items:center;gap:4px;margin-top:2px;flex-wrap:wrap}
+.mw-meta{display:flex;align-items:center;gap:8px;margin-top:4px;flex-wrap:wrap}
+.mw-time{display:inline-flex;align-items:center;gap:3px;font-size:11.5px;font-weight:600;color:var(--tx2)}
+.mw-time.late{color:var(--red)}
+.mw-time.grace{color:var(--amber)}
+.mw-time.ok{color:var(--green)}
+.mw-badges{display:flex;align-items:center;gap:5px;flex-shrink:0}
+.grace-bar{height:3px;border-radius:2px;background:var(--border);margin-top:6px;overflow:hidden}
+.grace-fill{height:100%;background:var(--amber);border-radius:2px;transition:width .3s}
+.mw-section-hd[data-section="late"] .mw-section-label{color:var(--red)}
+.mw-section-hd[data-section="today"] .mw-section-label{color:var(--accent)}
+.mw-section-hd[data-section="next"] .mw-section-label{color:var(--amber)}
+.mw-section-hd[data-section="done"] .mw-section-label{color:var(--green)}
+.mw-empty{padding:20px;text-align:center;color:var(--tx3);font-size:13px;border:1.5px dashed var(--border);border-radius:12px}
+.mw-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.mw-search{flex:1;min-width:160px;padding:7px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:13px;background:var(--surface);color:var(--tx);outline:none}
+.mw-search:focus{border-color:var(--accent)}
+.mw-filter{padding:6px 10px;border:1.5px solid var(--border);border-radius:10px;font-size:12px;background:var(--surface);color:var(--tx);cursor:pointer}
 .tm-late{color:var(--red)!important;font-weight:700}
 .tm-grace{color:var(--amber)!important;font-weight:700}
 .grace-bar{margin-top:5px;background:var(--amber-s);border-radius:3px;height:3px;overflow:hidden}
@@ -453,7 +473,7 @@ select.fi{appearance:none;cursor:pointer;padding-right:28px;background-image:url
   .stats-row{grid-template-columns:repeat(2,1fr)}
   .dash-grid{grid-template-columns:1fr}
   .meet-layout{grid-template-columns:1fr}
-  .mw-grid{grid-template-columns:1fr}
+  /* mw-grid removido */
 }
 
 /* ── PROJECTS ── */
@@ -930,22 +950,33 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
 
       <!-- MEU TRABALHO -->
       <section id="page-mywork" class="page">
-        <div class="ph"><div><h1>Meu Trabalho</h1><div class="ph-sub">Tarefas pessoais com horário limite e recorrência</div></div></div>
-        <div class="tip-box">⏱ <strong>Tolerância de 1 hora:</strong> Após o horário limite + 1h sem conclusão → <strong style="color:var(--red)">Vencida</strong>. Tarefas recorrentes concluídas ou vencidas somem após 3 dias e reaparecem no próximo ciclo.</div>
-        <div class="mw-grid">
-          <div class="mw-col">
-            <div class="mw-hd"><svg style="width:13px;height:13px;color:var(--accent)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg><span class="col-ttl">Hoje</span><span class="mw-ct" id="mw-ct-today">0</span></div>
-            <div class="mw-items" id="mw-today"></div>
-          </div>
-          <div class="mw-col">
-            <div class="mw-hd"><svg style="width:13px;height:13px;color:var(--red)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span class="col-ttl">Vencidas</span><span class="mw-ct" id="mw-ct-late">0</span></div>
-            <div class="mw-items" id="mw-late"></div>
-          </div>
-          <div class="mw-col" style="grid-column:1/-1">
-            <div class="mw-hd"><svg style="width:13px;height:13px;color:var(--amber)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="col-ttl">Próximas / Recorrentes</span><span class="mw-ct" id="mw-ct-next">0</span></div>
-            <div class="mw-items" id="mw-next" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:5px;max-height:none;padding:8px"></div>
+        <div class="ph">
+          <div><h1>Meu Trabalho</h1><div class="ph-sub">Suas tarefas pessoais com horário limite e recorrência</div></div>
+          <div class="ph-acts">
+            <button class="btn-main" onclick="openM('m-new-my')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="width:14px;height:14px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Nova Tarefa
+            </button>
           </div>
         </div>
+        <div class="mw-toolbar">
+          <input type="text" class="mw-search" id="mw-search" placeholder="🔍  Buscar tarefa..." oninput="renderMyWork()"/>
+          <select class="mw-filter" id="mw-filter-freq" onchange="renderMyWork()">
+            <option value="">Todas as recorrências</option>
+            <option value="once">Única</option>
+            <option value="daily">Diária</option>
+            <option value="weekly">Semanal</option>
+            <option value="monthly">Mensal</option>
+          </select>
+          <select class="mw-filter" id="mw-filter-status" onchange="renderMyWork()">
+            <option value="">Todos os status</option>
+            <option value="pending">Pendente</option>
+            <option value="progress">Em andamento</option>
+            <option value="done">Concluída</option>
+            <option value="late">Vencida</option>
+          </select>
+        </div>
+        <div id="mw-content"></div>
       </section>
 
       <!-- TAREFAS -->
@@ -1937,8 +1968,8 @@ function getMWState(t){
   return{cls:'',nameCls:'',badge:sbadge('pending'),bar:false};
 }
 
-function getMWToday(data){
-  const arr=(data&&data.myTasksByUser&&data.myTasksByUser[CUR.user.id])||getMyTasks();
+function getMWToday(data,overrideArr){
+  const arr=overrideArr||(data&&data.myTasksByUser&&data.myTasksByUser[CUR.user.id])||getMyTasks();
   const td=today();
   return arr.filter(t=>{
     if(t.status==='late')return false;
@@ -1993,35 +2024,106 @@ function purgeAndResetMyTasks(){
 
 function mwCardHTML(t){
   const st=getMWState(t);
-  return`<div class="mw-card ${st.cls}" onclick="openEditMy('${t.id}')">
-    <button class="tck ${t.status==='done'?'done':''}" onclick="event.stopPropagation();toggleMT('${t.id}')" style="border-radius:50%;flex-shrink:0;margin-top:1px">${t.status==='done'?ICK:''}</button>
+  const isDone=t.status==='done';
+  const cardCls=[st.cls, isDone?'done-c':''].filter(Boolean).join(' ');
+
+  // Horário com cor de status
+  let timeHtml='';
+  if(t.limitTime){
+    let timeCls='ok';
+    if(t.status==='late') timeCls='late';
+    else if(st.bar!==false) timeCls='grace';
+    timeHtml=`<span class="mw-time ${timeCls}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      ${t.limitTime}
+    </span>`;
+  } else {
+    timeHtml='<span style="font-size:11px;color:var(--tx3)">Sem horário</span>';
+  }
+
+  // Recorrência legível
+  const freqMap={once:'Única',daily:'Diária',weekly:'Semanal',monthly:'Mensal'};
+  const freqLabel=freqMap[t.frequency]||t.frequency;
+
+  return`<div class="mw-card ${cardCls}" onclick="openEditMy('${t.id}')">
+    <button class="tck ${isDone?'done':''}" onclick="event.stopPropagation();toggleMT('${t.id}')" style="width:22px;height:22px;border-radius:50%;flex-shrink:0">${isDone?ICK:''}</button>
     <div class="mw-info">
       <div class="mw-nm ${st.nameCls}">${t.title}</div>
-      <div class="mw-tm">${t.limitTime?`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:10px;height:10px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="${st.bar!==false?'tm-grace':t.status==='late'?'tm-late':''}">Limite: ${t.limitTime}</span>`:'Sem horário limite'}</div>
-      ${st.bar!==false?`<div class="grace-bar"><div class="grace-fill" style="width:${st.bar}%"></div></div>`:''}
+      <div class="mw-meta">
+        ${timeHtml}
+        <span style="color:var(--border2)">·</span>
+        <span style="font-size:11.5px;color:var(--tx3)">${freqLabel}</span>
+        ${st.bar!==false?`<span class="badge b-analysis" style="font-size:10px">⚠️ Atenção</span>`:''}
+      </div>
+      ${st.bar!==false?`<div class="grace-bar" style="margin-top:6px"><div class="grace-fill" style="width:${st.bar}%"></div></div>`:''}
     </div>
-    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">${fbadge(t.frequency)}${st.badge}</div>
-    <button onclick="event.stopPropagation();deleteMT('${t.id}')" class="del-btn">${IDEL}</button>
+    <div class="mw-badges">
+      ${st.badge}
+    </div>
+    <button onclick="event.stopPropagation();deleteMT('${t.id}')" class="del-btn" style="opacity:.4;transition:opacity .15s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.4">${IDEL}</button>
   </div>`;
 }
 
 function renderMyWork(){
   purgeAndResetMyTasks();checkMyLate();
-  const td=today(),all=getMyTasks();
-  const todayT=getMWToday();
-  const lateT=all.filter(t=>t.status==='late'&&!(t.statusAt&&daysSince(t.statusAt)>=3));
-  const nextT=all.filter(t=>{
-    if(t.status==='late'||(t.status==='done'&&t.frequency==='once'))return false;
-    if(t.statusAt&&daysSince(t.statusAt)>=3)return false;
-    return!todayT.includes(t);
+  const all=getMyTasks();
+  const q=($('#mw-search')?.value||'').toLowerCase();
+  const fFreqMW=$('#mw-filter-freq')?.value||'';
+  const fStatusMW=$('#mw-filter-status')?.value||'';
+
+  // Aplicar filtros
+  let filtered=all.filter(t=>{
+    if(t.statusAt&&daysSince(t.statusAt)>=3&&t.frequency!=='once')return false;
+    if(t.status==='done'&&t.frequency==='once'&&t.statusAt&&daysSince(t.statusAt)>=1)return false;
+    if(q&&!t.title.toLowerCase().includes(q))return false;
+    if(fFreqMW&&t.frequency!==fFreqMW)return false;
+    if(fStatusMW&&t.status!==fStatusMW)return false;
+    return true;
   });
 
-  $('#mw-ct-today').textContent=todayT.length;
-  $('#mw-ct-late').textContent=lateT.length;
-  $('#mw-ct-next').textContent=nextT.length;
+  // Separar em grupos
+  const lateT    = filtered.filter(t=>t.status==='late');
+  const todayT   = getMWToday(null,filtered);
+  const pendingT = filtered.filter(t=>
+    t.status==='pending'&&!todayT.includes(t)&&!lateT.includes(t)
+  );
+  const doneT    = filtered.filter(t=>t.status==='done');
 
-  const rc=(sel,arr)=>{const el=$(sel);if(!arr.length){el.innerHTML=empty('Nenhuma tarefa');}else{el.innerHTML=arr.map(mwCardHTML).join('');}};
-  rc('#mw-today',todayT);rc('#mw-late',lateT);rc('#mw-next',nextT);
+  const cont=$('#mw-content');
+  if(!filtered.length){
+    cont.innerHTML='<div class="mw-empty">Nenhuma tarefa encontrada.</div>';
+    return;
+  }
+
+  let h='';
+  if(lateT.length)    h+=mwSectionHTML('Vencidas',lateT,'late',
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px;color:var(--red)"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'
+  );
+  if(todayT.length)   h+=mwSectionHTML('Para hoje',todayT,'today',
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px;color:var(--accent)"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>'
+  );
+  if(pendingT.length) h+=mwSectionHTML('Pendentes / Recorrentes',pendingT,'next',
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px;color:var(--amber)"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'
+  );
+  if(doneT.length)    h+=mwSectionHTML('Concluídas',doneT,'done',
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px;color:var(--green)"><polyline points="20 6 9 17 4 12"/></svg>',
+    true // começa recolhido
+  );
+  cont.innerHTML=h;
+}
+
+function mwSectionHTML(label, tasks, section, icon, collapsed=false){
+  return`<div class="mw-section">
+    <div class="mw-section-hd ${collapsed?'collapsed':''}" data-section="${section}" onclick="this.classList.toggle('collapsed');this.nextElementSibling.classList.toggle('collapsed')">
+      ${icon}
+      <svg class="arr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:13px;height:13px;color:var(--tx3)"><polyline points="6 9 12 15 18 9"/></svg>
+      <span class="mw-section-label">${label}</span>
+      <span class="mw-section-ct">${tasks.length}</span>
+    </div>
+    <div class="mw-section-body ${collapsed?'collapsed':''}">
+      ${tasks.map(mwCardHTML).join('')}
+    </div>
+  </div>`;
 }
 
 async function toggleMT(id){
