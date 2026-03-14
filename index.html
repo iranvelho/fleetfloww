@@ -735,10 +735,7 @@ select.fi{appearance:none;cursor:pointer;padding-right:28px;background-image:url
 .tck-locked{cursor:not-allowed!important;opacity:.55;background:var(--surface2)!important;border-color:var(--border)!important;}
 .fi:disabled{opacity:.5;cursor:not-allowed;background:var(--surface2)!important;}
 .tck-locked:hover{background:var(--surface2)!important;border-color:var(--border)!important;transform:none!important;}
-/* ── TASK VANISH ANIMATION ── */
-@keyframes taskFadeOut{0%{opacity:1;transform:scaleY(1);max-height:200px}80%{opacity:.2;transform:scaleY(.95)}100%{opacity:0;transform:scaleY(0);max-height:0;padding:0;margin:0;border:none}}
-.task-vanishing{animation:taskFadeOut .6s ease forwards;pointer-events:none;overflow:hidden}
-.task-done-flash{background:rgba(15,122,80,.06)!important;border-color:rgba(15,122,80,.25)!important;transition:background .3s,border-color .3s}
+
 /* ── TASK ORIGIN BADGE ── */
 .task-origin{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;letter-spacing:.3px;padding:2px 7px;border-radius:20px;white-space:nowrap;flex-shrink:0}
 .task-origin.mine{background:rgba(61,107,140,.12);color:#3d6b8c;border:1px solid rgba(61,107,140,.2)}
@@ -1038,6 +1035,10 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
               <select class="fsel" id="fs-status" onchange="fStatus=this.value;renderTasks()"><option value="">Status</option><option value="pending">Pendente</option><option value="progress">Em andamento</option><option value="done">Concluída</option><option value="late">Vencida</option></select>
               <select class="fsel" id="fs-vis" onchange="fVis=this.value;renderTasks()"><option value="">Visibilidade</option><option value="global">Global</option><option value="private">Privada</option></select>
               <select class="fsel" id="fs-freq" onchange="fFreq=this.value;renderTasks()"><option value="">Frequência</option><option value="once">Única</option><option value="daily">Diária</option><option value="weekly">Semanal</option><option value="monthly">Mensal</option></select>
+              <button class="fsel" id="btn-hide-done" onclick="toggleHideDone()" style="cursor:pointer;display:flex;align-items:center;gap:5px;font-size:12px">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                <span id="hide-done-lbl">Ocultar concluídas</span>
+              </button>
             </div>
             <div class="vt">
               <button class="vb active" id="vb-list" onclick="tView='list';setVBtns();renderTasks()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>Lista</button>
@@ -1261,7 +1262,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
           <option value="private">🔒 Privada — apenas integrados veem</option>
         </select>
       </div>
-      <div class="fg" id="nt-members-wrap"><label>Integrar membros <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">opcional</span></label><div class="member-check-grid" id="nt-members-grid"></div></div>
+      <div class="fg" id="nt-members-wrap" style="display:flex"><label>Integrar membros <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">opcional</span></label><div class="member-check-grid" id="nt-members-grid"></div></div>
       <div class="fr">
         <div class="fg"><label>Frequência</label><select id="nt-freq" class="fi" onchange="toggleTaskTimeField('nt')"><option value="once">Apenas esta vez</option><option value="daily">Diária</option><option value="weekly">Semanal</option><option value="monthly">Mensal</option></select></div>
         <div class="fg"><label>Prioridade</label><select id="nt-prio" class="fi"><option value="medium">Média</option><option value="high">Alta</option><option value="low">Baixa</option></select></div>
@@ -2319,7 +2320,15 @@ async function deleteMT(id){
 // ═══════════════════════════════════════════════════════════
 //  TASKS
 // ═══════════════════════════════════════════════════════════
-let tView='list',fStatus='',fVis='',fFreq='';
+let tView='list',fStatus='',fVis='',fFreq='',fHideDone=false;
+function toggleHideDone(){
+  fHideDone=!fHideDone;
+  const lbl=$('#hide-done-lbl');
+  const btn=$('#btn-hide-done');
+  if(lbl)lbl.textContent=fHideDone?'Mostrar concluídas':'Ocultar concluídas';
+  if(btn)btn.style.background=fHideDone?'var(--accent-s)':'';
+  renderTasks();
+}
 
 function setVBtns(){
   $('#vb-list')?.classList.toggle('active',tView==='list');
@@ -2327,42 +2336,24 @@ function setVBtns(){
 }
 
 function purgeTasks(){
-  // Filtrar o que o USUÁRIO ATUAL deve ver, com base no seu papel na tarefa
+  // Tarefas recorrentes concluídas/vencidas: resetar após 3 dias (novo ciclo)
+  // Tarefas únicas: ficam visíveis com status concluído indefinidamente (usuário pode arquivar)
   _cache.tasks = (_cache.tasks||[]).filter(t=>{
-    if(t.status!=='done'&&t.status!=='late') return true; // sempre mostrar ativas
-
-    const isAssigned = t.createdBy!==CUR.user.id && (t.integrateFor||[]).includes(CUR.user.name);
-    const isDailyMine = t.frequency==='daily' && t.createdBy===CUR.user.id && (t.integrateFor||[]).length===0;
-
-    if(isAssigned || isDailyMine){
-      // Integrado ou diária própria: some 10s após conclusão (tratado no toggleTask)
-      // Aqui só remove se já passou mais de 1 minuto (segurança para reload de página)
-      if(t.statusAt && (Date.now()-new Date(t.statusAt).getTime()) > 60000) return false;
-      return true;
+    if(t.frequency==='once') return true; // únicas ficam sempre
+    if((t.status==='done'||t.status==='late') && t.statusAt && daysSince(t.statusAt)>=3){
+      // Resetar para pendente no próximo ciclo
+      t.status='pending'; t.statusAt=null;
+      sb.from('tasks').update({status:'pending',status_at:null}).eq('id',t.id).then(()=>{});
     }
-
-    // Criador: fica 3 dias com status concluído, depois some
-    if(t.statusAt && daysSince(t.statusAt)>=3) return false;
     return true;
   });
 }
 
 function renderTasks(){
   purgeTasks();
-  // Reativar vanish para tarefas recém concluídas (ex: após reload)
-  (_cache.tasks||[]).forEach(t=>{
-    if(t.status!=='done'||!t.statusAt) return;
-    const isAssigned = t.createdBy!==CUR.user.id && (t.integrateFor||[]).includes(CUR.user.name);
-    const isDailyMine = t.frequency==='daily' && t.createdBy===CUR.user.id && (t.integrateFor||[]).length===0;
-    if(isAssigned || isDailyMine){
-      const elapsed = Date.now()-new Date(t.statusAt).getTime();
-      if(elapsed < 10000 && !_vanishTimers[t.id]){
-        scheduleTaskVanish(t.id, 10000 - elapsed);
-      }
-    }
-  });
   const g=getG();
   let arr=(g.tasks||[]).filter(canSeeTask);
+  if(fHideDone)arr=arr.filter(t=>t.status!=='done');
   if(fStatus)arr=arr.filter(t=>t.status===fStatus);
   if(fVis)arr=arr.filter(t=>(t.visibility||'global')===fVis);
   if(fFreq)arr=arr.filter(t=>t.frequency===fFreq);
@@ -2503,52 +2494,11 @@ async function toggleTask(id){
   const sa=ns==='done'?new Date().toISOString():null;
   await sb.from('tasks').update({status:ns,status_at:sa}).eq('id',id);
   t.status=ns;if(sa)t.statusAt=sa;else delete t.statusAt;
-
   if(ns==='done'){
     addAct('Tarefa <strong>'+t.title+'</strong> concluída');
     addInbox('Tarefa "<strong>'+t.title+'</strong>" concluída por '+CUR.user.name+'.','✅','tarefa concluída');
-
-    // Verificar se sou o integrado (não o criador) — some em 10s
-    const isAssigned = t.createdBy!==CUR.user.id && (t.integrateFor||[]).includes(CUR.user.name);
-    const isDailyMine = t.frequency==='daily' && t.createdBy===CUR.user.id && (t.integrateFor||[]).length===0;
-
-    if(isAssigned || isDailyMine){
-      // Flash verde + some em 10 segundos
-      scheduleTaskVanish(id, 10000);
-    }
-    // Para o criador: renderiza normalmente, purgeTasks cuidará dos 3 dias
   }
-
   renderP(page);
-}
-
-// Mapa de timers de desaparecimento
-const _vanishTimers = {};
-
-function scheduleTaskVanish(taskId, delayMs){
-  // Cancelar timer anterior se existir
-  if(_vanishTimers[taskId]) clearTimeout(_vanishTimers[taskId]);
-
-  _vanishTimers[taskId] = setTimeout(()=>{
-    // Animar a linha da tarefa sumindo
-    const row = document.querySelector(`tr[data-task-id="${taskId}"], [data-task-id="${taskId}"]`);
-    if(row){
-      row.classList.add('task-vanishing');
-      setTimeout(()=>{
-        // Remover do cache local (não do banco — o criador ainda precisa ver)
-        delete _vanishTimers[taskId];
-        renderP(page);
-      }, 650);
-    } else {
-      delete _vanishTimers[taskId];
-    }
-  }, delayMs);
-
-  // Flash verde imediato
-  setTimeout(()=>{
-    const row = document.querySelector(`tr[data-task-id="${taskId}"], [data-task-id="${taskId}"]`);
-    if(row) row.classList.add('task-done-flash');
-  }, 50);
 }
 
 async function deleteTask(id){
@@ -2664,8 +2614,8 @@ async function deleteIdea(id){
 //  MODAL OPEN/EDIT
 // ═══════════════════════════════════════════════════════════
 function toggleMembersField(){
-  const v=$('#nt-vis')?.value;
-  const w=$('#nt-members-wrap');if(w)w.style.display=v==='private'?'none':'flex';
+  // Membros sempre visíveis — integrar é relevante tanto em global quanto privada
+  const w=$('#nt-members-wrap');if(w)w.style.display='flex';
 }
 function toggleTaskTimeField(prefix){
   const freq=$('#'+prefix+'-freq')?.value;
