@@ -2064,6 +2064,12 @@ function getMWState(t){
   if(t.status==='late')return{cls:'',nameCls:'late-n',badge:sbadge('late'),bar:false};
   if(t.limitTime){
     const lm=tMin(t.limitTime),nm=nowMin();
+    // Se foi criada depois do horário limite hoje → é para amanhã, não vence
+    if(t.createdAt){
+      const createdM=new Date(t.createdAt).getHours()*60+new Date(t.createdAt).getMinutes();
+      const createdToday=new Date(t.createdAt).toDateString()===new Date().toDateString();
+      if(createdToday && createdM > lm) return{cls:'',nameCls:'',badge:sbadge('pending'),bar:false};
+    }
     if(nm>lm+60)return{cls:'late-c',nameCls:'late-n',badge:sbadge('late'),bar:false};
     if(nm>lm){const pct=Math.min(100,Math.round((nm-lm)/60*100));return{cls:'grace-c',nameCls:'grace-n',badge:`<span class="badge b-analysis">⚠️ Atenção</span>`,bar:pct};}
   }
@@ -2076,7 +2082,17 @@ function getMWToday(data,overrideArr){
   return arr.filter(t=>{
     // Tarefas únicas concluídas/vencidas não aparecem mais
     if(t.frequency==='once'){
-      if(t.status==='done'||t.status==='late') return false;
+      if(t.status==='done') return false;
+      if(t.status==='late'){
+        // Se foi criada depois do horário → não é vencida de verdade, mostrar
+        if(t.createdAt){
+          const createdM=new Date(t.createdAt).getHours()*60+new Date(t.createdAt).getMinutes();
+          const lm=tMin(t.limitTime);
+          const createdToday=new Date(t.createdAt).toDateString()===new Date().toDateString();
+          if(createdToday && lm && createdM > lm) return true;
+        }
+        return false;
+      }
       return true;
     }
     // Tarefas recorrentes: verificar se já é hora de reaparecer
@@ -2125,12 +2141,22 @@ function isTM(t){ return taskShouldReappear(t); }
 
 function checkMyLate(){
   const arr=getMyTasks();let chg=false;
+  const nowM=nowMin();
   arr.forEach(t=>{
     if(t.status==='done'||t.status==='late'||!t.limitTime)return;
-    if(nowMin()>tMin(t.limitTime)+60){
-      t.status='late';t.statusAt=new Date().toISOString();chg=true;
-      addInbox(`Tarefa pessoal "<strong>${t.title}</strong>" não foi concluída e está vencida.`,'⏰','tarefa vencida');
+    const limitM=tMin(t.limitTime);
+    // Só vence se o horário+tolerância já passou
+    if(nowM <= limitM+60) return;
+    // Não marcar como vencida se foi criada DEPOIS do horário limite
+    // (ex: criou às 20h com limite 18h — aparece normalmente para o dia seguinte)
+    if(t.createdAt){
+      const createdM = new Date(t.createdAt).getHours()*60 + new Date(t.createdAt).getMinutes();
+      const createdToday = new Date(t.createdAt).toDateString() === new Date().toDateString();
+      // Se foi criada hoje APÓS o horário limite, não vence — é para amanhã
+      if(createdToday && createdM > limitM) return;
     }
+    t.status='late';t.statusAt=new Date().toISOString();chg=true;
+    addInbox(`Tarefa pessoal "<strong>${t.title}</strong>" não foi concluída e está vencida.`,'⏰','tarefa vencida');
   });
   if(chg)saveMyTasks(arr);
 }
