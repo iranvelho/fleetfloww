@@ -1127,9 +1127,10 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
       </div>
       <div class="fg" id="nt-members-wrap"><label>Integrar membros <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">opcional</span></label><div class="member-check-grid" id="nt-members-grid"></div></div>
       <div class="fr">
-        <div class="fg"><label>Frequência</label><select id="nt-freq" class="fi"><option value="once">Apenas esta vez</option><option value="daily">Diária</option><option value="weekly">Semanal</option><option value="monthly">Mensal</option></select></div>
+        <div class="fg"><label>Frequência</label><select id="nt-freq" class="fi" onchange="toggleTaskTimeField('nt')"><option value="once">Apenas esta vez</option><option value="daily">Diária</option><option value="weekly">Semanal</option><option value="monthly">Mensal</option></select></div>
         <div class="fg"><label>Prioridade</label><select id="nt-prio" class="fi"><option value="medium">Média</option><option value="high">Alta</option><option value="low">Baixa</option></select></div>
       </div>
+      <div class="fg" id="nt-time-wrap" style="display:none"><label>Horário limite <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">deve ser concluída até este horário</span></label><input type="time" id="nt-time" class="fi"/></div>
       <div class="fg"><label>Status</label><select id="nt-status" class="fi"><option value="pending">Pendente</option><option value="progress">Em andamento</option><option value="done">Concluída</option></select></div>
       <div class="info-note" id="nt-cycle-note" style="display:none">♻️ <strong>Tarefa recorrente:</strong> Após concluída ou vencida, some em 3 dias e reaparece automaticamente no próximo ciclo.</div>
     </div>
@@ -1147,9 +1148,10 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
       <div class="fg"><label>Visibilidade</label><select id="et-vis" class="fi"><option value="global">🌐 Global</option><option value="private">🔒 Privada</option></select></div>
       <div class="fg"><label>Integrar membros <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">opcional</span></label><div class="member-check-grid" id="et-members-grid"></div></div>
       <div class="fr">
-        <div class="fg"><label>Frequência</label><select id="et-freq" class="fi"><option value="once">Apenas esta vez</option><option value="daily">Diária</option><option value="weekly">Semanal</option><option value="monthly">Mensal</option></select></div>
+        <div class="fg"><label>Frequência</label><select id="et-freq" class="fi" onchange="toggleTaskTimeField('et')"><option value="once">Apenas esta vez</option><option value="daily">Diária</option><option value="weekly">Semanal</option><option value="monthly">Mensal</option></select></div>
         <div class="fg"><label>Prioridade</label><select id="et-prio" class="fi"><option value="medium">Média</option><option value="high">Alta</option><option value="low">Baixa</option></select></div>
       </div>
+      <div class="fg" id="et-time-wrap"><label>Horário limite <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">deve ser concluída até este horário</span></label><input type="time" id="et-time" class="fi"/></div>
       <div class="fg"><label>Status</label><select id="et-status" class="fi"><option value="pending">Pendente</option><option value="progress">Em andamento</option><option value="done">Concluída</option><option value="late">Vencida</option></select></div>
     </div>
     <div class="modal-ft"><button class="btn-sec" onclick="closeM('m-edit-task')">Cancelar</button><button class="btn-main" onclick="saveTask()">Salvar</button></div>
@@ -2083,20 +2085,38 @@ function renderTasks(){
 
 function renderTasksList(c,arr){
   if(!arr.length){c.innerHTML=empty('Nenhuma tarefa encontrada');return;}
-  // Separar: tarefas que eu criei vs tarefas que me incluíram
-  const mine   = arr.filter(t => t.createdBy === CUR.user.id);
-  const assigned = arr.filter(t => t.createdBy !== CUR.user.id && (t.integrateFor||[]).includes(CUR.user.name));
-  // Tarefas globais sem integração que eu posso ver mas não criei
-  const other  = arr.filter(t => t.createdBy !== CUR.user.id && !(t.integrateFor||[]).includes(CUR.user.name));
+
+  // 1. Atribuídas a mim: alguém me incluiu (eu não criei, mas estou no integrateFor)
+  const atribuidas = arr.filter(t =>
+    t.createdBy !== CUR.user.id &&
+    (t.integrateFor||[]).includes(CUR.user.name)
+  );
+
+  // 2. Globais: visíveis para todos (inclui as que eu criei como global)
+  const globais = arr.filter(t =>
+    (!t.visibility || t.visibility === 'global') &&
+    !(t.createdBy !== CUR.user.id && (t.integrateFor||[]).includes(CUR.user.name))
+  );
+
+  // 3. Criadas por mim: todas que eu criei (excluindo as que já aparecem em atribuídas)
+  const minhas = arr.filter(t =>
+    t.createdBy === CUR.user.id &&
+    !atribuidas.includes(t)
+  );
 
   let h='';
-  if(mine.length)     h+=taskGroupHTML('✏️ Criadas por mim', mine, 'mine-group', 'mine');
-  if(assigned.length) h+=taskGroupHTML('📥 Integradas a mim', assigned, 'assigned-group', 'assigned');
-  if(other.length)    h+=taskGroupHTML('🌐 Outras do grupo', other, 'other-group', 'other');
-  c.innerHTML=h;
+  if(atribuidas.length) h+=taskGroupHTML('📥 Atribuídas a mim', atribuidas, 'assigned-group', 'assigned');
+  if(globais.length)    h+=taskGroupHTML('🌐 Tarefas globais',   globais,   'global-group',   'global');
+  if(minhas.length)     h+=taskGroupHTML('✏️ Criadas por mim',   minhas,    'mine-group',     'mine');
+  if(!h) c.innerHTML=empty('Nenhuma tarefa encontrada');
+  else c.innerHTML=h;
 }
 
 function taskGroupHTML(label,tasks,gid,originType=''){
+  const isAssignedGroup = originType==='assigned';
+  const isGlobalGroup   = originType==='global';
+  const isMineGroup     = originType==='mine';
+
   return`<div class="task-group">
     <div class="task-group-hd" onclick="toggleGroup(this)">
       <svg class="tg-arr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
@@ -2105,31 +2125,40 @@ function taskGroupHTML(label,tasks,gid,originType=''){
     </div>
     <div class="task-group-body">
       <div class="t-wrap" style="border-radius:0;border:none"><table class="t-tbl">
-        <thead><tr><th>Tarefa</th><th>Integrado</th><th>Freq.</th><th>Prioridade</th><th>Status</th><th></th></tr></thead>
+        <thead><tr>
+          <th>Tarefa</th>
+          ${isGlobalGroup ? '<th>Criador</th><th>Integrados</th>' : ''}
+          ${isAssignedGroup ? '<th>Integrado por</th><th>Horário limite</th>' : ''}
+          ${isMineGroup ? '<th>Integrados</th>' : ''}
+          <th>Freq.</th><th>Prioridade</th><th>Status</th><th></th>
+        </tr></thead>
         <tbody>${tasks.map(t=>{
-          const isMine = t.createdBy===CUR.user.id;
-          const isAssigned = !isMine && (t.integrateFor||[]).includes(CUR.user.name);
-          const rowClass = isMine?'task-mine':isAssigned?'task-assigned':'';
-          const originBadge = isMine
-            ? '<span class="task-origin mine">Minha</span>'
-            : isAssigned
-              ? '<span class="task-origin assigned">Integrada</span>'
-              : '';
-          const creator = (_cache.members||[]).find(m=>m.id===t.createdBy);
-          const creatorName = creator ? creator.name : '—';
-          return`<tr class="${rowClass}" onclick="openEditTask('${t.id}')">
+          const isMine    = t.createdBy===CUR.user.id;
+          const isPriv    = t.visibility==='private';
+          const creator   = (_cache.members||[]).find(m=>m.id===t.createdBy);
+          const creatorName = creator?creator.name:'—';
+          const canToggle = canToggleTask(t);
+          const tckBtn    = `<button class="tck ${t.status==='done'?'done':''} ${!canToggle?'tck-locked':''}" onclick="event.stopPropagation();toggleTask('${t.id}')" title="${!canToggle?'Somente membros integrados podem alterar o status':''}">${t.status==='done'?ICK:(!canToggle?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:11px;height:11px;opacity:.4"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>':'')}</button>`;
+          const integrados = (t.integrateFor||[]).map(m=>`<div class="tc" style="gap:5px">${memberAvatar(m)}<span style="font-size:11.5px">${m}</span></div>`).join('')||'<span style="color:var(--tx3);font-size:12px">—</span>';
+          const horario    = t.limitTime
+            ? `<span style="display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:var(--accent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${t.limitTime}</span>`
+            : '<span style="color:var(--tx3);font-size:12px">—</span>';
+          const freqLabel  = t.limitTime&&t.frequency!=='once'
+            ? `${fbadge(t.frequency||'once')}<span style="font-size:10.5px;color:var(--tx3);margin-left:2px">até ${t.limitTime}</span>`
+            : fbadge(t.frequency||'once');
+
+          return`<tr class="${isMine?'task-mine':isAssignedGroup?'task-assigned':''}" onclick="openEditTask('${t.id}')">
             <td><div class="tc" style="gap:8px">
-              <button class="tck ${t.status==='done'?'done':''} ${!canToggleTask(t)?'tck-locked':''}" onclick="event.stopPropagation();toggleTask('${t.id}')" title="${!canToggleTask(t)?'Somente membros integrados podem alterar o status':''}">${t.status==='done'?ICK:(!canToggleTask(t)?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:11px;height:11px;opacity:.4"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>':'')}</button>
+              ${tckBtn}
               <div style="min-width:0">
-                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-                  <span class="${t.status==='done'?'s':''}" style="font-size:12.5px;font-weight:500">${t.title}</span>
-                  ${originBadge}
-                </div>
-                ${!isMine?`<div style="font-size:11px;color:var(--tx3);margin-top:2px">Criada por ${creatorName}</div>`:''}
+                <span class="${t.status==='done'?'s':''}" style="font-size:12.5px;font-weight:500">${t.title}</span>
+                ${isPriv?'<span style="font-size:10px;color:var(--tx3);margin-left:4px">🔒</span>':''}
               </div>
             </div></td>
-            <td><div style="display:flex;flex-wrap:wrap;gap:4px">${(t.integrateFor||[]).map(m=>`<div class="tc" style="gap:5px">${memberAvatar(m)}<span style="font-size:11.5px">${m}</span></div>`).join('')||'<span style="color:var(--tx3);font-size:12px">—</span>'}</div></td>
-            <td>${fbadge(t.frequency||'once')}</td>
+            ${isGlobalGroup?`<td><div class="tc" style="gap:5px">${memberAvatar(creatorName)}<span style="font-size:12px">${creatorName}</span></div></td><td><div style="display:flex;flex-wrap:wrap;gap:4px">${integrados}</div></td>`:''}
+            ${isAssignedGroup?`<td><div class="tc" style="gap:5px">${memberAvatar(creatorName)}<span style="font-size:12px">${creatorName}</span></div></td><td>${horario}</td>`:''}
+            ${isMineGroup?`<td><div style="display:flex;flex-wrap:wrap;gap:4px">${integrados}</div></td>`:''}
+            <td>${freqLabel}</td>
             <td>${pbadge(t.priority)}</td>
             <td>${sbadge(t.status)}</td>
             <td><div style="display:flex;gap:4px;align-items:center">
@@ -2303,6 +2332,11 @@ function toggleMembersField(){
   const v=$('#nt-vis')?.value;
   const w=$('#nt-members-wrap');if(w)w.style.display=v==='private'?'none':'flex';
 }
+function toggleTaskTimeField(prefix){
+  const freq=$('#'+prefix+'-freq')?.value;
+  const wrap=$('#'+prefix+'-time-wrap');
+  if(wrap) wrap.style.display=(freq&&freq!=='once')?'block':'none';
+}
 function openEditTask(id){
   const t=(_cache.tasks||[]).find(x=>x.id===id);if(!t)return;
   $('#et-id').value=id;$('#et-title').value=t.title;
@@ -2310,6 +2344,8 @@ function openEditTask(id){
   $('#et-status').value=t.status||'pending';
   $('#et-prio').value=t.priority||'medium';
   $('#et-vis').value=t.visibility||'global';
+  $('#et-time').value=t.limitTime||'';
+  toggleTaskTimeField('et');
   renderMemberGrid('et-members-grid', t.integrateFor||[]);
   const statusSel=$('#et-status');
   if(statusSel){statusSel.disabled=!canToggleTask(t);statusSel.title=!canToggleTask(t)?'Somente membros integrados podem alterar o status':'';}
@@ -2319,8 +2355,14 @@ async function saveTask(){
   const id=$('#et-id').value;const t=(_cache.tasks||[]).find(x=>x.id===id);if(!t)return;
   const title=$('#et-title').value.trim()||t.title;
   const ifor=getSelectedMembers('et-members-grid');
-  await sb.from('tasks').update({title,integrate_for:ifor,frequency:$('#et-freq').value,status:$('#et-status').value,priority:$('#et-prio').value,visibility:$('#et-vis').value}).eq('id',id);
-  Object.assign(t,{title,integrateFor:ifor,frequency:$('#et-freq').value,status:$('#et-status').value,priority:$('#et-prio').value,visibility:$('#et-vis').value});
+  const newStatus=$('#et-status').value;
+  const limitTime=$('#et-time').value||null;
+  if(newStatus!==t.status&&!canToggleTask(t)){
+    banner('Apenas os membros integrados podem alterar o status desta tarefa.','warn');
+    $('#et-status').value=t.status;return;
+  }
+  await sb.from('tasks').update({title,integrate_for:ifor,frequency:$('#et-freq').value,status:newStatus,priority:$('#et-prio').value,visibility:$('#et-vis').value,description:limitTime}).eq('id',id);
+  Object.assign(t,{title,integrateFor:ifor,frequency:$('#et-freq').value,status:newStatus,priority:$('#et-prio').value,visibility:$('#et-vis').value,limitTime});
   addAct('Tarefa <strong>'+title+'</strong> atualizada');
   addInbox('Tarefa "<strong>'+title+'</strong>" atualizada por '+CUR.user.name+'.','✏️','tarefa atualizada');
   closeM('m-edit-task');renderP(page);banner('Tarefa salva!','ok');
@@ -2378,10 +2420,10 @@ async function submitTask(){
   if(!title){banner('Informe o título','warn');return;}
   const mnames=getSelectedMembers('nt-members-grid');
   showLoader('Salvando...');
-  const {data:t,error}=await sb.from('tasks').insert({group_id:CUR.groupId,title,integrate_for:mnames,frequency:$('#nt-freq').value,status:$('#nt-status').value,priority:$('#nt-prio').value,visibility:$('#nt-vis').value,created_by:CUR.user.id}).select().single();
+  const {data:t,error}=await sb.from('tasks').insert({group_id:CUR.groupId,title,integrate_for:mnames,frequency:$('#nt-freq').value,status:$('#nt-status').value,priority:$('#nt-prio').value,visibility:$('#nt-vis').value,created_by:CUR.user.id,description:$('#nt-time').value||null}).select().single();
   if(error){hideLoader();banner('Erro ao criar tarefa','err');return;}
   _cache.tasks=_cache.tasks||[];
-  _cache.tasks.unshift({id:t.id,title,integrateFor:mnames,frequency:t.frequency,status:t.status,priority:t.priority,visibility:t.visibility,createdBy:t.created_by,createdAt:t.created_at});
+  _cache.tasks.unshift({id:t.id,title,integrateFor:mnames,frequency:t.frequency,status:t.status,priority:t.priority,visibility:t.visibility,createdBy:t.created_by,createdAt:t.created_at,limitTime:t.description||null});
   addAct('Nova tarefa: <strong>'+title+'</strong>');
   addInbox('Nova tarefa: "<strong>'+title+'</strong>" por '+CUR.user.name+'.','📋','nova tarefa');
   hideLoader();closeM('m-new-task');clearF('m-new-task');renderP(page);banner('Tarefa criada!','ok');
@@ -2551,7 +2593,7 @@ async function loadGroupData(){
     sb.from('inbox').select('*').eq('group_id',gid).eq('user_id',uid_val).order('created_at',{ascending:false}).limit(100),
     sb.from('activity').select('*,profiles(name)').eq('group_id',gid).order('created_at',{ascending:false}).limit(50)
   ]);
-  _cache.tasks=(tasks||[]).map(t=>({id:t.id,title:t.title,description:t.description,status:t.status,priority:t.priority,frequency:t.frequency,visibility:t.visibility,integrateFor:t.integrate_for||[],createdBy:t.created_by,statusAt:t.status_at,createdAt:t.created_at}));
+  _cache.tasks=(tasks||[]).map(t=>({id:t.id,title:t.title,status:t.status,priority:t.priority,frequency:t.frequency,visibility:t.visibility,integrateFor:t.integrate_for||[],createdBy:t.created_by,statusAt:t.status_at,createdAt:t.created_at,limitTime:t.description||null}));
   _cache.myTasks=(myTasks||[]).map(t=>({id:t.id,title:t.title,frequency:t.frequency,limitTime:t.limit_time,status:t.status,statusAt:t.status_at,createdAt:t.created_at,userId:t.user_id}));
   _cache.myTasksByUser={};
   (_cache.myTasks).forEach(t=>{if(!_cache.myTasksByUser[t.userId])_cache.myTasksByUser[t.userId]=[];_cache.myTasksByUser[t.userId].push(t);});
