@@ -854,9 +854,12 @@ select.fi{appearance:none;cursor:pointer;padding-right:28px;background-image:url
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;color:rgba(255,255,255,.3);flex-shrink:0"><path d="M7 16V4m0 0L3 8m4-4l4 4"/><path d="M17 8v12m0 0l4-4m-4 4l-4-4"/></svg>
       </div>
       <div class="sb-divider"></div>
-      <div class="user-row" onclick="go('profile')">
+      <div class="user-row" onclick="go('profile')" style="cursor:pointer">
         <div class="u-av" id="sb-av"><span id="sb-av-ini">?</span><img id="sb-av-img" style="display:none"/></div>
-        <div><div class="u-name" id="sb-name">—</div><div class="u-role" id="sb-group-name">—</div></div>
+        <div style="flex:1;min-width:0"><div class="u-name" id="sb-name">—</div><div class="u-role" id="sb-group-name">—</div></div>
+        <button onclick="event.stopPropagation();doLogout()" title="Sair da conta" style="background:none;border:none;cursor:pointer;padding:6px;border-radius:8px;color:rgba(255,255,255,.45);display:flex;align-items:center;transition:color .2s" onmouseover="this.style.color='#e07070'" onmouseout="this.style.color='rgba(255,255,255,.45)'">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
       </div>
     </div>
   </aside>
@@ -1032,6 +1035,10 @@ select.fi{appearance:none;cursor:pointer;padding-right:28px;background-image:url
         <div class="ph">
           <div><h1>Meu Grupo</h1><div class="ph-sub">Informações, membros e código de acesso</div></div>
           <div class="ph-acts" id="gi-admin-acts" style="display:none">
+            <button class="btn-sec" onclick="deleteGroup()" style="color:var(--red);border-color:rgba(184,60,43,.4);gap:5px">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+              Apagar Grupo
+            </button>
             <button class="btn-main" onclick="openM('m-edit-group')">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="width:14px;height:14px"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
               Editar Grupo
@@ -1093,7 +1100,7 @@ select.fi{appearance:none;cursor:pointer;padding-right:28px;background-image:url
           <option value="private">🔒 Privada — apenas integrados veem</option>
         </select>
       </div>
-      <div class="fg" id="nt-members-wrap"><label>Integrar para <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">(Ctrl para múltiplos)</span></label><select id="nt-members" class="fi" multiple style="height:95px"></select></div>
+      <div class="fg" id="nt-members-wrap"><label>Integrar membros <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">(Segure Ctrl para selecionar vários)</span></label><select id="nt-members" class="fi" multiple style="height:110px;border-radius:10px"></select></div>
       <div class="fr">
         <div class="fg"><label>Frequência</label><select id="nt-freq" class="fi"><option value="once">Apenas esta vez</option><option value="daily">Diária</option><option value="weekly">Semanal</option><option value="monthly">Mensal</option></select></div>
         <div class="fg"><label>Prioridade</label><select id="nt-prio" class="fi"><option value="medium">Média</option><option value="high">Alta</option><option value="low">Baixa</option></select></div>
@@ -2363,7 +2370,7 @@ async function submitIdea(){
 
 // ── NEW TASK MODAL: populate members from group ──
 function fillMemberSelects(){
-  const members=(_cache.members||[]).filter(m=>m.id!==CUR.user.id);
+  const members=(_cache.members||[]);
   const opts=members.map(m=>`<option value="${m.name}">${m.name}</option>`).join('');
   ['#nt-members','#et-members'].forEach(s=>{const el=$(s);if(el)el.innerHTML=opts||'<option disabled>Nenhum membro no grupo</option>';});
 }
@@ -3247,10 +3254,10 @@ function renderGroupInfo(){
   else{$('#gi-av-img').style.display='none';$('#gi-av-ini').style.display='';$('#gi-av-ini').textContent=ini(CUR.groupName||'G');}
 
   // Code
-  $('#gi-code').textContent=grp.code||'—';
+  const codeEl=$('#gi-code');if(codeEl)codeEl.textContent=CUR.groupCode||'—';
 
   // Admin actions visible only for creator
-  const isAdmin=grp.createdBy===CUR.user.id;
+  const isAdmin=CUR.groupCreatedBy===CUR.user.id;
   const adminActs=$('#gi-admin-acts');
   if(adminActs)adminActs.style.display=isAdmin?'flex':'none';
 
@@ -3309,6 +3316,35 @@ function openEditGroupModal(){
   else{$('#eg-av-img').style.display='none';$('#eg-av-ini').style.display='';$('#eg-av-ini').textContent=ini(CUR.groupName||'G');}
 }
 
+async function deleteGroup(){
+  if(CUR.groupCreatedBy !== CUR.user.id){ banner('Somente o administrador pode apagar o grupo.','err'); return; }
+  if(!window.confirm('⚠️ Apagar o grupo "'+CUR.groupName+'" permanentemente?\n\nTodos os dados (tarefas, reuniões, projetos) serão perdidos. Esta ação não pode ser desfeita.')) return;
+  if(!window.confirm('Tem certeza absoluta? Digite OK para confirmar.\n\nIsso apagará TUDO.')) return;
+  showLoader('Apagando grupo...');
+  const gid = CUR.groupId;
+  // Delete all group data
+  await Promise.all([
+    sb.from('tasks').delete().eq('group_id',gid),
+    sb.from('my_tasks').delete().eq('group_id',gid),
+    sb.from('meetings').delete().eq('group_id',gid),
+    sb.from('ideas').delete().eq('group_id',gid),
+    sb.from('projects').delete().eq('group_id',gid),
+    sb.from('chat_messages').delete().eq('group_id',gid),
+    sb.from('inbox').delete().eq('group_id',gid),
+    sb.from('activity').delete().eq('group_id',gid),
+    sb.from('group_members').delete().eq('group_id',gid),
+  ]);
+  await sb.from('groups').delete().eq('id',gid);
+  hideLoader();
+  CUR.groupId=null;CUR.groupName=null;CUR.groupCode=null;CUR.groupAvatar=null;CUR.groupCreatedBy=null;
+  _cache={tasks:[],myTasks:[],myTasksByUser:{},meetings:[],ideas:[],projects:[],members:[],inbox:[],activity:[],comments:{},chat:[]};
+  document.getElementById('app').style.display='none';
+  document.getElementById('auth-screen').style.display='flex';
+  $$('.auth-step').forEach(s=>s.classList.remove('active'));
+  $('#auth-step-group').classList.add('active');
+  banner('Grupo apagado.','ok');
+}
+
 async function saveGroupInfo(){
   const name=$('#eg-name').value.trim()||CUR.groupName;
   const upd={name,description:$('#eg-desc').value.trim()||null};
@@ -3334,6 +3370,23 @@ openM=function(id){
 // ═══════════════════════════════════════════════════════════
 //  BOOT
 // ═══════════════════════════════════════════════════════════
+async function doLogout(){
+  if(!window.confirm('Sair da conta?')) return;
+  showLoader('Saindo...');
+  await sb.auth.signOut();
+  hideLoader();
+  CUR={user:null,groupId:null,groupName:null,groupCode:null,groupAvatar:null,groupCreatedBy:null};
+  _cache={tasks:[],myTasks:[],myTasksByUser:{},meetings:[],ideas:[],projects:[],members:[],inbox:[],activity:[],comments:{},chat:[]};
+  if(_realtimeCh){sb.removeChannel(_realtimeCh);_realtimeCh=null;}
+  document.getElementById('app').style.display='none';
+  document.getElementById('auth-screen').style.display='flex';
+  $$('.auth-step').forEach(s=>s.classList.remove('active'));
+  $('#auth-step-login').classList.add('active');
+  // Limpar campos
+  ['#auth-email','#auth-pass','#reg-name','#reg-email','#reg-pass'].forEach(s=>{const el=$(s);if(el)el.value='';});
+  banner('Você saiu da conta.','ok');
+}
+
 document.addEventListener('DOMContentLoaded',async()=>{
   showLoader('Iniciando...');
   const {data:{session}}=await sb.auth.getSession();
