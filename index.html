@@ -735,6 +735,10 @@ select.fi{appearance:none;cursor:pointer;padding-right:28px;background-image:url
 .tck-locked{cursor:not-allowed!important;opacity:.55;background:var(--surface2)!important;border-color:var(--border)!important;}
 .fi:disabled{opacity:.5;cursor:not-allowed;background:var(--surface2)!important;}
 .tck-locked:hover{background:var(--surface2)!important;border-color:var(--border)!important;transform:none!important;}
+/* ── TASK VANISH ANIMATION ── */
+@keyframes taskFadeOut{0%{opacity:1;transform:scaleY(1);max-height:200px}80%{opacity:.2;transform:scaleY(.95)}100%{opacity:0;transform:scaleY(0);max-height:0;padding:0;margin:0;border:none}}
+.task-vanishing{animation:taskFadeOut .6s ease forwards;pointer-events:none;overflow:hidden}
+.task-done-flash{background:rgba(15,122,80,.06)!important;border-color:rgba(15,122,80,.25)!important;transition:background .3s,border-color .3s}
 /* ── TASK ORIGIN BADGE ── */
 .task-origin{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;letter-spacing:.3px;padding:2px 7px;border-radius:20px;white-space:nowrap;flex-shrink:0}
 .task-origin.mine{background:rgba(61,107,140,.12);color:#3d6b8c;border:1px solid rgba(61,107,140,.2)}
@@ -2323,27 +2327,40 @@ function setVBtns(){
 }
 
 function purgeTasks(){
-  const g=getG();
-  g.tasks=g.tasks||[];
-  const before=g.tasks.length;
-  g.tasks=g.tasks.filter(t=>{
-    if(t.frequency==='once')return true;
-    if((t.status==='done'||t.status==='late')&&t.statusAt){
-      if(daysSince(t.statusAt)>=3){
-        if(t.status==='late'){
-          // notify members
-          addInbox(`Tarefa "<strong>${t.title}</strong>" foi removida após 3 dias em atraso. <em>Integrados foram notificados.</em>`,'🗑️','tarefa expirada');
-        }
-        return false;
-      }
+  // Filtrar o que o USUÁRIO ATUAL deve ver, com base no seu papel na tarefa
+  _cache.tasks = (_cache.tasks||[]).filter(t=>{
+    if(t.status!=='done'&&t.status!=='late') return true; // sempre mostrar ativas
+
+    const isAssigned = t.createdBy!==CUR.user.id && (t.integrateFor||[]).includes(CUR.user.name);
+    const isDailyMine = t.frequency==='daily' && t.createdBy===CUR.user.id && (t.integrateFor||[]).length===0;
+
+    if(isAssigned || isDailyMine){
+      // Integrado ou diária própria: some 10s após conclusão (tratado no toggleTask)
+      // Aqui só remove se já passou mais de 1 minuto (segurança para reload de página)
+      if(t.statusAt && (Date.now()-new Date(t.statusAt).getTime()) > 60000) return false;
+      return true;
     }
+
+    // Criador: fica 3 dias com status concluído, depois some
+    if(t.statusAt && daysSince(t.statusAt)>=3) return false;
     return true;
   });
-  if(_cache.tasks.length!==before){} // cache already updated
 }
 
 function renderTasks(){
   purgeTasks();
+  // Reativar vanish para tarefas recém concluídas (ex: após reload)
+  (_cache.tasks||[]).forEach(t=>{
+    if(t.status!=='done'||!t.statusAt) return;
+    const isAssigned = t.createdBy!==CUR.user.id && (t.integrateFor||[]).includes(CUR.user.name);
+    const isDailyMine = t.frequency==='daily' && t.createdBy===CUR.user.id && (t.integrateFor||[]).length===0;
+    if(isAssigned || isDailyMine){
+      const elapsed = Date.now()-new Date(t.statusAt).getTime();
+      if(elapsed < 10000 && !_vanishTimers[t.id]){
+        scheduleTaskVanish(t.id, 10000 - elapsed);
+      }
+    }
+  });
   const g=getG();
   let arr=(g.tasks||[]).filter(canSeeTask);
   if(fStatus)arr=arr.filter(t=>t.status===fStatus);
@@ -2420,7 +2437,7 @@ function taskGroupHTML(label,tasks,gid,originType=''){
             ? `${fbadge(t.frequency||'once')}<span style="font-size:10.5px;color:var(--tx3);margin-left:2px">até ${t.limitTime}</span>`
             : fbadge(t.frequency||'once');
 
-          return`<tr class="${isMine?'task-mine':isAssignedGroup?'task-assigned':''}" onclick="openEditTask('${t.id}')">
+          return`<tr data-task-id="${t.id}" class="${isMine?'task-mine':isAssignedGroup?'task-assigned':''}" onclick="openEditTask('${t.id}')">
             <td><div class="tc" style="gap:8px">
               ${tckBtn}
               <div style="min-width:0">
@@ -2482,11 +2499,56 @@ async function toggleTask(id){
     banner('Apenas os membros integrados podem alterar o status desta tarefa.','warn');
     return;
   }
-  const ns=t.status==='done'?'pending':'done';const sa=ns==='done'?new Date().toISOString():null;
+  const ns=t.status==='done'?'pending':'done';
+  const sa=ns==='done'?new Date().toISOString():null;
   await sb.from('tasks').update({status:ns,status_at:sa}).eq('id',id);
   t.status=ns;if(sa)t.statusAt=sa;else delete t.statusAt;
-  if(ns==='done'){addAct('Tarefa <strong>'+t.title+'</strong> concluída');addInbox('Tarefa "<strong>'+t.title+'</strong>" concluída por '+CUR.user.name+'.','✅','tarefa concluída');}
+
+  if(ns==='done'){
+    addAct('Tarefa <strong>'+t.title+'</strong> concluída');
+    addInbox('Tarefa "<strong>'+t.title+'</strong>" concluída por '+CUR.user.name+'.','✅','tarefa concluída');
+
+    // Verificar se sou o integrado (não o criador) — some em 10s
+    const isAssigned = t.createdBy!==CUR.user.id && (t.integrateFor||[]).includes(CUR.user.name);
+    const isDailyMine = t.frequency==='daily' && t.createdBy===CUR.user.id && (t.integrateFor||[]).length===0;
+
+    if(isAssigned || isDailyMine){
+      // Flash verde + some em 10 segundos
+      scheduleTaskVanish(id, 10000);
+    }
+    // Para o criador: renderiza normalmente, purgeTasks cuidará dos 3 dias
+  }
+
   renderP(page);
+}
+
+// Mapa de timers de desaparecimento
+const _vanishTimers = {};
+
+function scheduleTaskVanish(taskId, delayMs){
+  // Cancelar timer anterior se existir
+  if(_vanishTimers[taskId]) clearTimeout(_vanishTimers[taskId]);
+
+  _vanishTimers[taskId] = setTimeout(()=>{
+    // Animar a linha da tarefa sumindo
+    const row = document.querySelector(`tr[data-task-id="${taskId}"], [data-task-id="${taskId}"]`);
+    if(row){
+      row.classList.add('task-vanishing');
+      setTimeout(()=>{
+        // Remover do cache local (não do banco — o criador ainda precisa ver)
+        delete _vanishTimers[taskId];
+        renderP(page);
+      }, 650);
+    } else {
+      delete _vanishTimers[taskId];
+    }
+  }, delayMs);
+
+  // Flash verde imediato
+  setTimeout(()=>{
+    const row = document.querySelector(`tr[data-task-id="${taskId}"], [data-task-id="${taskId}"]`);
+    if(row) row.classList.add('task-done-flash');
+  }, 50);
 }
 
 async function deleteTask(id){
