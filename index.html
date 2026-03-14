@@ -702,6 +702,25 @@ select.fi{appearance:none;cursor:pointer;padding-right:28px;background-image:url
 .chat-send:hover{background:var(--accent-h)}
 .chat-send svg{width:15px;height:15px}
 
+.tck-locked{cursor:not-allowed!important;opacity:.55;background:var(--surface2)!important;border-color:var(--border)!important;}
+.fi:disabled{opacity:.5;cursor:not-allowed;background:var(--surface2)!important;}
+.tck-locked:hover{background:var(--surface2)!important;border-color:var(--border)!important;transform:none!important;}
+/* ── MEMBER CHECKBOXES ── */
+.member-check-grid{display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto;padding:2px}
+.member-check-grid::-webkit-scrollbar{width:4px}
+.member-check-grid::-webkit-scrollbar-track{background:transparent}
+.member-check-grid::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+.mcb-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);cursor:pointer;transition:all .15s;user-select:none}
+.mcb-item:hover{border-color:var(--accent);background:var(--accent-s2)}
+.mcb-item.selected{border-color:var(--accent);background:var(--accent-s)}
+.mcb-box{width:18px;height:18px;border-radius:5px;border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;background:var(--surface)}
+.mcb-item.selected .mcb-box{background:var(--accent);border-color:var(--accent)}
+.mcb-item.selected .mcb-box svg{display:block}
+.mcb-box svg{display:none;width:10px;height:10px;stroke:#fff;stroke-width:3}
+.mcb-av{width:28px;height:28px;border-radius:50%;background:var(--accent-s);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--accent);flex-shrink:0;overflow:hidden}
+.mcb-av img{width:100%;height:100%;object-fit:cover}
+.mcb-name{font-size:13px;font-weight:500;color:var(--tx);flex:1}
+.mcb-you{font-size:10px;color:var(--tx3);background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:1px 5px}
 /* ── LOADER ── */
 #ff-loader{position:fixed;inset:0;z-index:99999;background:rgba(247,245,243,.88);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px}
 #ff-loader .spin{width:38px;height:38px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
@@ -1100,7 +1119,7 @@ select.fi{appearance:none;cursor:pointer;padding-right:28px;background-image:url
           <option value="private">🔒 Privada — apenas integrados veem</option>
         </select>
       </div>
-      <div class="fg" id="nt-members-wrap"><label>Integrar membros <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">(Segure Ctrl para selecionar vários)</span></label><select id="nt-members" class="fi" multiple style="height:110px;border-radius:10px"></select></div>
+      <div class="fg" id="nt-members-wrap"><label>Integrar membros <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">opcional</span></label><div class="member-check-grid" id="nt-members-grid"></div></div>
       <div class="fr">
         <div class="fg"><label>Frequência</label><select id="nt-freq" class="fi"><option value="once">Apenas esta vez</option><option value="daily">Diária</option><option value="weekly">Semanal</option><option value="monthly">Mensal</option></select></div>
         <div class="fg"><label>Prioridade</label><select id="nt-prio" class="fi"><option value="medium">Média</option><option value="high">Alta</option><option value="low">Baixa</option></select></div>
@@ -1120,7 +1139,7 @@ select.fi{appearance:none;cursor:pointer;padding-right:28px;background-image:url
       <input type="hidden" id="et-id"/>
       <div class="fg"><label>Título</label><input type="text" id="et-title" class="fi"/></div>
       <div class="fg"><label>Visibilidade</label><select id="et-vis" class="fi"><option value="global">🌐 Global</option><option value="private">🔒 Privada</option></select></div>
-      <div class="fg"><label>Integrar para</label><select id="et-members" class="fi" multiple style="height:95px"></select></div>
+      <div class="fg"><label>Integrar membros <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">opcional</span></label><div class="member-check-grid" id="et-members-grid"></div></div>
       <div class="fr">
         <div class="fg"><label>Frequência</label><select id="et-freq" class="fi"><option value="once">Apenas esta vez</option><option value="daily">Diária</option><option value="weekly">Semanal</option><option value="monthly">Mensal</option></select></div>
         <div class="fg"><label>Prioridade</label><select id="et-prio" class="fi"><option value="medium">Média</option><option value="high">Alta</option><option value="low">Baixa</option></select></div>
@@ -1787,6 +1806,15 @@ function canSeeTask(t){
   return(t.integrateFor||[]).includes(CUR.user.name);
 }
 
+function canToggleTask(t){
+  // Se a tarefa tem membros integrados → só eles podem alterar o status
+  if((t.integrateFor||[]).length > 0){
+    return (t.integrateFor||[]).includes(CUR.user.name);
+  }
+  // Se não tem ninguém integrado → só o criador pode
+  return t.createdBy === CUR.user.id;
+}
+
 // ── BADGES HTML ──
 function sbadge(s){
   const m={pending:['b-pending','Pendente'],progress:['b-progress','Em andamento'],done:['b-done','Concluída'],late:['b-late','Vencida']};
@@ -1858,7 +1886,7 @@ function renderDash(){
   // Late tasks
   const dl=$('#d-late');
   dl.innerHTML=lateTasks.length?lateTasks.slice(0,6).map(t=>`<div class="ti">
-    <button class="tck" onclick="toggleTask('${t.id}')"></button>
+    <button class="tck ${!canToggleTask(t)?'tck-locked':''}" onclick="toggleTask('${t.id}')" title="${!canToggleTask(t)?'Somente integrados podem alterar':''}"></button>
     <div class="ti-info"><div class="ti-nm">${t.title}</div>
     <div class="ti-meta">${(t.integrateFor||[]).slice(0,2).join(', ')||'—'} ${pbadge(t.priority)}</div></div>
     <div class="ti-right">${sbadge('late')}</div>
@@ -1874,7 +1902,9 @@ function renderDash(){
   // Activity
   const da=$('#d-act');
   const acts=data.activity||[];
-  da.innerHTML=acts.length?acts.slice(0,10).map(a=>`<div class="act-item"><div class="act-dot"></div><div class="act-txt">${a.text}</div><div class="act-tm">${relT(a.time)}</div></div>`).join(''):empty('Sem atividade recente');
+  // Filtrar: mostrar só atividades do usuário atual
+  const myActs=acts.filter(a=>!a.author||a.author===CUR.user.name).slice(0,10);
+  da.innerHTML=myActs.length?myActs.map(a=>`<div class="act-item"><div class="act-dot"></div><div class="act-txt">${a.text}</div><div class="act-tm">${relT(a.time)}</div></div>`).join(''):empty('Sem atividade recente');
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -2073,7 +2103,7 @@ function taskGroupHTML(label,tasks,gid){
         <thead><tr><th>Tarefa</th><th>Integrado</th><th>Freq.</th><th>Prioridade</th><th>Status</th><th>Vis.</th><th></th></tr></thead>
         <tbody>${tasks.map(t=>`<tr onclick="openEditTask('${t.id}')">
           <td><div class="tc">
-            <button class="tck ${t.status==='done'?'done':''}" onclick="event.stopPropagation();toggleTask('${t.id}')">${t.status==='done'?ICK:''}</button>
+            <button class="tck ${t.status==='done'?'done':''} ${!canToggleTask(t)?'tck-locked':''}" onclick="event.stopPropagation();toggleTask('${t.id}')" title="${!canToggleTask(t)?'Somente membros integrados podem alterar':''}">${t.status==='done'?ICK:(!canToggleTask(t)?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:11px;height:11px;opacity:.4"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>':'')}</button>
             <span class="${t.status==='done'?'s':''}" style="font-size:12.5px;font-weight:500">${t.title}</span>
           </div></td>
           <td><div style="display:flex;flex-wrap:wrap;gap:4px">${(t.integrateFor||[]).map(m=>`<div class="tc" style="gap:5px">${memberAvatar(m)}<span style="font-size:11.5px">${m}</span></div>`).join('')||'<span style="color:var(--tx3);font-size:12px">—</span>'}</div></td>
@@ -2124,6 +2154,10 @@ function fillMemberFilter(){
 
 async function toggleTask(id){
   const t=(_cache.tasks||[]).find(x=>x.id===id);if(!t)return;
+  if(!canToggleTask(t)){
+    banner('Apenas os membros integrados podem alterar o status desta tarefa.','warn');
+    return;
+  }
   const ns=t.status==='done'?'pending':'done';const sa=ns==='done'?new Date().toISOString():null;
   await sb.from('tasks').update({status:ns,status_at:sa}).eq('id',id);
   t.status=ns;if(sa)t.statusAt=sa;else delete t.statusAt;
@@ -2248,19 +2282,21 @@ function toggleMembersField(){
   const w=$('#nt-members-wrap');if(w)w.style.display=v==='private'?'none':'flex';
 }
 function openEditTask(id){
-  const g=getG();const t=(g.tasks||[]).find(x=>x.id===id);if(!t)return;
+  const t=(_cache.tasks||[]).find(x=>x.id===id);if(!t)return;
   $('#et-id').value=id;$('#et-title').value=t.title;
-  $$('#et-members option').forEach(o=>o.selected=(t.integrateFor||[]).includes(o.value));
   $('#et-freq').value=t.frequency||'once';
   $('#et-status').value=t.status||'pending';
   $('#et-prio').value=t.priority||'medium';
   $('#et-vis').value=t.visibility||'global';
+  renderMemberGrid('et-members-grid', t.integrateFor||[]);
+  const statusSel=$('#et-status');
+  if(statusSel){statusSel.disabled=!canToggleTask(t);statusSel.title=!canToggleTask(t)?'Somente membros integrados podem alterar o status':'';}
   openM('m-edit-task');
 }
 async function saveTask(){
   const id=$('#et-id').value;const t=(_cache.tasks||[]).find(x=>x.id===id);if(!t)return;
   const title=$('#et-title').value.trim()||t.title;
-  const ifor=$$('#et-members option:checked').map(o=>o.value);
+  const ifor=getSelectedMembers('et-members-grid');
   await sb.from('tasks').update({title,integrate_for:ifor,frequency:$('#et-freq').value,status:$('#et-status').value,priority:$('#et-prio').value,visibility:$('#et-vis').value}).eq('id',id);
   Object.assign(t,{title,integrateFor:ifor,frequency:$('#et-freq').value,status:$('#et-status').value,priority:$('#et-prio').value,visibility:$('#et-vis').value});
   addAct('Tarefa <strong>'+title+'</strong> atualizada');
@@ -2318,7 +2354,7 @@ function clearF(id){
 async function submitTask(){
   const title=$('#nt-title').value.trim();
   if(!title){banner('Informe o título','warn');return;}
-  const mnames=$$('#nt-members option:checked').map(o=>o.value);
+  const mnames=getSelectedMembers('nt-members-grid');
   showLoader('Salvando...');
   const {data:t,error}=await sb.from('tasks').insert({group_id:CUR.groupId,title,integrate_for:mnames,frequency:$('#nt-freq').value,status:$('#nt-status').value,priority:$('#nt-prio').value,visibility:$('#nt-vis').value,created_by:CUR.user.id}).select().single();
   if(error){hideLoader();banner('Erro ao criar tarefa','err');return;}
@@ -2369,10 +2405,34 @@ async function submitIdea(){
 }
 
 // ── NEW TASK MODAL: populate members from group ──
-function fillMemberSelects(){
+function renderMemberGrid(gridId, selectedNames=[]){
   const members=(_cache.members||[]);
-  const opts=members.map(m=>`<option value="${m.name}">${m.name}</option>`).join('');
-  ['#nt-members','#et-members'].forEach(s=>{const el=$(s);if(el)el.innerHTML=opts||'<option disabled>Nenhum membro no grupo</option>';});
+  const grid=document.getElementById(gridId);
+  if(!grid) return;
+  if(!members.length){grid.innerHTML='<div style="font-size:12.5px;color:var(--tx3);padding:6px 0">Nenhum outro membro no grupo.</div>';return;}
+  grid.innerHTML=members.map(m=>{
+    const isMe=m.id===CUR.user.id;
+    const sel=selectedNames.includes(m.name);
+    const av=m.avatar?`<img src="${m.avatar}"/>`:'';
+    return `<div class="mcb-item${sel?' selected':''}" data-name="${m.name}" onclick="toggleMcb(this,'${gridId}')">
+      <div class="mcb-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <div class="mcb-av">${av||ini(m.name)}</div>
+      <span class="mcb-name">${m.name}</span>
+      ${isMe?'<span class="mcb-you">Você</span>':''}
+    </div>`;
+  }).join('');
+}
+function toggleMcb(el, gridId){
+  el.classList.toggle('selected');
+}
+function getSelectedMembers(gridId){
+  const grid=document.getElementById(gridId);
+  if(!grid) return [];
+  return [...grid.querySelectorAll('.mcb-item.selected')].map(el=>el.dataset.name);
+}
+function fillMemberSelects(){
+  renderMemberGrid('nt-members-grid',[]);
+  renderMemberGrid('et-members-grid',[]);
 }
 
 // ═══════════════════════════════════════════════════════════
