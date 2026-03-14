@@ -1103,15 +1103,23 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
       <section id="page-groupinfo" class="page">
         <div class="ph">
           <div><h1>Meu Grupo</h1><div class="ph-sub">Informações, membros e código de acesso</div></div>
-          <div class="ph-acts" id="gi-admin-acts" style="display:none">
-            <button class="btn-sec" onclick="deleteGroup()" style="color:var(--red);border-color:rgba(184,60,43,.4);gap:5px">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-              Apagar Grupo
+          <div class="ph-acts" style="gap:8px">
+            <!-- Botão sair — visível para todos que não são admin -->
+            <button id="gi-leave-btn" onclick="leaveGroup(CUR.groupId)" style="display:none" class="btn-sec" style="gap:5px">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="width:14px;height:14px"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              Sair do Grupo
             </button>
-            <button class="btn-main" onclick="openM('m-edit-group')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="width:14px;height:14px"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-              Editar Grupo
-            </button>
+            <!-- Botões admin — visíveis apenas para o criador -->
+            <div id="gi-admin-acts" style="display:none;gap:8px;align-items:center;display:none">
+              <button class="btn-sec" onclick="deleteGroup()" style="color:var(--red);border-color:rgba(184,60,43,.4);gap:5px">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                Apagar Grupo
+              </button>
+              <button class="btn-main" onclick="openM('m-edit-group')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="width:14px;height:14px"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Editar Grupo
+              </button>
+            </div>
           </div>
         </div>
         <div class="gi-hero">
@@ -3137,17 +3145,38 @@ async function renderMyGroupsList(){
 }
 
 async function leaveGroup(groupId){
-  if(!window.confirm('Sair deste grupo?')) return;
-  showLoader('Saindo...');
+  if(!window.confirm('Sair do grupo "'+CUR.groupName+'"? Você poderá entrar novamente com o código.')) return;
+  showLoader('Saindo do grupo...');
   await sb.from('group_members').delete().eq('group_id',groupId).eq('user_id',CUR.user.id);
   const {data:ms}=await sb.from('group_members').select('group_id,groups(*)').eq('user_id',CUR.user.id);
-  hideLoader();closeM('m-switch-group');
+  hideLoader();
+  // Fechar modal se estiver aberto
+  closeM('m-switch-group');
   if(ms&&ms.length){
     const rem=ms.filter(m=>m.group_id!==groupId);
-    if(rem.length){const g=rem[0].groups;CUR.groupId=g.id;CUR.groupName=g.name;CUR.groupCode=g.code;CUR.groupAvatar=g.avatar;CUR.groupCreatedBy=g.created_by;await loadGroupData();refreshAppForGroup();}
-    else{CUR.groupId=null;document.getElementById('app').style.display='none';document.getElementById('auth-screen').style.display='flex';document.querySelectorAll('.auth-step').forEach(s=>s.classList.remove('active'));const gs=document.getElementById('auth-step-group');if(gs)gs.classList.add('active');}
+    if(rem.length){
+      // Trocar para outro grupo
+      const g=rem[0].groups;
+      CUR.groupId=g.id;CUR.groupName=g.name;CUR.groupCode=g.code;CUR.groupAvatar=g.avatar;CUR.groupCreatedBy=g.created_by;
+      await loadGroupData();refreshAppForGroup();
+      banner('Você saiu do grupo.','ok');
+    } else {
+      // Sem outros grupos — ir para tela de seleção de grupo
+      CUR.groupId=null;CUR.groupName=null;CUR.groupCode=null;CUR.groupAvatar=null;CUR.groupCreatedBy=null;
+      document.getElementById('app').style.display='none';
+      document.getElementById('auth-screen').style.display='flex';
+      document.querySelectorAll('.auth-step').forEach(s=>s.classList.remove('active'));
+      const gs=document.getElementById('auth-step-group');if(gs)gs.classList.add('active');
+      banner('Você saiu do grupo. Entre em outro ou crie um novo.','ok');
+    }
+  } else {
+    // Sem nenhum grupo
+    CUR.groupId=null;
+    document.getElementById('app').style.display='none';
+    document.getElementById('auth-screen').style.display='flex';
+    document.querySelectorAll('.auth-step').forEach(s=>s.classList.remove('active'));
+    const gs=document.getElementById('auth-step-group');if(gs)gs.classList.add('active');
   }
-  banner('Você saiu do grupo.','ok');
 }
 
 async function switchToGroup(groupId){
@@ -3539,10 +3568,12 @@ function renderGroupInfo(){
   // Code
   const codeEl=$('#gi-code');if(codeEl)codeEl.textContent=CUR.groupCode||'—';
 
-  // Admin actions visible only for creator
+  // Botões: admin vê "Apagar" + "Editar", membro vê "Sair"
   const isAdmin=CUR.groupCreatedBy===CUR.user.id;
   const adminActs=$('#gi-admin-acts');
   if(adminActs)adminActs.style.display=isAdmin?'flex':'none';
+  const leaveBtn=$('#gi-leave-btn');
+  if(leaveBtn)leaveBtn.style.display=isAdmin?'none':'inline-flex';
 
   // Stats
   const stats=$('#gi-stats');
