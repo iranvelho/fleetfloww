@@ -757,6 +757,25 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
 .mcb-av img{width:100%;height:100%;object-fit:cover}
 .mcb-name{font-size:13px;font-weight:500;color:var(--tx);flex:1}
 .mcb-you{font-size:10px;color:var(--tx3);background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:1px 5px}
+/* ── PERFIL ── */
+.profile-hero{display:flex;align-items:center;gap:24px;padding:24px;background:var(--surface);border:1.5px solid var(--border);border-radius:16px;margin-bottom:20px}
+.profile-av-wrap{position:relative;flex-shrink:0;cursor:pointer}
+.profile-av{width:80px;height:80px;border-radius:50%;background:var(--accent-s);border:3px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;color:var(--accent);overflow:hidden}
+.profile-av img{width:100%;height:100%;object-fit:cover}
+.profile-av-edit{position:absolute;bottom:0;right:0;width:24px;height:24px;border-radius:50%;background:var(--accent);border:2px solid var(--surface);display:flex;align-items:center;justify-content:center;color:#fff}
+.profile-av-edit svg{width:11px;height:11px}
+.profile-info{flex:1;min-width:0}
+.profile-name{font-size:20px;font-weight:800;color:var(--tx);line-height:1.2}
+.profile-nickname{font-size:13px;color:var(--tx3);margin-top:2px}
+.profile-email{font-size:12px;color:var(--tx3);margin-top:4px;display:flex;align-items:center;gap:5px}
+.profile-fields{display:flex;flex-direction:column;gap:14px}
+.profile-field{background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:14px}
+.profile-field-ico{width:36px;height:36px;border-radius:10px;background:var(--accent-s);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--accent)}
+.profile-field-ico svg{width:16px;height:16px}
+.profile-field-body{flex:1;min-width:0}
+.profile-field-label{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--tx3);margin-bottom:2px}
+.profile-field-val{font-size:13.5px;font-weight:500;color:var(--tx)}
+.profile-field-val.empty{color:var(--tx3);font-style:italic}
 /* ── LOADER ── */
 #ff-loader{position:fixed;inset:0;z-index:99999;background:rgba(247,245,243,.88);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px}
 #ff-loader .spin{width:38px;height:38px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
@@ -992,6 +1011,20 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
         <div id="mw-content"></div>
       </section>
 
+      <!-- PERFIL -->
+      <section id="page-profile" class="page">
+        <div class="ph">
+          <div><h1>Meu Perfil</h1><div class="ph-sub">Foto, nome e apelido</div></div>
+          <div class="ph-acts">
+            <button class="btn-main" onclick="openM('m-edit-profile')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="width:14px;height:14px"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              Editar Perfil
+            </button>
+          </div>
+        </div>
+        <div id="profile-content"></div>
+      </section>
+
       <!-- TAREFAS -->
       <section id="page-tasks" class="page">
         <div class="ph">
@@ -1164,6 +1197,53 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
 </div>
 
 <!-- ==================== MODALS ==================== -->
+
+<!-- EDIT PROFILE -->
+<div class="overlay" id="m-edit-profile">
+  <div class="modal">
+    <div class="modal-hd"><h2>Editar Perfil</h2><button class="modal-x" onclick="closeM('m-edit-profile')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div class="modal-body">
+      <!-- Avatar -->
+      <div class="fg" style="align-items:center">
+        <label>Foto de perfil</label>
+        <div style="display:flex;align-items:center;gap:16px;padding:4px 0">
+          <div class="profile-av" id="ep-av-preview" style="width:64px;height:64px;font-size:20px">
+            <span id="ep-av-ini">?</span>
+            <img id="ep-av-img" style="display:none"/>
+          </div>
+          <div>
+            <label for="ep-av-file" class="btn-sec" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-size:12px">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:13px;height:13px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Escolher foto
+            </label>
+            <input type="file" id="ep-av-file" accept="image/*" style="display:none" onchange="previewProfileAvatar(this)"/>
+            <div style="font-size:11px;color:var(--tx3);margin-top:4px">JPG, PNG. Máx 2MB.</div>
+            <button id="ep-av-remove" onclick="removeProfileAvatar()" style="display:none;margin-top:6px;font-size:11px;color:var(--red);background:none;border:none;cursor:pointer;padding:0">✕ Remover foto</button>
+          </div>
+        </div>
+      </div>
+      <!-- Nome -->
+      <div class="fg">
+        <label>Nome completo *</label>
+        <input type="text" id="ep-name" class="fi" placeholder="Seu nome..."/>
+      </div>
+      <!-- Apelido -->
+      <div class="fg">
+        <label>Apelido <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">como quer ser chamado no sistema</span></label>
+        <input type="text" id="ep-nickname" class="fi" placeholder="Ex: Zé, Duda, Chef..."/>
+      </div>
+      <!-- Info readonly -->
+      <div class="fg">
+        <label>E-mail</label>
+        <input type="text" id="ep-email" class="fi" disabled style="opacity:.5;cursor:not-allowed"/>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn-sec" onclick="closeM('m-edit-profile')">Cancelar</button>
+      <button class="btn-main" onclick="saveProfile()">Salvar</button>
+    </div>
+  </div>
+</div>
 
 <!-- NEW TASK -->
 <div class="overlay" id="m-new-task">
@@ -1711,7 +1791,7 @@ async function handleAuthSession(session){
   if(!session) return;
   showLoader('Carregando perfil...');
   const {data:profile}=await sb.from('profiles').select('*').eq('id',session.user.id).single();
-  CUR.user=profile ? {id:profile.id,name:profile.name,email:profile.email,avatar:profile.avatar} : {id:session.user.id,name:session.user.email.split('@')[0],email:session.user.email,avatar:null};
+  CUR.user=profile ? {id:profile.id,name:profile.name,email:profile.email,avatar:profile.avatar,nickname:profile.nickname||null} : {id:session.user.id,name:session.user.email.split('@')[0],email:session.user.email,avatar:null,nickname:null};
   const {data:memberships}=await sb.from('group_members').select('group_id,role,groups(*)').eq('user_id',session.user.id).order('joined_at',{ascending:false});
   hideLoader();
   if(memberships&&memberships.length){
@@ -1758,6 +1838,7 @@ function renderP(p){
   if(p==='ideas')   renderIdeas();
   if(p==='inbox')   renderInbox();
   if(p==='groupinfo')renderGroupInfo();
+  if(p==='profile')renderProfile();
   if(p==='projects') renderProjects();
   updateBadges();
 }
@@ -2725,7 +2806,7 @@ async function initApp(){
   showLoader('Carregando dados...');
   await loadGroupData();
   hideLoader();
-  $('#sb-name').textContent=CUR.user.name;
+  $('#sb-name').textContent=CUR.user.nickname||CUR.user.name;
   $('#sb-group-name').textContent=CUR.groupCode?`${CUR.groupCode} · ${CUR.groupName}`:(CUR.groupName||'Grupo');
   if(CUR.user.avatar){
     $('#sb-av-img').src=CUR.user.avatar;
@@ -3679,6 +3760,7 @@ async function saveGroupInfo(){
 // Patch openM to pre-fill edit group modal
 const _origOpenM=openM;
 openM=function(id){
+  if(id==='m-edit-profile')openEditProfileModal();
   if(id==='m-edit-group')openEditGroupModal();
   _origOpenM(id);
 };
@@ -3709,6 +3791,162 @@ function initSidebarState(){
     const hdrBtn=document.getElementById('sb-toggle-hdr');
     if(hdrBtn){const svgEl=hdrBtn.querySelector('svg');if(svgEl)svgEl.style.transform='rotate(180deg)';}
   }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  PERFIL
+// ═══════════════════════════════════════════════════════════
+let _epAvatarB64 = null;
+let _epAvatarRemoved = false;
+
+function renderProfile(){
+  const el = document.getElementById('profile-content');
+  if(!el) return;
+  const u = CUR.user;
+  const displayName = u.nickname || u.name;
+  const avContent = u.avatar
+    ? `<img src="${u.avatar}"/>`
+    : `<span>${ini(u.name)}</span>`;
+
+  el.innerHTML = `
+    <div class="profile-hero">
+      <div class="profile-av-wrap" onclick="openM('m-edit-profile')">
+        <div class="profile-av">${avContent}</div>
+        <div class="profile-av-edit">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </div>
+      </div>
+      <div class="profile-info">
+        <div class="profile-name">${displayName}</div>
+        ${u.nickname ? `<div class="profile-nickname">Nome real: ${u.name}</div>` : ''}
+        <div class="profile-email">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          ${u.email}
+        </div>
+      </div>
+      <button class="btn-main" onclick="openM('m-edit-profile')" style="align-self:flex-start">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="width:13px;height:13px"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        Editar
+      </button>
+    </div>
+    <div class="profile-fields">
+      <div class="profile-field">
+        <div class="profile-field-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
+        <div class="profile-field-body">
+          <div class="profile-field-label">Nome</div>
+          <div class="profile-field-val">${u.name}</div>
+        </div>
+      </div>
+      <div class="profile-field">
+        <div class="profile-field-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></div>
+        <div class="profile-field-body">
+          <div class="profile-field-label">Apelido</div>
+          <div class="profile-field-val ${u.nickname?'':'empty'}">${u.nickname || 'Nenhum apelido definido'}</div>
+        </div>
+      </div>
+      <div class="profile-field">
+        <div class="profile-field-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+        <div class="profile-field-body">
+          <div class="profile-field-label">E-mail</div>
+          <div class="profile-field-val">${u.email}</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function openEditProfileModal(){
+  const u = CUR.user;
+  _epAvatarB64 = null;
+  _epAvatarRemoved = false;
+  document.getElementById('ep-name').value = u.name || '';
+  document.getElementById('ep-nickname').value = u.nickname || '';
+  document.getElementById('ep-email').value = u.email || '';
+  // Avatar preview
+  const img = document.getElementById('ep-av-img');
+  const ini_el = document.getElementById('ep-av-ini');
+  const removeBtn = document.getElementById('ep-av-remove');
+  if(u.avatar){
+    img.src = u.avatar; img.style.display='block'; ini_el.style.display='none';
+    if(removeBtn) removeBtn.style.display='block';
+  } else {
+    img.style.display='none'; ini_el.style.display='';
+    ini_el.textContent = ini(u.name);
+    if(removeBtn) removeBtn.style.display='none';
+  }
+}
+
+function previewProfileAvatar(inp){
+  if(!inp.files[0]) return;
+  if(inp.files[0].size > 2*1024*1024){ banner('Foto muito grande. Máximo 2MB.','warn'); return; }
+  const r = new FileReader();
+  r.onload = e => {
+    _epAvatarB64 = e.target.result;
+    _epAvatarRemoved = false;
+    const img = document.getElementById('ep-av-img');
+    const ini_el = document.getElementById('ep-av-ini');
+    const removeBtn = document.getElementById('ep-av-remove');
+    img.src = _epAvatarB64; img.style.display='block'; ini_el.style.display='none';
+    if(removeBtn) removeBtn.style.display='block';
+  };
+  r.readAsDataURL(inp.files[0]);
+}
+
+function removeProfileAvatar(){
+  _epAvatarB64 = null;
+  _epAvatarRemoved = true;
+  const img = document.getElementById('ep-av-img');
+  const ini_el = document.getElementById('ep-av-ini');
+  const removeBtn = document.getElementById('ep-av-remove');
+  img.style.display='none';
+  ini_el.style.display='';
+  ini_el.textContent = ini(document.getElementById('ep-name').value || CUR.user.name);
+  if(removeBtn) removeBtn.style.display='none';
+}
+
+async function saveProfile(){
+  const name = document.getElementById('ep-name').value.trim();
+  const nickname = document.getElementById('ep-nickname').value.trim();
+  if(!name){ banner('Informe o nome.','warn'); return; }
+
+  showLoader('Salvando perfil...');
+
+  const upd = { name, nickname: nickname || null };
+  if(_epAvatarB64) upd.avatar = _epAvatarB64;
+  if(_epAvatarRemoved) upd.avatar = null;
+
+  await sb.from('profiles').update(upd).eq('id', CUR.user.id);
+
+  // Atualizar CUR.user
+  CUR.user.name = name;
+  CUR.user.nickname = nickname || null;
+  if(_epAvatarB64) CUR.user.avatar = _epAvatarB64;
+  if(_epAvatarRemoved) CUR.user.avatar = null;
+
+  // Atualizar sidebar
+  const displayName = CUR.user.nickname || CUR.user.name;
+  const sbName = document.getElementById('sb-name');
+  if(sbName) sbName.textContent = displayName;
+
+  // Atualizar avatar na sidebar
+  const sbAvImg = document.getElementById('sb-av-img');
+  const sbAvIni = document.getElementById('sb-av-ini');
+  if(CUR.user.avatar){
+    if(sbAvImg){ sbAvImg.src=CUR.user.avatar; sbAvImg.style.display='block'; }
+    if(sbAvIni) sbAvIni.style.display='none';
+  } else {
+    if(sbAvImg) sbAvImg.style.display='none';
+    if(sbAvIni){ sbAvIni.style.display=''; sbAvIni.textContent=ini(CUR.user.name); }
+  }
+
+  // Atualizar nome no cache de membros
+  const me = (_cache.members||[]).find(m=>m.id===CUR.user.id);
+  if(me){ me.name=name; me.avatar=CUR.user.avatar||null; }
+
+  hideLoader();
+  closeM('m-edit-profile');
+  renderProfile();
+  addAct('Perfil atualizado por <strong>'+displayName+'</strong>');
+  banner('Perfil atualizado!','ok');
 }
 
 async function doLogout(){
