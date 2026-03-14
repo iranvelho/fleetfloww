@@ -3242,9 +3242,17 @@ async function renderMyGroupsList(){
     return;
   }
 
+  // Buscar contagem de membros de todos os grupos de uma vez
+  const groupIds = groups.map(g=>g.id);
+  const {data:allMembers} = await sb.from('group_members').select('group_id').in('group_id', groupIds);
+  const memberCountMap = {};
+  (allMembers||[]).forEach(m=>{
+    memberCountMap[m.group_id] = (memberCountMap[m.group_id]||0) + 1;
+  });
+
   el.innerHTML = groups.map(function(g) {
     var isCurrent = g.id === CUR.groupId;
-    var memberCount = 0; // loaded via cache when in group
+    var memberCount = memberCountMap[g.id] || 0;
     var avContent = g.avatar
       ? '<img src="' + g.avatar + '"/>'
       : '<span style="font-size:14px;font-weight:800">' + ini(g.name||'G') + '</span>';
