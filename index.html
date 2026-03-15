@@ -689,7 +689,7 @@ select.fi{appearance:none;cursor:pointer;padding-right:28px;background-image:url
 
 /* ── FLOATING CHAT ── */
 #chat-fab{
-  position:fixed;bottom:24px;right:24px;z-index:500;
+  position:fixed;bottom:24px;right:24px;z-index:9000;
   width:52px;height:52px;border-radius:50%;background:var(--accent);color:#fff;
   display:flex;align-items:center;justify-content:center;
   box-shadow:0 4px 20px rgba(124,92,74,.35);cursor:pointer;
@@ -702,7 +702,7 @@ select.fi{appearance:none;cursor:pointer;padding-right:28px;background-image:url
 #chat-pip{position:absolute;top:2px;right:2px;width:14px;height:14px;border-radius:50%;background:#fff;border:2px solid var(--accent);display:none;align-items:center;justify-content:center;font-size:8px;font-weight:800;color:var(--accent)}
 #chat-pip.show{display:flex}
 #chat-window{
-  position:fixed;bottom:86px;right:24px;z-index:499;
+  position:fixed;bottom:86px;right:24px;z-index:8999;
   width:330px;height:440px;background:var(--surface);border:1px solid var(--border);
   border-radius:var(--rx);box-shadow:var(--shl);display:flex;flex-direction:column;overflow:hidden;
   transform:scale(.9) translateY(12px);opacity:0;pointer-events:none;
@@ -759,6 +759,27 @@ tr.prio-low{opacity:.8}
 .assigned-creator-av img{width:100%;height:100%;object-fit:cover}
 .assigned-creator-name{font-size:12px;font-weight:700;color:var(--tx2)}
 .assigned-creator-count{font-size:10.5px;color:var(--tx3);background:var(--surface2);border:1px solid var(--border);border-radius:99px;padding:1px 7px}
+/* ── WEEKDAY SELECTOR ── */
+.weekday-sel{display:flex;gap:5px;flex-wrap:wrap}
+.wd-btn{width:36px;height:36px;border-radius:50%;border:1.5px solid var(--border);background:var(--surface2);font-size:11.5px;font-weight:700;color:var(--tx3);cursor:pointer;transition:all .15s;flex-shrink:0}
+.wd-btn.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.wd-btn:hover:not(.on){background:var(--accent-s);border-color:var(--accent);color:var(--accent)}
+
+/* ── COMPACT MODE ── */
+#tasks-content.compact .task-group table{font-size:11.5px}
+#tasks-content.compact tr td{padding:5px 10px}
+#tasks-content.compact .tck{width:18px;height:18px}
+.compact-toggle{display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;padding:6px 10px;border-radius:var(--r);border:1.5px solid var(--border);background:var(--surface);color:var(--tx2);transition:all .15s}
+.compact-toggle:hover{border-color:var(--accent);color:var(--accent)}
+.compact-toggle.on{background:var(--accent-s);border-color:var(--accent);color:var(--accent)}
+
+/* ── ARQUIVO ── */
+.archive-section{margin-top:24px;border-top:2px dashed var(--border);padding-top:16px}
+.archive-hd{display:flex;align-items:center;gap:8px;font-size:11.5px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;cursor:pointer;margin-bottom:10px;user-select:none}
+.archive-hd svg{width:13px;height:13px;transition:transform .2s}
+.archive-hd.open svg{transform:rotate(90deg)}
+.archive-body{display:none}
+.archive-body.open{display:block}
 /* ── TASK CYCLE INDICATOR ── */
 .cycle-bar{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;color:var(--tx3);margin-top:3px}
 .cycle-dots{display:flex;gap:2px}
@@ -1065,10 +1086,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
         <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
         Agendamento
       </button>
-      <button class="nav-btn" data-page="ideas" onclick="go('ideas')">
-        <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 015 11.9l-.9 1.1H8l-.9-1.1A7 7 0 0112 2z"/><path d="M9 21h6"/><path d="M10 17v4"/><path d="M14 17v4"/></svg></span>
-        Ideias
-      </button>
+      
       <button class="nav-btn" data-page="projects" onclick="go('projects')">
         <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3v4"/><path d="M8 3v4"/><path d="M2 11h20"/><path d="M8 15h2"/><path d="M14 15h2"/><path d="M8 19h2"/><path d="M14 19h2"/></svg></span>
         Projetos
@@ -1231,9 +1249,15 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
                 <span id="hide-done-lbl">Ocultar concluídas</span>
               </button>
             </div>
+            <div style="display:flex;align-items:center;gap:8px">
+            <button class="compact-toggle" id="btn-compact" onclick="toggleCompact()" title="Modo compacto">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="3" y1="14" x2="21" y2="14"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+              Compacto
+            </button>
             <div class="vt">
               <button class="vb active" id="vb-list" onclick="tView='list';setVBtns();renderTasks()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>Lista</button>
               <button class="vb" id="vb-kb" onclick="tView='kanban';setVBtns();renderTasks()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="11" rx="1"/><rect x="17" y="3" width="5" height="14" rx="1"/></svg>Kanban</button>
+            </div>
             </div>
           </div>
         </div>
@@ -1306,10 +1330,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
       </section>
 
       <!-- IDEIAS -->
-      <section id="page-ideas" class="page">
-        <div class="ph"><div><h1>Ideias & Melhorias</h1><div class="ph-sub">Registre sugestões e acompanhe implementações</div></div></div>
-        <div class="ideas-grid" id="ideas-grid"></div>
-      </section>
+      
 
 
       <!-- PROJETOS -->
@@ -1545,6 +1566,19 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
         <div class="fg"><label>Prioridade</label><select id="nt-prio" class="fi"><option value="medium">Média</option><option value="high">Alta</option><option value="low">Baixa</option></select></div>
       </div>
       <div class="fg" id="nt-due-wrap"><label>Data limite <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">opcional — quando deve ser concluída</span></label><input type="date" id="nt-due" class="fi"/></div>
+      <div class="fg" id="nt-weekdays-wrap" style="display:none">
+        <label>Dias da semana <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">em quais dias deve aparecer</span></label>
+        <div class="weekday-sel" id="nt-weekdays">
+          <button type="button" class="wd-btn" data-day="1" onclick="toggleWD(this,'nt')">Seg</button>
+          <button type="button" class="wd-btn" data-day="2" onclick="toggleWD(this,'nt')">Ter</button>
+          <button type="button" class="wd-btn" data-day="3" onclick="toggleWD(this,'nt')">Qua</button>
+          <button type="button" class="wd-btn" data-day="4" onclick="toggleWD(this,'nt')">Qui</button>
+          <button type="button" class="wd-btn" data-day="5" onclick="toggleWD(this,'nt')">Sex</button>
+          <button type="button" class="wd-btn" data-day="6" onclick="toggleWD(this,'nt')">Sáb</button>
+          <button type="button" class="wd-btn" data-day="0" onclick="toggleWD(this,'nt')">Dom</button>
+        </div>
+        <div style="font-size:11px;color:var(--tx3);margin-top:4px">💡 Se nenhum dia for selecionado, aparece todos os dias</div>
+      </div>
       <div class="fg" id="nt-time-wrap" style="display:none"><label>Horário limite <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">deve ser concluída até este horário</span></label><input type="time" id="nt-time" class="fi"/></div>
       <div class="fg"><label>Status</label><select id="nt-status" class="fi"><option value="pending">Pendente</option><option value="progress">Em andamento</option><option value="done">Concluída</option></select></div>
       <div class="info-note" id="nt-cycle-note" style="display:none">♻️ <strong>Tarefa recorrente:</strong> A tarefa some ao iniciar o próximo ciclo — diária some à meia-noite, semanal na segunda-feira, mensal no dia 1º.</div>
@@ -1567,6 +1601,18 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
         <div class="fg"><label>Prioridade</label><select id="et-prio" class="fi"><option value="medium">Média</option><option value="high">Alta</option><option value="low">Baixa</option></select></div>
       </div>
       <div class="fg" id="et-due-wrap"><label>Data limite <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">opcional</span></label><input type="date" id="et-due" class="fi"/></div>
+      <div class="fg" id="et-weekdays-wrap" style="display:none">
+        <label>Dias da semana <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">em quais dias deve aparecer</span></label>
+        <div class="weekday-sel" id="et-weekdays">
+          <button type="button" class="wd-btn" data-day="1" onclick="toggleWD(this,'et')">Seg</button>
+          <button type="button" class="wd-btn" data-day="2" onclick="toggleWD(this,'et')">Ter</button>
+          <button type="button" class="wd-btn" data-day="3" onclick="toggleWD(this,'et')">Qua</button>
+          <button type="button" class="wd-btn" data-day="4" onclick="toggleWD(this,'et')">Qui</button>
+          <button type="button" class="wd-btn" data-day="5" onclick="toggleWD(this,'et')">Sex</button>
+          <button type="button" class="wd-btn" data-day="6" onclick="toggleWD(this,'et')">Sáb</button>
+          <button type="button" class="wd-btn" data-day="0" onclick="toggleWD(this,'et')">Dom</button>
+        </div>
+      </div>
       <div class="fg" id="et-time-wrap"><label>Horário limite <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">deve ser concluída até este horário</span></label><input type="time" id="et-time" class="fi"/></div>
       <div class="fg"><label>Status</label><select id="et-status" class="fi"><option value="pending">Pendente</option><option value="progress">Em andamento</option><option value="done">Concluída</option><option value="late">Vencida</option></select></div>
     </div>
@@ -1852,19 +1898,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
 </div>
 
 <!-- NEW IDEA -->
-<div class="overlay" id="m-new-idea">
-  <div class="modal">
-    <div class="modal-hd"><h2>Nova Ideia / Melhoria</h2><button class="modal-x" onclick="closeM('m-new-idea')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
-    <div class="modal-body">
-      <div class="fg"><label>Título *</label><input type="text" id="ni-title" class="fi" placeholder="Nome da ideia ou melhoria"/></div>
-      <div class="fg"><label>Descrição</label><textarea id="ni-desc" class="fi" placeholder="Detalhe sua ideia..."></textarea></div>
-      <div class="fr">
-        <div class="fg"><label>Status</label><select id="ni-status" class="fi"><option value="new">Nova</option><option value="analysis">Em análise</option><option value="dev">Em desenvolvimento</option><option value="implemented">Implementada</option></select></div>
-      </div>
-    </div>
-    <div class="modal-ft"><button class="btn-sec" onclick="closeM('m-new-idea')">Cancelar</button><button class="btn-main" onclick="submitIdea()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Registrar</button></div>
-  </div>
-</div>
+
 
 <script>
 // ═══════════════════════════════════════════════════════════
@@ -2086,8 +2120,8 @@ function launchApp(){
 // ═══════════════════════════════════════════════════════════
 
 let page='dashboard';
-const PAGE_TITLES={dashboard:'Dashboard',mywork:'Meu Trabalho',tasks:'Tarefas',meetings:'Agendamento',ideas:'Ideias & Melhorias',inbox:'Caixa de Entrada',profile:'Perfil',groupinfo:'Meu Grupo',projects:'Projetos',help:'Ajuda'};
-const NEW_LABELS={dashboard:'Nova Tarefa',mywork:'',tasks:'Nova Tarefa',meetings:'Nova Reunião',ideas:'Nova Ideia',inbox:'',profile:'',groupinfo:'',projects:'Novo Projeto',help:''};
+const PAGE_TITLES={dashboard:'Dashboard',mywork:'Meu Trabalho',tasks:'Tarefas',meetings:'Agendamento',inbox:'Caixa de Entrada',profile:'Perfil',groupinfo:'Meu Grupo',projects:'Projetos',help:'Ajuda'};
+const NEW_LABELS={dashboard:'Nova Tarefa',mywork:'',tasks:'Nova Tarefa',meetings:'Nova Reunião',inbox:'',profile:'',groupinfo:'',projects:'Novo Projeto',help:''};
 
 function go(p){
   page=p;
@@ -2106,7 +2140,6 @@ function renderP(p){
   if(p==='mywork')  renderMyWork();
   if(p==='tasks')   renderTasks();
   if(p==='meetings')renderMeetings();
-  if(p==='ideas')   renderIdeas();
   if(p==='inbox')   renderInbox();
   if(p==='groupinfo')renderGroupInfo();
   if(p==='profile')renderProfile();
@@ -2116,7 +2149,7 @@ function renderP(p){
 }
 
 function doNewMain(){
-  const map={dashboard:'m-new-task',mywork:'m-new-my',tasks:'m-new-task',meetings:'m-new-meet',ideas:'m-new-idea',inbox:null,profile:null};
+  const map={dashboard:'m-new-task',mywork:'m-new-my',tasks:'m-new-task',meetings:'m-new-meet',inbox:null,profile:null};
   const m=map[page];if(m)openM(m);
 }
 
@@ -2403,7 +2436,7 @@ function renderDash(){
     return`<div class="ti">
       <button class="tck ${t.status==='done'?'done':''}" onclick="toggleMT('${t.id}')">${t.status==='done'?ICK:''}</button>
       <div class="ti-info"><div class="ti-nm ${t.status==='done'?'s':''}">${t.title}</div>
-      <div class="ti-meta">${fbadge(t.frequency)}${t.limitTime?` ⏱ ${t.limitTime}`:''}</div></div>
+      <div class="ti-meta">${fbadge(t.frequency,t.weekdays)}${t.limitTime?` ⏱ ${t.limitTime}`:''}</div></div>
       <div class="ti-right">${st.badge}</div>
     </div>`;
   }).join(''):empty('Sem tarefas pessoais hoje');
@@ -2961,7 +2994,12 @@ function taskGroupHTML(label,tasks,gid,originType=''){
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
                 <span>${((_cache.comments||{})[t.id]||[]).length||''}</span>
               </button>
-              ${isMine?`<button class="del-btn" onclick="event.stopPropagation();deleteTask('${t.id}')">${IDEL}</button>`:''}
+              ${isMine?`
+                <button class="del-btn" onclick="event.stopPropagation();archiveTask('${t.id}')" title="Arquivar" style="margin-right:2px">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+                </button>
+                <button class="del-btn" onclick="event.stopPropagation();deleteTask('${t.id}')">${IDEL}</button>`:''
+              }
             </div></td>
           </tr>`;
         }).join('')}</tbody>
@@ -3128,25 +3166,8 @@ async function deleteMeet(id){
 // ═══════════════════════════════════════════════════════════
 //  IDEAS
 // ═══════════════════════════════════════════════════════════
-function renderIdeas(){
-  const g=getG();
-  const el=$('#ideas-grid');
-  el.innerHTML=(g.ideas||[]).length?(g.ideas).map(idea=>`<div class="idea-card">
-    <div class="idea-hd">
-      <div class="idea-ttl">${idea.title}</div>
-      <button class="del-btn" onclick="deleteIdea('${idea.id}')">${IDEL}</button>
-    </div>
-    <div class="idea-desc">${idea.description||''}</div>
-    <div class="idea-ft">${ibadge(idea.status)}<div class="idea-author">${memberAvatar(idea.author||CUR.user.name)}<span>${idea.author||CUR.user.name}</span></div></div>
-  </div>`).join(''):empty('Nenhuma ideia registrada');
-}
-async function deleteIdea(id){
-  const i=(_cache.ideas||[]).findIndex(x=>x.id===id);if(i<0)return;
-  const title=_cache.ideas[i].title;
-  await sb.from('ideas').delete().eq('id',id);
-  addAct('Ideia <strong>'+title+'</strong> excluída');
-  _cache.ideas.splice(i,1);renderP(page);
-}
+
+
 
 // ═══════════════════════════════════════════════════════════
 //  MODAL OPEN/EDIT
@@ -3159,10 +3180,13 @@ function toggleTaskTimeField(prefix){
   const freq=$('#'+prefix+'-freq')?.value;
   const timeWrap=$('#'+prefix+'-time-wrap');
   const dueWrap=$('#'+prefix+'-due-wrap');
-  // Data limite: aparece só em tarefas únicas
+  const wdWrap=$('#'+prefix+'-weekdays-wrap');
+  // Data limite: só em tarefas únicas
   if(dueWrap) dueWrap.style.display=(freq==='once')?'block':'none';
-  // Horário: aparece em recorrentes
+  // Horário limite: em recorrentes
   if(timeWrap) timeWrap.style.display=(freq&&freq!=='once')?'block':'none';
+  // Dias da semana: só em diárias (ex: seg/qua/sex)
+  if(wdWrap) wdWrap.style.display=(freq==='daily')?'block':'none';
 }
 async function openEditTask(id){
   const t=(_cache.tasks||[]).find(x=>x.id===id);if(!t)return;
@@ -3173,6 +3197,7 @@ async function openEditTask(id){
   $('#et-vis').value=t.visibility||'global';
   $('#et-time').value=t.limitTime||'';
   $('#et-due').value=t.dueDate||'';
+  setSelectedDays('et', t.weekdays||[]);
   toggleTaskTimeField('et');
   renderMemberGrid('et-members-grid', t.integrateFor||[]);
   const statusSel=$('#et-status');
@@ -3263,10 +3288,10 @@ async function submitTask(){
   if(!title){banner('Informe o título','warn');return;}
   const mnames=getSelectedMembers('nt-members-grid');
   showLoader('Salvando...');
-  const {data:t,error}=await sb.from('tasks').insert({group_id:CUR.groupId,title,integrate_for:mnames,frequency:$('#nt-freq').value,status:$('#nt-status').value,priority:$('#nt-prio').value,visibility:$('#nt-vis').value,created_by:CUR.user.id,description:$('#nt-time').value||null,due_date:$('#nt-due').value||null}).select().single();
+  const ntDays=getSelectedDays('nt'); const {data:t,error}=await sb.from('tasks').insert({group_id:CUR.groupId,title,integrate_for:mnames,frequency:$('#nt-freq').value,status:$('#nt-status').value,priority:$('#nt-prio').value,visibility:$('#nt-vis').value,created_by:CUR.user.id,description:$('#nt-time').value||null,due_date:$('#nt-due').value||null,weekdays:ntDays.length?ntDays:null}).select().single();
   if(error){hideLoader();banner('Erro ao criar tarefa','err');return;}
   _cache.tasks=_cache.tasks||[];
-  _cache.tasks.unshift({id:t.id,title,integrateFor:mnames,frequency:t.frequency,status:t.status,priority:t.priority,visibility:t.visibility,createdBy:t.created_by,createdAt:t.created_at,limitTime:t.description||null,dueDate:t.due_date||null});
+  _cache.tasks.unshift({id:t.id,title,integrateFor:mnames,frequency:t.frequency,status:t.status,priority:t.priority,visibility:t.visibility,createdBy:t.created_by,createdAt:t.created_at,limitTime:t.description||null,dueDate:t.due_date||null,weekdays:t.weekdays||null});
   addAct('Nova tarefa: <strong>'+title+'</strong>');
   addInbox('Nova tarefa: "<strong>'+title+'</strong>" por '+CUR.user.name+'.','📋','nova tarefa');
   hideLoader();closeM('m-new-task');clearF('m-new-task');renderP(page);banner('Tarefa criada!','ok');
@@ -3298,18 +3323,7 @@ async function submitMeet(){
   hideLoader();closeM('m-new-meet');clearF('m-new-meet');renderP(page);banner('Reunião agendada!','ok');
 }
 
-async function submitIdea(){
-  const title=$('#ni-title').value.trim();
-  if(!title){banner('Informe o título','warn');return;}
-  showLoader('Salvando...');
-  const {data:i,error}=await sb.from('ideas').insert({group_id:CUR.groupId,title,description:$('#ni-desc').value.trim()||null,author:CUR.user.id,status:$('#ni-status').value}).select().single();
-  if(error){hideLoader();banner('Erro','err');return;}
-  _cache.ideas=_cache.ideas||[];
-  _cache.ideas.unshift({id:i.id,title,description:i.description,author:CUR.user.name,authorId:CUR.user.id,status:i.status,createdAt:i.created_at});
-  addAct('Nova ideia: <strong>'+title+'</strong>');
-  addInbox('Nova ideia: "<strong>'+title+'</strong>" por '+CUR.user.name+'.','💡','ideia');
-  hideLoader();closeM('m-new-idea');clearF('m-new-idea');renderP(page);banner('Ideia registrada!','ok');
-}
+
 
 // ── NEW TASK MODAL: populate members from group ──
 function renderMemberGrid(gridId, selectedNames=[]){
@@ -3431,6 +3445,7 @@ async function initApp(){
   checkMyLate();checkMeetSoon();updateBadges();
   setupRealtime();
   initSidebarState();
+  initCompactMode();
   showWelcomeIfFirst();
 }
 
@@ -3444,19 +3459,17 @@ async function loadGroupData(){
     sb.from('tasks').select('*').eq('group_id',gid).order('created_at',{ascending:false}),
     sb.from('my_tasks').select('*').eq('group_id',gid).eq('user_id',uid_val).order('created_at',{ascending:false}),
     sb.from('meetings').select('*,profiles(name,avatar)').eq('group_id',gid).order('date'),
-    sb.from('ideas').select('*,profiles(name,avatar)').eq('group_id',gid).order('created_at',{ascending:false}),
     sb.from('projects').select('*').eq('group_id',gid).order('created_at',{ascending:false}),
     sb.from('project_steps').select('*').order('position'),
     sb.from('group_members').select('*,profiles(id,name,avatar)').eq('group_id',gid),
     sb.from('inbox').select('*').eq('group_id',gid).eq('user_id',uid_val).order('created_at',{ascending:false}).limit(100),
     sb.from('activity').select('*,profiles(name)').eq('group_id',gid).order('created_at',{ascending:false}).limit(50)
   ]);
-  _cache.tasks=(tasks||[]).map(t=>({id:t.id,title:t.title,status:t.status,priority:t.priority,frequency:t.frequency,visibility:t.visibility,integrateFor:t.integrate_for||[],createdBy:t.created_by,statusAt:t.status_at,createdAt:t.created_at,limitTime:t.description||null,dueDate:t.due_date||null}));
+  _cache.tasks=(tasks||[]).map(t=>({id:t.id,title:t.title,status:t.status,priority:t.priority,frequency:t.frequency,visibility:t.visibility,integrateFor:t.integrate_for||[],createdBy:t.created_by,statusAt:t.status_at,createdAt:t.created_at,limitTime:t.description||null,dueDate:t.due_date||null,weekdays:t.weekdays||null,archived:t.archived||false,archivedAt:t.archived_at||null}));
   _cache.myTasks=(myTasks||[]).map(t=>({id:t.id,title:t.title,frequency:t.frequency,limitTime:t.limit_time,status:t.status,statusAt:t.status_at,createdAt:t.created_at,userId:t.user_id}));
   _cache.myTasksByUser={};
   (_cache.myTasks).forEach(t=>{if(!_cache.myTasksByUser[t.userId])_cache.myTasksByUser[t.userId]=[];_cache.myTasksByUser[t.userId].push(t);});
   _cache.meetings=(meetings||[]).map(m=>({id:m.id,title:m.title,description:m.description,participants:m.participants,date:m.date,time:m.time,calType:m.cal_type,owner:m.profiles?.name||'',ownerId:m.owner,createdAt:m.created_at}));
-  _cache.ideas=(ideas||[]).map(i=>({id:i.id,title:i.title,description:i.description,status:i.status,author:i.profiles?.name||'',authorId:i.author,createdAt:i.created_at}));
   _cache.projects=(projects||[]).map(p=>({id:p.id,name:p.name,description:p.description,color:p.color,status:p.status,sharedWith:p.shared_with||[],createdBy:p.created_by,completedAt:p.completed_at,createdAt:p.created_at,steps:(steps||[]).filter(s=>s.project_id===p.id).map(s=>({id:s.id,name:s.name,done:s.done,position:s.position,addedBy:s.added_by,createdAt:s.created_at})).sort((a,b)=>a.position-b.position)}));
   _cache.members=(members||[]).map(m=>({id:m.profiles?.id||m.user_id,name:m.profiles?.name||'?',avatar:m.profiles?.avatar||null,role:m.role}));
   _cache.inbox=(inbox||[]).map(n=>({id:n.id,msg:n.msg,icon:n.icon,type:n.type,readBy:n.read?[CUR.user.id]:[],time:n.created_at}));
@@ -3473,7 +3486,7 @@ function setupRealtime(){
     .on('postgres_changes',{event:'*',schema:'public',table:'tasks',filter:'group_id=eq.'+CUR.groupId},()=>{loadGroupData().then(()=>{updateBadges();if(page==='tasks'||page==='dashboard')renderP(page);});})
     .on('postgres_changes',{event:'*',schema:'public',table:'meetings',filter:'group_id=eq.'+CUR.groupId},()=>{loadGroupData().then(()=>{if(page==='meetings')renderP(page);});})
     .on('postgres_changes',{event:'*',schema:'public',table:'projects',filter:'group_id=eq.'+CUR.groupId},()=>{loadGroupData().then(()=>{if(page==='projects')renderProjects();});})
-    .on('postgres_changes',{event:'*',schema:'public',table:'ideas',filter:'group_id=eq.'+CUR.groupId},()=>{loadGroupData().then(()=>{if(page==='ideas')renderIdeas();});})
+    .on('postgres_changes',{event:'*',schema:'public',table:'ideas',filter:'group_id=eq.'+CUR.groupId},()=>{loadGroupData().then(()=>{});})
     .on('postgres_changes',{event:'*',schema:'public',table:'chat_messages',filter:'group_id=eq.'+CUR.groupId},()=>{sb.from('chat_messages').select('*,profiles(name,avatar)').eq('group_id',CUR.groupId).order('created_at').limit(200).then(({data})=>{_cache.chat=(data||[]).map(m=>({id:m.id,author:m.profiles?.name||'?',authorId:m.user_id,avatar:m.profiles?.avatar||null,text:m.text,time:m.created_at}));if(chatOpen)renderChat();updateChatPip();});})
     .on('postgres_changes',{event:'*',schema:'public',table:'inbox',filter:'group_id=eq.'+CUR.groupId},()=>{sb.from('inbox').select('*').eq('group_id',CUR.groupId).eq('user_id',CUR.user.id).order('created_at',{ascending:false}).limit(100).then(({data})=>{_cache.inbox=(data||[]).map(n=>({id:n.id,msg:n.msg,icon:n.icon,type:n.type,readBy:n.read?[CUR.user.id]:[],time:n.created_at}));updateBadges();if(page==='inbox')renderInbox();});})
     .subscribe();
@@ -3557,23 +3570,27 @@ let chatLastRead=0;
 
 function toggleChat(){
   const win=document.getElementById('chat-window');
-  if(!win) return;
+  if(!win){console.warn('chat-window não encontrado');return;}
   chatOpen=!chatOpen;
-  win.classList.toggle('open',chatOpen);
-  // Atualizar botão da sidebar
+  if(chatOpen){
+    win.style.display='flex'; // garantir visível
+    requestAnimationFrame(()=>win.classList.add('open'));
+  } else {
+    win.classList.remove('open');
+  }
   const navBtn=document.getElementById('nav-chat-btn');
   if(navBtn) navBtn.classList.toggle('active',chatOpen);
   if(chatOpen){
     chatLastRead=Date.now();
     sessionStorage.setItem('ff_chat_read_'+CUR.user.id,chatLastRead);
+    const sub=document.getElementById('chat-group-sub');
+    if(sub) sub.textContent=CUR.groupName||'Grupo';
     renderChat();
     updateChatPip();
     setTimeout(()=>{
       const inp=document.getElementById('chat-input');
       if(inp) inp.focus();
-    },150);
-    const sub=document.getElementById('chat-group-sub');
-    if(sub) sub.textContent=CUR.groupName||'Grupo';
+    },200);
   }
 }
 // Chat NÃO fecha ao navegar — persiste entre páginas
@@ -5019,6 +5036,107 @@ function renderHelp(){
         <button onclick="toggleChat()" class="btn-main" style="flex-shrink:0;margin-left:auto">Abrir Chat</button>
       </div>
     </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  DIAS DA SEMANA
+// ═══════════════════════════════════════════════════════════
+function toggleWD(btn, prefix){
+  btn.classList.toggle('on');
+}
+
+function getSelectedDays(prefix){
+  const btns = document.querySelectorAll(`#${prefix}-weekdays .wd-btn.on`);
+  return [...btns].map(b=>b.dataset.day);
+}
+
+function setSelectedDays(prefix, days){
+  const btns = document.querySelectorAll(`#${prefix}-weekdays .wd-btn`);
+  btns.forEach(b=>{
+    b.classList.toggle('on', (days||[]).includes(b.dataset.day));
+  });
+}
+
+function taskAppearsToday(t){
+  // Se não tem dias definidos, aparece sempre
+  if(!t.weekdays||!t.weekdays.length) return true;
+  const today = new Date().getDay(); // 0=dom,1=seg...
+  return t.weekdays.includes(String(today));
+}
+
+// ═══════════════════════════════════════════════════════════
+//  MODO COMPACTO
+// ═══════════════════════════════════════════════════════════
+let compactMode = false;
+
+function toggleCompact(){
+  compactMode = !compactMode;
+  const btn = document.getElementById('btn-compact');
+  const content = document.getElementById('tasks-content');
+  if(btn) btn.classList.toggle('on', compactMode);
+  if(content) content.classList.toggle('compact', compactMode);
+  sessionStorage.setItem('ff_compact', compactMode?'1':'0');
+}
+
+function initCompactMode(){
+  compactMode = sessionStorage.getItem('ff_compact')==='1';
+  if(compactMode){
+    const btn=document.getElementById('btn-compact');
+    const content=document.getElementById('tasks-content');
+    if(btn) btn.classList.add('on');
+    if(content) content.classList.add('compact');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  ARQUIVAR TAREFAS
+// ═══════════════════════════════════════════════════════════
+async function archiveTask(id){
+  const t = (_cache.tasks||[]).find(x=>x.id===id);
+  if(!t) return;
+  const now = new Date().toISOString();
+  await sb.from('tasks').update({archived:true, archived_at:now}).eq('id',id);
+  t.archived = true; t.archivedAt = now;
+  renderTasks();
+  banner('Tarefa arquivada.','ok');
+}
+
+async function unarchiveTask(id){
+  const t = (_cache.tasks||[]).find(x=>x.id===id);
+  if(!t) return;
+  await sb.from('tasks').update({archived:false, archived_at:null}).eq('id',id);
+  t.archived = false; t.archivedAt = null;
+  renderTasks();
+  banner('Tarefa restaurada.','ok');
+}
+
+function renderArchive(container){
+  const archived = (_cache.tasks||[]).filter(t=>t.archived && canSeeTask(t));
+  if(!archived.length) return;
+
+  const div = document.createElement('div');
+  div.className = 'archive-section';
+  div.innerHTML = `
+    <div class="archive-hd" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;margin-right:2px"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+      Arquivo — ${archived.length} tarefa${archived.length!==1?'s':''}
+    </div>
+    <div class="archive-body">
+      <table style="width:100%;border-collapse:collapse">
+        <tbody>
+          ${archived.map(t=>`
+            <tr style="border-bottom:1px solid var(--border);opacity:.7">
+              <td style="padding:8px 10px;font-size:12.5px;color:var(--tx2);text-decoration:line-through">${t.title}</td>
+              <td style="padding:8px 10px;font-size:11px;color:var(--tx3)">${t.archivedAt?fmt(t.archivedAt.slice(0,10)):''}</td>
+              <td style="padding:8px 10px;text-align:right">
+                <button onclick="unarchiveTask('${t.id}')" style="font-size:11px;padding:3px 9px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;color:var(--tx2)">Restaurar</button>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+  container.appendChild(div);
 }
 
 document.addEventListener('DOMContentLoaded',async()=>{
