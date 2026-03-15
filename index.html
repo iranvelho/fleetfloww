@@ -3453,7 +3453,7 @@ async function loadGroupData(){
   if(!CUR.groupId||!CUR.user) return;
   const gid=CUR.groupId, uid_val=CUR.user.id;
   const [
-    {data:tasks},{data:myTasks},{data:meetings},{data:ideas},
+    {data:tasks},{data:myTasks},{data:meetings},
     {data:projects},{data:steps},{data:members},{data:inbox},{data:activity}
   ] = await Promise.all([
     sb.from('tasks').select('*').eq('group_id',gid).order('created_at',{ascending:false}),
