@@ -1855,23 +1855,6 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
 <div class="overlay" id="m-new-idea">
   <div class="modal">
     <div class="modal-hd"><h2>Nova Ideia / Melhoria</h2><button class="modal-x" onclick="closeM('m-new-idea')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
-<button id="chat-fab" onclick="toggleChat()" title="Chat do grupo">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-  <span id="chat-pip"></span>
-</button>
-<div id="chat-window">
-  <div class="chat-hd">
-    <div class="chat-hd-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
-    <div><div class="chat-hd-name">Chat do Grupo</div><div class="chat-hd-sub" id="chat-group-sub">—</div></div>
-    <button class="chat-close" onclick="toggleChat()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-  </div>
-  <div class="chat-msgs" id="chat-msgs"></div>
-  <div class="chat-foot" style="position:relative">
-    <div id="mention-dropdown" style="display:none;position:absolute;bottom:100%;left:0;right:48px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;box-shadow:var(--shm);max-height:160px;overflow-y:auto;z-index:100;margin-bottom:4px"></div>
-    <input type="text" class="chat-input" id="chat-input" placeholder="Mensagem... (@nome para mencionar)" autocomplete="off"/>
-    <button class="chat-send" onclick="sendChat()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
-  </div>
-</div>
     <div class="modal-body">
       <div class="fg"><label>Título *</label><input type="text" id="ni-title" class="fi" placeholder="Nome da ideia ou melhoria"/></div>
       <div class="fg"><label>Descrição</label><textarea id="ni-desc" class="fi" placeholder="Detalhe sua ideia..."></textarea></div>
@@ -5127,5 +5110,22 @@ document.addEventListener('DOMContentLoaded',async()=>{
   </div>
 </div>
 
+<button id="chat-fab" onclick="toggleChat()" title="Chat do grupo">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+  <span id="chat-pip"></span>
+</button>
+<div id="chat-window">
+  <div class="chat-hd">
+    <div class="chat-hd-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
+    <div><div class="chat-hd-name">Chat do Grupo</div><div class="chat-hd-sub" id="chat-group-sub">—</div></div>
+    <button class="chat-close" onclick="toggleChat()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  </div>
+  <div class="chat-msgs" id="chat-msgs"></div>
+  <div class="chat-foot" style="position:relative">
+    <div id="mention-dropdown" style="display:none;position:absolute;bottom:100%;left:0;right:48px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;box-shadow:var(--shm);max-height:160px;overflow-y:auto;z-index:100;margin-bottom:4px"></div>
+    <input type="text" class="chat-input" id="chat-input" placeholder="Mensagem... (@nome para mencionar)" autocomplete="off"/>
+    <button class="chat-send" onclick="sendChat()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+  </div>
+</div>
 </body>
 </html>
