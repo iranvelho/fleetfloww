@@ -3318,19 +3318,25 @@ async function submitIdea(){
 
 // ── NEW TASK MODAL: populate members from group ──
 function renderMemberGrid(gridId, selectedNames=[]){
-  const members=(_cache.members||[]);
+  // Excluir o próprio usuário — não faz sentido se autointegrar
+  const members=(_cache.members||[]).filter(m=>m.id!==CUR.user.id);
   const grid=document.getElementById(gridId);
   if(!grid) return;
-  if(!members.length){grid.innerHTML='<div style="font-size:12.5px;color:var(--tx3);padding:6px 0">Nenhum outro membro no grupo.</div>';return;}
-  grid.innerHTML=members.map(m=>{
-    const isMe=m.id===CUR.user.id;
+  if(!members.length){
+    grid.innerHTML='<div style="font-size:12.5px;color:var(--tx3);padding:8px 0;font-style:italic">Nenhum outro membro no grupo para integrar.</div>';
+    return;
+  }
+  // Campo de busca se tiver mais de 4 membros
+  const searchHtml = members.length>4
+    ? `<input type="text" placeholder="🔍 Buscar membro..." oninput="filterMemberGrid('${gridId}',this.value)" style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:12.5px;margin-bottom:8px;background:var(--surface);color:var(--tx);outline:none">`
+    : '';
+  const itemsHtml = members.map(m=>{
     const sel=selectedNames.includes(m.name);
     const av=m.avatar?`<img src="${m.avatar}"/>`:'';
     return `<div class="mcb-item${sel?' selected':''}" data-name="${m.name}" onclick="toggleMcb(this,'${gridId}')">
       <div class="mcb-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
       <div class="mcb-av">${av||ini(m.name)}</div>
       <span class="mcb-name">${m.name}</span>
-      ${isMe?'<span class="mcb-you">Você</span>':''}
     </div>`;
   }).join('');
   grid.innerHTML = searchHtml + `<div class="member-items-${gridId}">${itemsHtml}</div>`;
