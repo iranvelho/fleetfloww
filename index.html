@@ -889,6 +889,53 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
 .wl-footer{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .wl-dont-show{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--tx3);cursor:pointer;user-select:none}
 .wl-dont-show input{cursor:pointer;accent-color:var(--accent)}
+/* ── DASHBOARD SMART ── */
+.dash-smart-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:16px}
+.dash-insight{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:16px 18px}
+.dash-insight-ttl{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--tx3);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.dash-insight-ttl svg{width:13px;height:13px}
+.dash-member-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)}
+.dash-member-row:last-child{border-bottom:none}
+.dash-member-av{width:28px;height:28px;border-radius:50%;background:var(--accent-s);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--accent);flex-shrink:0;overflow:hidden}
+.dash-member-av img{width:100%;height:100%;object-fit:cover}
+.dash-member-info{flex:1;min-width:0}
+.dash-member-name{font-size:12.5px;font-weight:600;color:var(--tx)}
+.dash-member-stat{font-size:11px;color:var(--tx3)}
+.dash-member-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px}
+.dash-pct-bar{height:4px;border-radius:2px;background:var(--border);margin-top:4px;overflow:hidden}
+.dash-pct-fill{height:100%;border-radius:2px;transition:width .5s ease}
+
+/* ── MENÇÕES NO CHAT ── */
+.chat-mention{color:var(--accent);font-weight:700;background:var(--accent-s);border-radius:4px;padding:0 3px}
+.mention-dropdown{position:absolute;bottom:100%;left:0;right:0;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;box-shadow:var(--shm);max-height:160px;overflow-y:auto;z-index:100}
+.mention-item{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;transition:background .12s}
+.mention-item:hover,.mention-item.active{background:var(--accent-s)}
+.mention-av{width:24px;height:24px;border-radius:50%;background:var(--accent-s);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--accent);overflow:hidden;flex-shrink:0}
+.mention-av img{width:100%;height:100%;object-fit:cover}
+.mention-name{font-size:12.5px;font-weight:500}
+#chat-input-wrap{position:relative}
+
+/* ── TUTORIAL ── */
+.tutorial-overlay{position:fixed;inset:0;z-index:9990;pointer-events:none}
+.tutorial-highlight{position:fixed;border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,.65);z-index:9991;pointer-events:none;transition:all .3s ease}
+.tutorial-tooltip{position:fixed;background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:16px 18px;max-width:280px;z-index:9992;box-shadow:var(--shm);pointer-events:all}
+.tutorial-tooltip-ttl{font-size:13.5px;font-weight:800;color:var(--tx);margin-bottom:6px}
+.tutorial-tooltip-txt{font-size:12.5px;color:var(--tx2);line-height:1.55;margin-bottom:14px}
+.tutorial-tooltip-ft{display:flex;align-items:center;justify-content:space-between}
+.tutorial-step-ct{font-size:11px;color:var(--tx3)}
+.tutorial-btns{display:flex;gap:8px}
+
+/* ── RELATÓRIO SEMANAL ── */
+.report-card{background:linear-gradient(135deg,#2a1f18,#4a3328);border-radius:14px;padding:20px;margin-bottom:16px;color:#fff}
+.report-card-ttl{font-size:14px;font-weight:800;margin-bottom:4px}
+.report-card-sub{font-size:12px;opacity:.65;margin-bottom:16px}
+.report-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.report-stat{text-align:center}
+.report-stat-val{font-size:22px;font-weight:800}
+.report-stat-lbl{font-size:10.5px;opacity:.65;margin-top:2px}
+
+/* ── ATALHOS ── */
+.shortcut-badge{font-size:10px;font-weight:700;background:var(--surface2);border:1px solid var(--border2);border-radius:5px;padding:1px 5px;color:var(--tx3);font-family:var(--mono,'DM Mono',monospace)}
 /* ── LOADER ── */
 #ff-loader{position:fixed;inset:0;z-index:99999;background:rgba(247,245,243,.88);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px}
 #ff-loader .spin{width:38px;height:38px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
@@ -1064,6 +1111,9 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
         <div id="search-results"></div>
       </div>
       <div class="hdr-acts">
+        <button class="ico-btn" onclick="openM('m-shortcuts')" title="Atalhos de teclado (?)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </button>
         <button class="ico-btn" onclick="go('inbox')" title="Caixa de Entrada">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
           <span class="notif-pip" id="notif-pip"></span>
@@ -1079,13 +1129,25 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
 
       <!-- DASHBOARD -->
       <section id="page-dashboard" class="page active">
-        <div class="ph"><div><h1 id="dash-greet">Dashboard</h1><div class="ph-sub" id="dash-sub">—</div></div></div>
-        <div class="stats-row">
-          <div class="stat red"><div class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div class="stat-lbl">Tarefas Vencidas</div><div class="stat-val" id="s-late">0</div></div>
-          <div class="stat blue"><div class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div><div class="stat-lbl">Meu Trabalho Hoje</div><div class="stat-val" id="s-my">0</div></div>
-          <div class="stat amber"><div class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div><div class="stat-lbl">Tarefas Abertas</div><div class="stat-val" id="s-tasks">0</div></div>
-          <div class="stat green"><div class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div class="stat-lbl">Reuniões Hoje</div><div class="stat-val" id="s-meets">0</div></div>
+        <div class="ph">
+          <div><h1 id="dash-greet">Dashboard</h1><div class="ph-sub" id="dash-sub">—</div></div>
+          <div class="ph-acts">
+            <button class="btn-sec" onclick="showWeeklyReport()" style="gap:6px;font-size:12px">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              Relatório Semanal
+            </button>
+          </div>
         </div>
+        <!-- Stats rápidos -->
+        <div class="stats-row">
+          <div class="stat red" onclick="go('tasks')" style="cursor:pointer"><div class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div class="stat-lbl">Tarefas Vencidas</div><div class="stat-val" id="s-late">0</div></div>
+          <div class="stat blue" onclick="go('mywork')" style="cursor:pointer"><div class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div><div class="stat-lbl">Meu Trabalho Hoje</div><div class="stat-val" id="s-my">0</div></div>
+          <div class="stat amber" onclick="go('tasks')" style="cursor:pointer"><div class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div><div class="stat-lbl">Tarefas Abertas</div><div class="stat-val" id="s-tasks">0</div></div>
+          <div class="stat green" onclick="go('meetings')" style="cursor:pointer"><div class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div class="stat-lbl">Reuniões Hoje</div><div class="stat-val" id="s-meets">0</div></div>
+        </div>
+        <!-- Insights inteligentes -->
+        <div class="dash-smart-grid" id="dash-insights"></div>
+        <!-- Grid principal -->
         <div class="dash-grid">
           <div class="card"><div class="card-ttl">Meu Trabalho — Hoje</div><div id="d-my"></div></div>
           <div class="card"><div class="card-ttl">Tarefas Vencidas</div><div id="d-late"></div></div>
@@ -1774,8 +1836,9 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
     <button class="chat-close" onclick="toggleChat()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
   </div>
   <div class="chat-msgs" id="chat-msgs"></div>
-  <div class="chat-foot">
-    <input type="text" class="chat-input" id="chat-input" placeholder="Mensagem..." autocomplete="off"/>
+  <div class="chat-foot" style="position:relative">
+    <div id="mention-dropdown" style="display:none;position:absolute;bottom:100%;left:0;right:48px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;box-shadow:var(--shm);max-height:160px;overflow-y:auto;z-index:100;margin-bottom:4px"></div>
+    <input type="text" class="chat-input" id="chat-input" placeholder="Mensagem... (@nome para mencionar)" autocomplete="off"/>
     <button class="chat-send" onclick="sendChat()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
   </div>
 </div>
@@ -2198,21 +2261,116 @@ function memberAvatar(name){
 function renderDash(){
   const h=new Date().getHours();
   const g=h<12?'Bom dia ☀️':h<18?'Boa tarde 👋':'Boa noite 🌙';
-  const gn=$('#dash-greet');if(gn)gn.textContent=`${g}, ${CUR.user.name.split(' ')[0]}`;
-  const groups=getGroups();
-  const grp=groups.find(x=>x.id===CUR.groupId);
-  const ds=$('#dash-sub');if(ds)ds.textContent=grp?`Grupo: ${grp.name}`:'';
+  const displayName=CUR.user.nickname||CUR.user.name.split(' ')[0];
+  const gn=$('#dash-greet');if(gn)gn.textContent=`${g}, ${displayName}`;
+  const ds=$('#dash-sub');if(ds)ds.textContent=CUR.groupName?`${CUR.groupCode} · ${CUR.groupName}`:'';
 
   const td=today();
   const data=getG();
   const myT=getMWToday(data);
-  const lateTasks=(data.tasks||[]).filter(t=>t.status==='late'&&canSeeTask(t));
-  const todayM=(data.meetings||[]).filter(m=>m.date===td&&(m.calType==='general'||m.owner===CUR.user.id));
+  const lateTasks=(_cache.tasks||[]).filter(t=>t.status==='late'&&canSeeTask(t));
+  const todayM=(_cache.meetings||[]).filter(m=>m.date===td&&(m.calType==='general'||m.ownerId===CUR.user.id));
+  const members=_cache.members||[];
 
   $('#s-late').textContent=lateTasks.length;
   $('#s-my').textContent=myT.length;
-  $('#s-tasks').textContent=(data.tasks||[]).filter(t=>t.status!=='done'&&t.status!=='late'&&canSeeTask(t)).length;
+  $('#s-tasks').textContent=(_cache.tasks||[]).filter(t=>t.status!=='done'&&t.status!=='late'&&canSeeTask(t)).length;
   $('#s-meets').textContent=todayM.length;
+
+  // ── INSIGHTS INTELIGENTES ──
+  const insightsEl=$('#dash-insights');
+  if(insightsEl){
+    // Insight 1: Membros com mais tarefas vencidas
+    const lateByMember={};
+    (_cache.tasks||[]).filter(t=>t.status==='late').forEach(t=>{
+      (t.integrateFor||[]).forEach(name=>{
+        lateByMember[name]=(lateByMember[name]||0)+1;
+      });
+      // Criador também conta
+      const creator=members.find(m=>m.id===t.createdBy);
+      if(creator&&!(t.integrateFor||[]).length){
+        lateByMember[creator.name]=(lateByMember[creator.name]||0)+1;
+      }
+    });
+    const lateRanking=Object.entries(lateByMember).sort((a,b)=>b[1]-a[1]).slice(0,4);
+
+    // Insight 2: Próxima reunião
+    const upcoming=(_cache.meetings||[])
+      .filter(m=>m.date>=td)
+      .sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time))
+      .slice(0,3);
+
+    // Insight 3: Tarefas concluídas hoje (vs total)
+    const doneToday=(_cache.tasks||[]).filter(t=>t.status==='done'&&t.statusAt&&t.statusAt.slice(0,10)===td).length;
+    const totalActive=(_cache.tasks||[]).filter(t=>canSeeTask(t)).length;
+    const myTasksLate=getMyTasks().filter(t=>t.status==='late').length;
+    const myTasksDone=getMyTasks().filter(t=>t.status==='done').length;
+    const myTasksTotal=getMyTasks().length;
+
+    insightsEl.innerHTML=`
+      <!-- Card: Desempenho do grupo -->
+      <div class="dash-insight">
+        <div class="dash-insight-ttl">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+          Desempenho da equipe hoje
+        </div>
+        ${lateRanking.length ? lateRanking.map(([name,count])=>{
+          const m=members.find(x=>x.name===name);
+          const av=m?.avatar?`<img src="${m.avatar}"/>`:'';
+          return`<div class="dash-member-row">
+            <div class="dash-member-av">${av||ini(name)}</div>
+            <div class="dash-member-info">
+              <div class="dash-member-name">${name}</div>
+              <div class="dash-pct-bar"><div class="dash-pct-fill" style="width:${Math.min(100,count*25)}%;background:var(--red)"></div></div>
+            </div>
+            <span class="dash-member-badge" style="background:var(--red-s);color:var(--red)">${count} venc.</span>
+          </div>`;
+        }).join('') : `<div style="text-align:center;padding:16px;color:var(--green);font-size:12.5px;font-weight:600">✅ Nenhuma tarefa vencida!</div>`}
+      </div>
+
+      <!-- Card: Próximas reuniões -->
+      <div class="dash-insight">
+        <div class="dash-insight-ttl">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Próximas reuniões
+        </div>
+        ${upcoming.length ? upcoming.map(m=>{
+          const isToday=m.date===td;
+          return`<div class="dash-member-row">
+            <div class="dash-member-av" style="background:var(--accent-s);color:var(--accent);font-size:9px;font-weight:800">${m.time||'--'}</div>
+            <div class="dash-member-info">
+              <div class="dash-member-name">${m.title}</div>
+              <div class="dash-member-stat">${isToday?'Hoje':'📅 '+fmt(m.date)} · ${m.participants||'Equipe'}</div>
+            </div>
+            ${isToday?`<span class="dash-member-badge" style="background:var(--accent-s);color:var(--accent)">Hoje</span>`:''}
+          </div>`;
+        }).join('') : `<div style="text-align:center;padding:16px;color:var(--tx3);font-size:12.5px">Nenhuma reunião agendada</div>`}
+      </div>
+
+      <!-- Card: Meu resumo do dia -->
+      <div class="dash-insight">
+        <div class="dash-insight-ttl">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          Meu resumo de hoje
+        </div>
+        <div class="dash-member-row">
+          <div class="dash-member-av" style="background:var(--green-s);color:var(--green)">✓</div>
+          <div class="dash-member-info"><div class="dash-member-name">Tarefas concluídas hoje</div></div>
+          <span class="dash-member-badge" style="background:var(--green-s);color:var(--green)">${doneToday}</span>
+        </div>
+        <div class="dash-member-row">
+          <div class="dash-member-av" style="background:var(--amber-s);color:var(--amber)">📋</div>
+          <div class="dash-member-info"><div class="dash-member-name">Meu trabalho pendente</div></div>
+          <span class="dash-member-badge" style="background:var(--amber-s);color:var(--amber)">${myT.length}</span>
+        </div>
+        <div class="dash-member-row">
+          <div class="dash-member-av" style="background:var(--red-s);color:var(--red)">⚠️</div>
+          <div class="dash-member-info"><div class="dash-member-name">Minhas tarefas vencidas</div></div>
+          <span class="dash-member-badge" style="background:var(--red-s);color:var(--red)">${myTasksLate}</span>
+        </div>
+      </div>
+    `;
+  }
 
   // My work today
   const dm=$('#d-my');
@@ -2242,12 +2400,14 @@ function renderDash(){
     <div class="ti-meta">🕐 ${m.time} &nbsp;👥 ${m.participants||'—'}</div></div>
   </div>`).join(''):empty('Sem reuniões hoje');
 
-  // Activity
+  // Activity — todos do grupo
   const da=$('#d-act');
-  const acts=data.activity||[];
-  // Filtrar: mostrar só atividades do usuário atual
-  const myActs=acts.filter(a=>!a.author||a.author===CUR.user.name).slice(0,10);
-  da.innerHTML=myActs.length?myActs.map(a=>`<div class="act-item"><div class="act-dot"></div><div class="act-txt">${a.text}</div><div class="act-tm">${relT(a.time)}</div></div>`).join(''):empty('Sem atividade recente');
+  const acts=(_cache.activity||[]).slice(0,8);
+  da.innerHTML=acts.length?acts.map(a=>`<div class="act-item">
+    <div class="act-dot"></div>
+    <div class="act-txt">${a.text}</div>
+    <div class="act-tm">${relT(a.time)}</div>
+  </div>`).join(''):empty('Sem atividade recente');
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -3370,7 +3530,7 @@ function renderChat(){
       <div class="chat-msg-av">${avContent}</div>
       <div class="chat-bubble">
         <div class="chat-bubble-name">${m.author}</div>
-        ${m.text.replace(/\n/g,'<br>')}
+        ${formatChatMessage(m.text.replace(/\n/g,'<br>'))}
         <div class="chat-bubble-time">${tStr}</div>
       </div>
     </div>`;
@@ -4415,6 +4575,213 @@ async function doLogout(){
   banner('Você saiu da conta.','ok');
 }
 
+// ═══════════════════════════════════════════════════════════
+//  RELATÓRIO SEMANAL
+// ═══════════════════════════════════════════════════════════
+async function showWeeklyReport(){
+  openM('m-weekly-report');
+  const body = document.getElementById('weekly-report-body');
+
+  // Datas da semana atual (seg-dom)
+  const now = new Date();
+  const day = now.getDay();
+  const diff = day===0?-6:1-day;
+  const weekStart = new Date(now); weekStart.setDate(now.getDate()+diff); weekStart.setHours(0,0,0,0);
+  const weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate()+6);
+  const wsStr = weekStart.toISOString().slice(0,10);
+  const weStr = weekEnd.toISOString().slice(0,10);
+
+  const tasks = _cache.tasks||[];
+  const myTasks = getMyTasks();
+  const members = _cache.members||[];
+
+  // Tarefas concluídas esta semana
+  const doneThisWeek = tasks.filter(t=>t.status==='done'&&t.statusAt&&t.statusAt.slice(0,10)>=wsStr&&t.statusAt.slice(0,10)<=weStr);
+  const lateThisWeek = tasks.filter(t=>t.status==='late');
+  const myDone = myTasks.filter(t=>t.status==='done');
+  const myLate = myTasks.filter(t=>t.status==='late');
+
+  // Desempenho por membro
+  const memberStats = {};
+  members.forEach(m=>{ memberStats[m.name]={done:0,late:0,id:m.id,avatar:m.avatar}; });
+  doneThisWeek.forEach(t=>{
+    (t.integrateFor||[]).forEach(n=>{ if(memberStats[n])memberStats[n].done++; });
+    const c=members.find(m=>m.id===t.createdBy);
+    if(c&&memberStats[c.name]&&!(t.integrateFor||[]).length) memberStats[c.name].done++;
+  });
+  lateThisWeek.forEach(t=>{
+    (t.integrateFor||[]).forEach(n=>{ if(memberStats[n])memberStats[n].late++; });
+    const c=members.find(m=>m.id===t.createdBy);
+    if(c&&memberStats[c.name]&&!(t.integrateFor||[]).length) memberStats[c.name].late++;
+  });
+
+  const memberRows = Object.entries(memberStats).map(([name,s])=>{
+    const total = s.done+s.late;
+    const pct = total>0?Math.round(s.done/total*100):100;
+    const av = s.avatar?`<img src="${s.avatar}"/>`:'';
+    const cls = pct>=80?'var(--green)':pct>=50?'var(--amber)':'var(--red)';
+    return`<div class="dash-member-row">
+      <div class="dash-member-av">${av||ini(name)}</div>
+      <div class="dash-member-info">
+        <div class="dash-member-name">${name}</div>
+        <div class="dash-pct-bar"><div class="dash-pct-fill" style="width:${pct}%;background:${cls}"></div></div>
+        <div class="dash-member-stat">${s.done} concluídas · ${s.late} vencidas</div>
+      </div>
+      <span style="font-size:13px;font-weight:800;color:${cls}">${pct}%</span>
+    </div>`;
+  }).join('');
+
+  body.innerHTML=`
+    <div style="padding:0 24px 24px">
+      <div class="report-card">
+        <div class="report-card-ttl">Semana de ${new Date(wsStr+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})} a ${new Date(weStr+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}</div>
+        <div class="report-card-sub">${CUR.groupName||'Grupo'}</div>
+        <div class="report-stats">
+          <div class="report-stat"><div class="report-stat-val">${doneThisWeek.length}</div><div class="report-stat-lbl">Concluídas</div></div>
+          <div class="report-stat"><div class="report-stat-val">${lateThisWeek.length}</div><div class="report-stat-lbl">Vencidas</div></div>
+          <div class="report-stat"><div class="report-stat-val">${(_cache.meetings||[]).filter(m=>m.date>=wsStr&&m.date<=weStr).length}</div><div class="report-stat-lbl">Reuniões</div></div>
+        </div>
+      </div>
+      <div style="margin-bottom:10px">
+        <div class="card-ttl" style="margin-bottom:12px">Desempenho por membro</div>
+        ${memberRows||'<div style="color:var(--tx3);font-size:12.5px;text-align:center;padding:16px">Nenhum dado ainda</div>'}
+      </div>
+      <div style="margin-top:16px">
+        <div class="card-ttl" style="margin-bottom:12px">Meu resumo pessoal</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="dash-insight" style="text-align:center">
+            <div style="font-size:28px;font-weight:900;color:var(--green)">${myDone.length}</div>
+            <div style="font-size:11px;color:var(--tx3);margin-top:4px">Tarefas pessoais concluídas</div>
+          </div>
+          <div class="dash-insight" style="text-align:center">
+            <div style="font-size:28px;font-weight:900;color:var(--red)">${myLate.length}</div>
+            <div style="font-size:11px;color:var(--tx3);margin-top:4px">Tarefas pessoais vencidas</div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  ATALHOS DE TECLADO
+// ═══════════════════════════════════════════════════════════
+document.addEventListener('keydown', function(e){
+  // Não ativar se estiver digitando em input/textarea
+  const tag = document.activeElement?.tagName;
+  const isTyping = tag==='INPUT'||tag==='TEXTAREA'||document.activeElement?.contentEditable==='true';
+
+  // Esc — fechar modal aberto
+  if(e.key==='Escape'){
+    const openModal = document.querySelector('.overlay.open');
+    if(openModal) closeM(openModal.id);
+    return;
+  }
+
+  if(isTyping) return;
+
+  if(e.key==='?'||e.key==='/'){
+    e.preventDefault();
+    if(e.key==='?') openM('m-shortcuts');
+    else { const si=$('#search-in'); if(si){si.focus();} }
+    return;
+  }
+
+  const map = {g:'dashboard',t:'tasks',w:'mywork',a:'meetings',p:'projects',i:'inbox'};
+  if(map[e.key.toLowerCase()]){
+    e.preventDefault();
+    go(map[e.key.toLowerCase()]);
+    return;
+  }
+
+  if(e.key.toLowerCase()==='n'){
+    e.preventDefault();
+    doNewMain();
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+//  MENÇÕES NO CHAT (@nome)
+// ═══════════════════════════════════════════════════════════
+let _mentionActive = false;
+let _mentionIdx = 0;
+let _mentionQuery = '';
+
+document.addEventListener('input', function(e){
+  if(e.target.id!=='chat-input') return;
+  const val = e.target.value;
+  const cursor = e.target.selectionStart;
+  // Encontrar @ antes do cursor
+  const before = val.slice(0, cursor);
+  const match = before.match(/@(\w*)$/);
+  const dropdown = document.getElementById('mention-dropdown');
+  if(!dropdown) return;
+
+  if(match){
+    _mentionQuery = match[1].toLowerCase();
+    _mentionActive = true;
+    _mentionIdx = 0;
+    const members = (_cache.members||[]).filter(m=>
+      m.id!==CUR.user.id && (m.name.toLowerCase().includes(_mentionQuery)||(m.nickname||'').toLowerCase().includes(_mentionQuery))
+    );
+    if(members.length){
+      dropdown.style.display='block';
+      dropdown.innerHTML = members.map((m,i)=>{
+        const av = m.avatar?`<img src="${m.avatar}"/>`:'';
+        return`<div class="mention-item ${i===_mentionIdx?'active':''}" data-name="${m.name}" onclick="insertMention('${m.name}')">
+          <div class="mention-av">${av||ini(m.name)}</div>
+          <span class="mention-name">${m.nickname||m.name}</span>
+        </div>`;
+      }).join('');
+    } else {
+      dropdown.style.display='none';
+    }
+  } else {
+    _mentionActive=false;
+    dropdown.style.display='none';
+  }
+});
+
+document.addEventListener('keydown', function(e){
+  if(e.target.id!=='chat-input') return;
+  const dropdown = document.getElementById('mention-dropdown');
+  if(!_mentionActive||!dropdown||dropdown.style.display==='none') return;
+  const items = dropdown.querySelectorAll('.mention-item');
+  if(e.key==='ArrowDown'){e.preventDefault();_mentionIdx=Math.min(_mentionIdx+1,items.length-1);items.forEach((el,i)=>el.classList.toggle('active',i===_mentionIdx));}
+  else if(e.key==='ArrowUp'){e.preventDefault();_mentionIdx=Math.max(_mentionIdx-1,0);items.forEach((el,i)=>el.classList.toggle('active',i===_mentionIdx));}
+  else if(e.key==='Enter'||e.key==='Tab'){
+    e.preventDefault();
+    const active=dropdown.querySelector('.mention-item.active');
+    if(active) insertMention(active.dataset.name);
+  } else if(e.key==='Escape'){
+    dropdown.style.display='none'; _mentionActive=false;
+  }
+}, true);
+
+function insertMention(name){
+  const inp = document.getElementById('chat-input');
+  const val = inp.value;
+  const cursor = inp.selectionStart;
+  const before = val.slice(0, cursor);
+  const after = val.slice(cursor);
+  const newBefore = before.replace(/@\w*$/, '@'+name+' ');
+  inp.value = newBefore + after;
+  inp.focus();
+  const newCursor = newBefore.length;
+  inp.setSelectionRange(newCursor, newCursor);
+  const dd = document.getElementById('mention-dropdown');
+  if(dd) dd.style.display='none';
+  _mentionActive=false;
+}
+
+function formatChatMessage(text){
+  // Destacar menções no chat
+  return text.replace(/@(\w+)/g, (match, name)=>{
+    const m = (_cache.members||[]).find(x=>x.name.toLowerCase()===name.toLowerCase()||(x.nickname||'').toLowerCase()===name.toLowerCase());
+    if(m) return `<span class="chat-mention">${match}</span>`;
+    return match;
+  });
+}
+
 document.addEventListener('DOMContentLoaded',async()=>{
   showLoader('Iniciando...');
   const {data:{session}}=await sb.auth.getSession();
@@ -4427,6 +4794,36 @@ document.addEventListener('DOMContentLoaded',async()=>{
 });
 </script>
 <div id="ff-loader"><div class="spin"></div><div class="lbl" id="ff-lbl">Carregando...</div></div>
+<!-- RELATÓRIO SEMANAL -->
+<div class="overlay" id="m-weekly-report">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-hd"><h2>📊 Relatório Semanal</h2><button class="modal-x" onclick="closeM('m-weekly-report')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div class="modal-body" id="weekly-report-body" style="padding:0">
+      <div style="text-align:center;padding:40px;color:var(--tx3)">Gerando relatório...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ATALHOS -->
+<div class="overlay" id="m-shortcuts">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-hd"><h2>⌨️ Atalhos de teclado</h2><button class="modal-x" onclick="closeM('m-shortcuts')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div class="modal-body">
+      <div style="display:flex;flex-direction:column;gap:0">
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)"><span class="shortcut-badge">N</span><span style="font-size:12.5px;color:var(--tx2)">Nova tarefa / item da página atual</span></div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)"><span class="shortcut-badge">G</span><span style="font-size:12.5px;color:var(--tx2)">Ir para o Dashboard</span></div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)"><span class="shortcut-badge">T</span><span style="font-size:12.5px;color:var(--tx2)">Ir para Tarefas</span></div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)"><span class="shortcut-badge">W</span><span style="font-size:12.5px;color:var(--tx2)">Ir para Meu Trabalho</span></div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)"><span class="shortcut-badge">A</span><span style="font-size:12.5px;color:var(--tx2)">Ir para Agendamento</span></div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)"><span class="shortcut-badge">P</span><span style="font-size:12.5px;color:var(--tx2)">Ir para Projetos</span></div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)"><span class="shortcut-badge">/</span><span style="font-size:12.5px;color:var(--tx2)">Focar na busca</span></div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)"><span class="shortcut-badge">Esc</span><span style="font-size:12.5px;color:var(--tx2)">Fechar modal aberto</span></div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0"><span class="shortcut-badge">?</span><span style="font-size:12.5px;color:var(--tx2)">Mostrar esta janela de atalhos</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- WELCOME OVERLAY -->
 <div id="welcome-overlay" style="display:none">
   <div class="welcome-box">
