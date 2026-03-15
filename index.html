@@ -2488,7 +2488,7 @@ async function toggleMT(id){
   const ns=t.status==='done'?'pending':'done';const sa=ns==='done'?new Date().toISOString():null;
   await sb.from('my_tasks').update({status:ns,status_at:sa}).eq('id',id);
   t.status=ns;if(sa)t.statusAt=sa;else delete t.statusAt;
-  if(ns==='done'){addAct('Tarefa pessoal <strong>'+t.title+'</strong> concluída');addInbox('Tarefa pessoal "<strong>'+t.title+'</strong>" concluída.','✅','tarefa concluída');}
+  if(ns==='done'){addAct('Tarefa pessoal <strong>'+t.title+'</strong> concluída');} // sem notificação de inbox — é tarefa pessoal
   renderP(page);
 }
 async function deleteMT(id){
