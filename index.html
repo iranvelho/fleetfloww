@@ -1337,9 +1337,9 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
         <div class="ph">
           <div><h1>Caixa de Entrada</h1><div class="ph-sub">Notificações de tarefas, conclusões e atualizações</div></div>
           <div class="ph-acts" style="gap:8px">
-            <button class="btn-sec" onclick="clearOldNotifications()" style="gap:5px">
+            <button class="btn-sec" onclick="clearOldNotifications()" style="gap:5px;color:var(--red);border-color:rgba(184,60,43,.3)">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-              Limpar antigas
+              Apagar todas
             </button>
             <button class="btn-sec" onclick="markAllRead()">Marcar tudo como lido</button>
           </div>
@@ -1547,7 +1547,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
       <div class="fg" id="nt-due-wrap"><label>Data limite <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">opcional — quando deve ser concluída</span></label><input type="date" id="nt-due" class="fi"/></div>
       <div class="fg" id="nt-time-wrap" style="display:none"><label>Horário limite <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">deve ser concluída até este horário</span></label><input type="time" id="nt-time" class="fi"/></div>
       <div class="fg"><label>Status</label><select id="nt-status" class="fi"><option value="pending">Pendente</option><option value="progress">Em andamento</option><option value="done">Concluída</option></select></div>
-      <div class="info-note" id="nt-cycle-note" style="display:none">♻️ <strong>Tarefa recorrente:</strong> Após concluída ou vencida, some em 3 dias e reaparece automaticamente no próximo ciclo.</div>
+      <div class="info-note" id="nt-cycle-note" style="display:none">♻️ <strong>Tarefa recorrente:</strong> A tarefa some ao iniciar o próximo ciclo — diária some à meia-noite, semanal na segunda-feira, mensal no dia 1º.</div>
     </div>
     <div class="modal-ft"><button class="btn-sec" onclick="closeM('m-new-task')">Cancelar</button><button class="btn-main" onclick="submitTask()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Criar</button></div>
   </div>
@@ -2178,16 +2178,13 @@ function unreadCount(){
 }
 
 async function clearOldNotifications(){
-  if(!window.confirm('Apagar notificações com mais de 7 dias?')) return;
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate()-7);
+  if(!window.confirm('Apagar TODAS as notificações? Esta ação não pode ser desfeita.')) return;
   await sb.from('inbox').delete()
     .eq('group_id',CUR.groupId)
-    .eq('user_id',CUR.user.id)
-    .lt('created_at',cutoff.toISOString());
-  _cache.inbox=(_cache.inbox||[]).filter(n=>new Date(n.time)>=cutoff);
+    .eq('user_id',CUR.user.id);
+  _cache.inbox=[];
   renderInbox();updateBadges();
-  banner('Notificações antigas removidas!','ok');
+  banner('Todas as notificações foram apagadas.','ok');
 }
 
 async function markAllRead(){
@@ -3048,7 +3045,22 @@ async function deleteTask(id){
   const t=(_cache.tasks||[]).find(x=>x.id===id);if(!t)return;
   await sb.from('tasks').delete().eq('id',id);
   addAct('Tarefa <strong>'+t.title+'</strong> excluída');
-  addInbox('Tarefa "<strong>'+t.title+'</strong>" excluída.','🗑️','tarefa excluída');
+  // Notificar APENAS os membros integrados — não o próprio criador
+  const integrated = t.integrateFor||[];
+  if(integrated.length > 0){
+    // Criar notificação só para quem estava integrado
+    const integratedMembers = (_cache.members||[]).filter(m=>integrated.includes(m.name));
+    for(const m of integratedMembers){
+      await sb.from('inbox').insert({
+        group_id:CUR.groupId,
+        user_id:m.id,
+        msg:`<strong>${CUR.user.nickname||CUR.user.name}</strong> excluiu a tarefa "<strong>${t.title}</strong>" que foi atribuída a você.`,
+        icon:'🗑️',
+        type:'tarefa excluída',
+        read:false
+      });
+    }
+  }
   _cache.tasks=(_cache.tasks||[]).filter(x=>x.id!==id);renderP(page);
 }
 
@@ -3561,23 +3573,27 @@ let chatOpen=false;
 let chatLastRead=0;
 
 function toggleChat(){
+  const win=document.getElementById('chat-window');
+  if(!win) return;
   chatOpen=!chatOpen;
-  const win=$('#chat-window');
   win.classList.toggle('open',chatOpen);
+  // Atualizar botão da sidebar
+  const navBtn=document.getElementById('nav-chat-btn');
+  if(navBtn) navBtn.classList.toggle('active',chatOpen);
   if(chatOpen){
     chatLastRead=Date.now();
     sessionStorage.setItem('ff_chat_read_'+CUR.user.id,chatLastRead);
     renderChat();
     updateChatPip();
-    setTimeout(()=>$('#chat-input')?.focus(),150);
-    // Atualizar nome do grupo no header do chat
-    const sub=$('#chat-group-sub');
+    setTimeout(()=>{
+      const inp=document.getElementById('chat-input');
+      if(inp) inp.focus();
+    },150);
+    const sub=document.getElementById('chat-group-sub');
     if(sub) sub.textContent=CUR.groupName||'Grupo';
   }
 }
-
-// Chat NÃO fecha ao navegar — apenas persiste o estado
-// A função go() não precisa fechar o chat
+// Chat NÃO fecha ao navegar — persiste entre páginas
 
 function getChatMessages(){ return _cache.chat||[]; }
 function saveChatMessages(msgs){ _cache.chat=msgs; }
