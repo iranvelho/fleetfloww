@@ -753,6 +753,18 @@ select.fi{appearance:none;cursor:pointer;padding-right:28px;background-image:url
 .assigned-creator-av img{width:100%;height:100%;object-fit:cover}
 .assigned-creator-name{font-size:12px;font-weight:700;color:var(--tx2)}
 .assigned-creator-count{font-size:10.5px;color:var(--tx3);background:var(--surface2);border:1px solid var(--border);border-radius:99px;padding:1px 7px}
+/* ── TASK CYCLE INDICATOR ── */
+.cycle-bar{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;color:var(--tx3);margin-top:3px}
+.cycle-dots{display:flex;gap:2px}
+.cycle-dot{width:7px;height:7px;border-radius:50%}
+.cycle-dot.done{background:var(--green)}
+.cycle-dot.missed{background:var(--red)}
+.cycle-dot.empty{background:var(--border2)}
+.cycle-pct{font-weight:700;font-size:10px}
+.cycle-pct.good{color:var(--green)}
+.cycle-pct.warn{color:var(--amber)}
+.cycle-pct.bad{color:var(--red)}
+.task-late-badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;color:var(--red);background:var(--red-s);border:1px solid rgba(184,60,43,.2);border-radius:6px;padding:1px 6px}
 /* ── TASK ORIGIN BADGE ── */
 .task-origin{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;letter-spacing:.3px;padding:2px 7px;border-radius:20px;white-space:nowrap;flex-shrink:0}
 .task-origin.mine{background:rgba(61,107,140,.12);color:#3d6b8c;border:1px solid rgba(61,107,140,.2)}
@@ -1465,6 +1477,8 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
       </div>
       <div class="fg" id="et-time-wrap"><label>Horário limite <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">deve ser concluída até este horário</span></label><input type="time" id="et-time" class="fi"/></div>
       <div class="fg"><label>Status</label><select id="et-status" class="fi"><option value="pending">Pendente</option><option value="progress">Em andamento</option><option value="done">Concluída</option><option value="late">Vencida</option></select></div>
+    </div>
+      <div id="et-cycle-history" style="display:none;margin-top:4px;padding:12px 14px;background:var(--surface2);border-radius:10px;border:1.5px solid var(--border)"></div>
     </div>
     <div class="modal-ft"><button class="btn-sec" onclick="closeM('m-edit-task')">Cancelar</button><button class="btn-main" onclick="saveTask()">Salvar</button></div>
   </div>
@@ -2519,42 +2533,96 @@ function setVBtns(){
   $('#vb-kb')?.classList.toggle('active',tView==='kanban');
 }
 
+// ── Calcular início do ciclo atual para cada frequência ──
+function getCycleStart(frequency){
+  const now = new Date();
+  if(frequency==='daily'){
+    // Ciclo = hoje (00:00)
+    const d = new Date(now); d.setHours(0,0,0,0); return d;
+  }
+  if(frequency==='weekly'){
+    // Ciclo = segunda-feira desta semana
+    const d = new Date(now); d.setHours(0,0,0,0);
+    const day = d.getDay(); // 0=dom
+    const diff = day===0 ? -6 : 1-day;
+    d.setDate(d.getDate()+diff); return d;
+  }
+  if(frequency==='monthly'){
+    // Ciclo = dia 1º deste mês
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  }
+  return new Date();
+}
+
+function getCycleDate(frequency){
+  return getCycleStart(frequency).toISOString().slice(0,10);
+}
+
 function purgeTasks(){
-  // Tarefas recorrentes: resetar para pendente quando o novo ciclo chegar
-  // Diária → reseta no dia seguinte à conclusão/vencimento
-  // Semanal/Mensal → reseta após 7 dias / 1 mês
-  // Tarefas únicas: ficam visíveis indefinidamente
+  // Reseta tarefas recorrentes quando entram num novo ciclo
+  // Registra no histórico se foi cumprida ou perdida
   _cache.tasks = (_cache.tasks||[]).filter(t=>{
-    if(t.frequency==='once') return true;
-    if((t.status==='done'||t.status==='late') && t.statusAt){
-      const statusDate = new Date(t.statusAt);
-      statusDate.setHours(0,0,0,0);
-      const now = new Date();
-      now.setHours(0,0,0,0);
+    if(t.frequency==='once') return true; // únicas ficam sempre
+    if(t.status!=='done' && t.status!=='late') return true; // ativas ficam
 
-      let shouldReset = false;
-      if(t.frequency==='daily'){
-        // Reseta no dia SEGUINTE
-        const nextDay = new Date(statusDate);
-        nextDay.setDate(statusDate.getDate()+1);
-        shouldReset = now >= nextDay;
-      } else if(t.frequency==='weekly'){
-        const nextWeek = new Date(statusDate);
-        nextWeek.setDate(statusDate.getDate()+7);
-        shouldReset = now >= nextWeek;
-      } else if(t.frequency==='monthly'){
-        const nextMonth = new Date(statusDate);
-        nextMonth.setMonth(statusDate.getMonth()+1);
-        shouldReset = now >= nextMonth;
-      }
+    if(!t.statusAt) return true;
 
-      if(shouldReset){
-        t.status='pending'; t.statusAt=null;
-        sb.from('tasks').update({status:'pending',status_at:null}).eq('id',t.id).then(()=>{});
+    const cycleStart = getCycleStart(t.frequency);
+    const statusDate = new Date(t.statusAt);
+
+    // Se o statusAt é de um ciclo anterior → registrar histórico e resetar
+    const isOldCycle = statusDate < cycleStart;
+    if(isOldCycle){
+      // Registrar no histórico (missedou done)
+      const cycleDate = new Date(statusDate);
+      cycleDate.setHours(0,0,0,0);
+      if(!t._cycleLogged){
+        t._cycleLogged = true;
+        sb.from('task_cycles').insert({
+          task_id: t.id,
+          group_id: CUR.groupId,
+          user_id: CUR.user.id,
+          cycle_date: cycleDate.toISOString().slice(0,10),
+          status: t.status==='done' ? 'done' : 'missed',
+          completed_at: t.status==='done' ? t.statusAt : null
+        }).then(()=>{});
       }
+      // Resetar para o novo ciclo
+      t.status='pending'; t.statusAt=null; t._cycleLogged=false;
+      sb.from('tasks').update({status:'pending',status_at:null}).eq('id',t.id).then(()=>{});
     }
-    return true; // tarefa nunca some — só reseta
+    return true; // tarefa nunca some, só reseta
   });
+}
+
+// Carregar histórico de ciclos de uma tarefa
+async function loadTaskCycles(taskId){
+  const {data} = await sb.from('task_cycles')
+    .select('*')
+    .eq('task_id', taskId)
+    .order('cycle_date', {ascending:false})
+    .limit(30);
+  return data||[];
+}
+
+// Gerar HTML do indicador de consistência
+function cycleIndicatorHTML(cycles, frequency){
+  if(!cycles||!cycles.length) return '';
+  const limit = frequency==='daily'?30:frequency==='weekly'?12:6;
+  const recent = cycles.slice(0,limit);
+  const done = recent.filter(c=>c.status==='done').length;
+  const pct = Math.round(done/recent.length*100);
+  const cls = pct>=80?'good':pct>=50?'warn':'bad';
+  const label = frequency==='daily'?`${done}/${recent.length} dias`:
+                frequency==='weekly'?`${done}/${recent.length} semanas`:
+                `${done}/${recent.length} meses`;
+  const dots = recent.slice(0,10).reverse().map(c=>
+    `<div class="cycle-dot ${c.status==='done'?'done':'missed'}" title="${c.cycle_date}: ${c.status==='done'?'Cumprida':'Perdida'}"></div>`
+  ).join('');
+  return `<div class="cycle-bar">
+    <div class="cycle-dots">${dots}</div>
+    <span class="cycle-pct ${cls}">${pct}% (${label})</span>
+  </div>`;
 }
 
 function renderTasks(){
@@ -2685,7 +2753,10 @@ function taskGroupHTML(label,tasks,gid,originType=''){
             ${isMineGroup?`<td><div style="display:flex;flex-wrap:wrap;gap:4px">${integrados}</div></td>`:''}
             <td>${freqLabel}</td>
             <td>${pbadge(t.priority)}</td>
-            <td>${sbadge(t.status)}</td>
+            <td>
+              ${sbadge(t.status)}
+              ${t.status==='late'&&t.frequency!=='once'?`<div class="task-late-badge">⏰ Venceu hoje</div>`:''}
+            </td>
             <td><div style="display:flex;gap:4px;align-items:center">
               <button class="btn-sec" style="padding:4px 8px;font-size:11px;gap:4px" onclick="event.stopPropagation();openComments('${t.id}')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
@@ -2738,9 +2809,18 @@ async function toggleTask(id){
   const sa=ns==='done'?new Date().toISOString():null;
   await sb.from('tasks').update({status:ns,status_at:sa}).eq('id',id);
   t.status=ns;if(sa)t.statusAt=sa;else delete t.statusAt;
+
   if(ns==='done'){
     addAct('Tarefa <strong>'+t.title+'</strong> concluída');
     addInbox('Tarefa "<strong>'+t.title+'</strong>" concluída por '+CUR.user.name+'.','✅','tarefa concluída');
+    // Registrar ciclo cumprido se for recorrente
+    if(t.frequency!=='once'){
+      sb.from('task_cycles').insert({
+        task_id:id, group_id:CUR.groupId, user_id:CUR.user.id,
+        cycle_date:getCycleDate(t.frequency),
+        status:'done', completed_at:sa
+      }).then(()=>{});
+    }
   }
   renderP(page);
 }
@@ -2866,7 +2946,7 @@ function toggleTaskTimeField(prefix){
   const wrap=$('#'+prefix+'-time-wrap');
   if(wrap) wrap.style.display=(freq&&freq!=='once')?'block':'none';
 }
-function openEditTask(id){
+async function openEditTask(id){
   const t=(_cache.tasks||[]).find(x=>x.id===id);if(!t)return;
   $('#et-id').value=id;$('#et-title').value=t.title;
   $('#et-freq').value=t.frequency||'once';
@@ -2878,6 +2958,21 @@ function openEditTask(id){
   renderMemberGrid('et-members-grid', t.integrateFor||[]);
   const statusSel=$('#et-status');
   if(statusSel){statusSel.disabled=!canToggleTask(t);statusSel.title=!canToggleTask(t)?'Somente membros integrados podem alterar o status':'';}
+
+  // Mostrar histórico de ciclos se for recorrente
+  const cycleWrap = document.getElementById('et-cycle-history');
+  if(cycleWrap){
+    if(t.frequency!=='once'){
+      cycleWrap.style.display='block';
+      cycleWrap.innerHTML='<div style="font-size:11px;color:var(--tx3)">Carregando histórico...</div>';
+      const cycles = await loadTaskCycles(id);
+      cycleWrap.innerHTML = cycles.length
+        ? '<div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:4px">Histórico de cumprimento</div>'+cycleIndicatorHTML(cycles, t.frequency)
+        : '<div style="font-size:11px;color:var(--tx3)">Nenhum ciclo registrado ainda.</div>';
+    } else {
+      cycleWrap.style.display='none';
+    }
+  }
   openM('m-edit-task');
 }
 async function saveTask(){
