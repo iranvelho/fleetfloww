@@ -789,7 +789,15 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
   animation:fadeInWelcome .4s ease;
 }
 @keyframes fadeInWelcome{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
-@keyframes fadeOutWelcome{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(.97)}}
+@keyframes fadeOutWelcome{
+  0%{opacity:1;transform:scale(1) translateY(0)}
+  30%{opacity:.9;transform:scale(1.03) translateY(-6px)}
+  100%{opacity:0;transform:scale(.92) translateY(20px)}
+}
+@keyframes overlayFadeOut{
+  0%{background:rgba(10,7,5,.75);backdrop-filter:blur(6px)}
+  100%{background:rgba(10,7,5,0);backdrop-filter:blur(0px)}
+}
 .welcome-box{
   background:var(--surface);
   border:1.5px solid var(--border);
@@ -4145,12 +4153,31 @@ function showWelcomeIfFirst(){
 function closeWelcome(){
   const overlay = document.getElementById('welcome-overlay');
   if(!overlay) return;
-  overlay.style.animation = 'fadeOutWelcome .3s ease forwards';
+  // Animar o box de conteúdo
+  const box = overlay.querySelector('.welcome-box');
+  if(box){
+    box.style.transition = 'all .4s cubic-bezier(.4,0,.2,1)';
+    box.style.transform = 'scale(1.04) translateY(-8px)';
+    box.style.opacity = '1';
+    setTimeout(()=>{
+      box.style.transform = 'scale(.88) translateY(30px)';
+      box.style.opacity = '0';
+    }, 50);
+  }
+  // Fundo some junto
+  overlay.style.transition = 'opacity .45s ease, backdrop-filter .45s ease';
+  setTimeout(()=>{
+    overlay.style.opacity = '0';
+    overlay.style.backdropFilter = 'blur(0px)';
+  }, 120);
+  // Finalizar
   setTimeout(()=>{
     overlay.style.display = 'none';
-    // Marcar como visto
+    overlay.style.opacity = '';
+    overlay.style.backdropFilter = '';
+    if(box){ box.style.transform=''; box.style.opacity=''; }
     localStorage.setItem('ff_welcomed_' + CUR.user.id, '1');
-  }, 300);
+  }, 480);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -4165,16 +4192,6 @@ function showWelcomeIfNeeded(){
     const el = document.getElementById('m-welcome');
     if(el) el.style.display = 'flex';
   }, 800);
-}
-
-function closeWelcome(){
-  const el = document.getElementById('m-welcome');
-  if(el) el.style.display = 'none';
-  // Se marcou "não mostrar novamente"
-  const cb = document.getElementById('wl-no-show');
-  if(cb && cb.checked){
-    localStorage.setItem('ff_welcome_seen_' + CUR.user.id, '1');
-  }
 }
 
 async function doLogout(){
