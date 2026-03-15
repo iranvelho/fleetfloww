@@ -695,6 +695,8 @@ select.fi{appearance:none;cursor:pointer;padding-right:28px;background-image:url
   box-shadow:0 4px 20px rgba(124,92,74,.35);cursor:pointer;
   transition:transform .18s ease,box-shadow .18s ease;border:none;
 }
+#chat-fab[data-unread="true"]{animation:chatPulse 2s infinite}
+@keyframes chatPulse{0%,100%{box-shadow:0 4px 20px rgba(124,92,74,.35)}50%{box-shadow:0 4px 28px rgba(124,92,74,.7)}}
 #chat-fab:hover{transform:scale(1.08);box-shadow:0 6px 28px rgba(124,92,74,.45)}
 #chat-fab svg{width:22px;height:22px}
 #chat-pip{position:absolute;top:2px;right:2px;width:14px;height:14px;border-radius:50%;background:#fff;border:2px solid var(--accent);display:none;align-items:center;justify-content:center;font-size:8px;font-weight:800;color:var(--accent)}
@@ -735,6 +737,10 @@ select.fi{appearance:none;cursor:pointer;padding-right:28px;background-image:url
 .chat-send svg{width:15px;height:15px}
 
 .tck-locked{cursor:not-allowed!important;opacity:.55;background:var(--surface2)!important;border-color:var(--border)!important;}
+.fi:disabled{opacity:.5;cursor:not-allowed;background:var(--surface2)!important;}
+tr.prio-high td:first-child{border-left:3px solid var(--red)!important}
+tr.prio-high .task-title{font-weight:700!important;color:var(--tx)!important}
+tr.prio-low{opacity:.8}
 .fi:disabled{opacity:.5;cursor:not-allowed;background:var(--surface2)!important;}
 .tck-locked:hover{background:var(--surface2)!important;border-color:var(--border)!important;transform:none!important;}
 
@@ -1073,10 +1079,20 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
         Caixa de Entrada
         <span class="nav-chip inbox" id="inbox-chip" style="display:none">0</span>
       </button>
+      <div class="sb-sec" style="margin-top:6px">Comunicação</div>
+      <button class="nav-btn" onclick="toggleChat()" id="nav-chat-btn">
+        <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></span>
+        Chat do Grupo
+        <span class="nav-chip inbox" id="chat-nav-pip" style="display:none">0</span>
+      </button>
       <div class="sb-sec" style="margin-top:6px">Configurações</div>
       <button class="nav-btn" data-page="groupinfo" onclick="go('groupinfo')">
         <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></span>
         Meu Grupo
+      </button>
+      <button class="nav-btn" data-page="help" onclick="go('help')">
+        <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+        Ajuda
       </button>
     </nav>
     <div class="sb-foot">
@@ -1320,7 +1336,11 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
       <section id="page-inbox" class="page">
         <div class="ph">
           <div><h1>Caixa de Entrada</h1><div class="ph-sub">Notificações de tarefas, conclusões e atualizações</div></div>
-          <div class="ph-acts">
+          <div class="ph-acts" style="gap:8px">
+            <button class="btn-sec" onclick="clearOldNotifications()" style="gap:5px">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+              Limpar antigas
+            </button>
             <button class="btn-sec" onclick="markAllRead()">Marcar tudo como lido</button>
           </div>
         </div>
@@ -1385,6 +1405,12 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
           </div>
           <div id="gi-members-grid"></div>
         </div>
+      </section>
+
+      <!-- AJUDA -->
+      <section id="page-help" class="page">
+        <div class="ph"><div><h1>Ajuda</h1><div class="ph-sub">Aprenda a usar cada funcionalidade do FleetFlow</div></div></div>
+        <div id="help-content"></div>
       </section>
 
     </main>
@@ -1511,11 +1537,14 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
           <option value="private">🔒 Privada — apenas integrados veem</option>
         </select>
       </div>
-      <div class="fg" id="nt-members-wrap" style="display:flex"><label>Integrar membros <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">opcional</span></label><div class="member-check-grid" id="nt-members-grid"></div></div>
+      <div class="fg" id="nt-members-wrap" style="display:flex"><label>Integrar membros <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">opcional</span></label><div class="member-check-grid" id="nt-members-grid"></div>
+      <div class="info-note" style="margin-top:6px;font-size:11.5px">💡 <strong>O que é integrar?</strong> O membro integrado recebe a tarefa na aba "Recebidas" e é o único que pode marcar como concluída. Se não integrar ninguém, você mesmo gerencia a tarefa.</div>
+      </div>
       <div class="fr">
         <div class="fg"><label>Frequência</label><select id="nt-freq" class="fi" onchange="toggleTaskTimeField('nt')"><option value="once">Apenas esta vez</option><option value="daily">Diária</option><option value="weekly">Semanal</option><option value="monthly">Mensal</option></select></div>
         <div class="fg"><label>Prioridade</label><select id="nt-prio" class="fi"><option value="medium">Média</option><option value="high">Alta</option><option value="low">Baixa</option></select></div>
       </div>
+      <div class="fg" id="nt-due-wrap"><label>Data limite <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">opcional — quando deve ser concluída</span></label><input type="date" id="nt-due" class="fi"/></div>
       <div class="fg" id="nt-time-wrap" style="display:none"><label>Horário limite <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">deve ser concluída até este horário</span></label><input type="time" id="nt-time" class="fi"/></div>
       <div class="fg"><label>Status</label><select id="nt-status" class="fi"><option value="pending">Pendente</option><option value="progress">Em andamento</option><option value="done">Concluída</option></select></div>
       <div class="info-note" id="nt-cycle-note" style="display:none">♻️ <strong>Tarefa recorrente:</strong> Após concluída ou vencida, some em 3 dias e reaparece automaticamente no próximo ciclo.</div>
@@ -1537,6 +1566,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
         <div class="fg"><label>Frequência</label><select id="et-freq" class="fi" onchange="toggleTaskTimeField('et')"><option value="once">Apenas esta vez</option><option value="daily">Diária</option><option value="weekly">Semanal</option><option value="monthly">Mensal</option></select></div>
         <div class="fg"><label>Prioridade</label><select id="et-prio" class="fi"><option value="medium">Média</option><option value="high">Alta</option><option value="low">Baixa</option></select></div>
       </div>
+      <div class="fg" id="et-due-wrap"><label>Data limite <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">opcional</span></label><input type="date" id="et-due" class="fi"/></div>
       <div class="fg" id="et-time-wrap"><label>Horário limite <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">deve ser concluída até este horário</span></label><input type="time" id="et-time" class="fi"/></div>
       <div class="fg"><label>Status</label><select id="et-status" class="fi"><option value="pending">Pendente</option><option value="progress">Em andamento</option><option value="done">Concluída</option><option value="late">Vencida</option></select></div>
     </div>
@@ -2073,8 +2103,8 @@ function launchApp(){
 // ═══════════════════════════════════════════════════════════
 
 let page='dashboard';
-const PAGE_TITLES={dashboard:'Dashboard',mywork:'Meu Trabalho',tasks:'Tarefas',meetings:'Agendamento',ideas:'Ideias & Melhorias',inbox:'Caixa de Entrada',profile:'Perfil',groupinfo:'Meu Grupo',projects:'Projetos'};
-const NEW_LABELS={dashboard:'Nova Tarefa',mywork:'Nova Tarefa Pessoal',tasks:'Nova Tarefa',meetings:'Nova Reunião',ideas:'Nova Ideia',inbox:'',profile:'',groupinfo:'',projects:'Novo Projeto'};
+const PAGE_TITLES={dashboard:'Dashboard',mywork:'Meu Trabalho',tasks:'Tarefas',meetings:'Agendamento',ideas:'Ideias & Melhorias',inbox:'Caixa de Entrada',profile:'Perfil',groupinfo:'Meu Grupo',projects:'Projetos',help:'Ajuda'};
+const NEW_LABELS={dashboard:'Nova Tarefa',mywork:'',tasks:'Nova Tarefa',meetings:'Nova Reunião',ideas:'Nova Ideia',inbox:'',profile:'',groupinfo:'',projects:'Novo Projeto',help:''};
 
 function go(p){
   page=p;
@@ -2097,6 +2127,7 @@ function renderP(p){
   if(p==='inbox')   renderInbox();
   if(p==='groupinfo')renderGroupInfo();
   if(p==='profile')renderProfile();
+  if(p==='help')renderHelp();
   if(p==='projects') renderProjects();
   updateBadges();
 }
@@ -2144,6 +2175,19 @@ async function addInbox(msg,icon='📋',type='task'){
 
 function unreadCount(){
   return (_cache.inbox||[]).filter(n=>!(n.readBy||[]).includes(CUR.user.id)).length;
+}
+
+async function clearOldNotifications(){
+  if(!window.confirm('Apagar notificações com mais de 7 dias?')) return;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate()-7);
+  await sb.from('inbox').delete()
+    .eq('group_id',CUR.groupId)
+    .eq('user_id',CUR.user.id)
+    .lt('created_at',cutoff.toISOString());
+  _cache.inbox=(_cache.inbox||[]).filter(n=>new Date(n.time)>=cutoff);
+  renderInbox();updateBadges();
+  banner('Notificações antigas removidas!','ok');
 }
 
 async function markAllRead(){
@@ -2912,7 +2956,7 @@ function taskGroupHTML(label,tasks,gid,originType=''){
             ? `${fbadge(t.frequency||'once')}<span style="font-size:10.5px;color:var(--tx3);margin-left:2px">até ${t.limitTime}</span>`
             : fbadge(t.frequency||'once');
 
-          return`<tr data-task-id="${t.id}" class="${isMine?'task-mine':isAssignedGroup?'task-assigned':''}" onclick="openEditTask('${t.id}')">
+          const prioClass=t.priority==='high'?'prio-high':t.priority==='low'?'prio-low':''; return`<tr data-task-id="${t.id}" class="${[isMine?'task-mine':isAssignedGroup?'task-assigned':'',prioClass].filter(Boolean).join(' ')}" onclick="openEditTask('${t.id}')">
             <td><div class="tc" style="gap:8px">
               ${tckBtn}
               <div style="min-width:0">
@@ -2923,7 +2967,10 @@ function taskGroupHTML(label,tasks,gid,originType=''){
             ${isGlobalGroup?`<td><div class="tc" style="gap:5px">${memberAvatar(creatorName)}<span style="font-size:12px">${creatorName}</span></div></td><td><div style="display:flex;flex-wrap:wrap;gap:4px">${integrados}</div></td>`:''}
             ${isAssignedGroup?`<td><div class="tc" style="gap:5px">${memberAvatar(creatorName)}<span style="font-size:12px">${creatorName}</span></div></td><td>${horario}</td>`:''}
             ${isMineGroup?`<td><div style="display:flex;flex-wrap:wrap;gap:4px">${integrados}</div></td>`:''}
-            <td>${freqLabel}</td>
+            <td>
+              ${freqLabel}
+              ${t.dueDate&&t.frequency==='once'?`<div style="font-size:10.5px;color:var(--tx3);margin-top:2px">📅 até ${fmt(t.dueDate)}</div>`:''}
+            </td>
             <td>${pbadge(t.priority)}</td>
             <td>
               ${sbadge(t.status)}
@@ -3115,8 +3162,12 @@ function toggleMembersField(){
 }
 function toggleTaskTimeField(prefix){
   const freq=$('#'+prefix+'-freq')?.value;
-  const wrap=$('#'+prefix+'-time-wrap');
-  if(wrap) wrap.style.display=(freq&&freq!=='once')?'block':'none';
+  const timeWrap=$('#'+prefix+'-time-wrap');
+  const dueWrap=$('#'+prefix+'-due-wrap');
+  // Data limite: aparece só em tarefas únicas
+  if(dueWrap) dueWrap.style.display=(freq==='once')?'block':'none';
+  // Horário: aparece em recorrentes
+  if(timeWrap) timeWrap.style.display=(freq&&freq!=='once')?'block':'none';
 }
 async function openEditTask(id){
   const t=(_cache.tasks||[]).find(x=>x.id===id);if(!t)return;
@@ -3126,6 +3177,7 @@ async function openEditTask(id){
   $('#et-prio').value=t.priority||'medium';
   $('#et-vis').value=t.visibility||'global';
   $('#et-time').value=t.limitTime||'';
+  $('#et-due').value=t.dueDate||'';
   toggleTaskTimeField('et');
   renderMemberGrid('et-members-grid', t.integrateFor||[]);
   const statusSel=$('#et-status');
@@ -3216,10 +3268,10 @@ async function submitTask(){
   if(!title){banner('Informe o título','warn');return;}
   const mnames=getSelectedMembers('nt-members-grid');
   showLoader('Salvando...');
-  const {data:t,error}=await sb.from('tasks').insert({group_id:CUR.groupId,title,integrate_for:mnames,frequency:$('#nt-freq').value,status:$('#nt-status').value,priority:$('#nt-prio').value,visibility:$('#nt-vis').value,created_by:CUR.user.id,description:$('#nt-time').value||null}).select().single();
+  const {data:t,error}=await sb.from('tasks').insert({group_id:CUR.groupId,title,integrate_for:mnames,frequency:$('#nt-freq').value,status:$('#nt-status').value,priority:$('#nt-prio').value,visibility:$('#nt-vis').value,created_by:CUR.user.id,description:$('#nt-time').value||null,due_date:$('#nt-due').value||null}).select().single();
   if(error){hideLoader();banner('Erro ao criar tarefa','err');return;}
   _cache.tasks=_cache.tasks||[];
-  _cache.tasks.unshift({id:t.id,title,integrateFor:mnames,frequency:t.frequency,status:t.status,priority:t.priority,visibility:t.visibility,createdBy:t.created_by,createdAt:t.created_at,limitTime:t.description||null});
+  _cache.tasks.unshift({id:t.id,title,integrateFor:mnames,frequency:t.frequency,status:t.status,priority:t.priority,visibility:t.visibility,createdBy:t.created_by,createdAt:t.created_at,limitTime:t.description||null,dueDate:t.due_date||null});
   addAct('Nova tarefa: <strong>'+title+'</strong>');
   addInbox('Nova tarefa: "<strong>'+title+'</strong>" por '+CUR.user.name+'.','📋','nova tarefa');
   hideLoader();closeM('m-new-task');clearF('m-new-task');renderP(page);banner('Tarefa criada!','ok');
@@ -3281,7 +3333,19 @@ function renderMemberGrid(gridId, selectedNames=[]){
       ${isMe?'<span class="mcb-you">Você</span>':''}
     </div>`;
   }).join('');
+  grid.innerHTML = searchHtml + `<div class="member-items-${gridId}">${itemsHtml}</div>`;
 }
+
+function filterMemberGrid(gridId, q){
+  const container = document.querySelector('.member-items-'+gridId);
+  if(!container) return;
+  const items = container.querySelectorAll('.mcb-item');
+  items.forEach(item=>{
+    const name = item.dataset.name||'';
+    item.style.display = name.toLowerCase().includes(q.toLowerCase()) ? '' : 'none';
+  });
+}
+
 function toggleMcb(el, gridId){
   el.classList.toggle('selected');
 }
@@ -3386,7 +3450,7 @@ async function loadGroupData(){
     sb.from('inbox').select('*').eq('group_id',gid).eq('user_id',uid_val).order('created_at',{ascending:false}).limit(100),
     sb.from('activity').select('*,profiles(name)').eq('group_id',gid).order('created_at',{ascending:false}).limit(50)
   ]);
-  _cache.tasks=(tasks||[]).map(t=>({id:t.id,title:t.title,status:t.status,priority:t.priority,frequency:t.frequency,visibility:t.visibility,integrateFor:t.integrate_for||[],createdBy:t.created_by,statusAt:t.status_at,createdAt:t.created_at,limitTime:t.description||null}));
+  _cache.tasks=(tasks||[]).map(t=>({id:t.id,title:t.title,status:t.status,priority:t.priority,frequency:t.frequency,visibility:t.visibility,integrateFor:t.integrate_for||[],createdBy:t.created_by,statusAt:t.status_at,createdAt:t.created_at,limitTime:t.description||null,dueDate:t.due_date||null}));
   _cache.myTasks=(myTasks||[]).map(t=>({id:t.id,title:t.title,frequency:t.frequency,limitTime:t.limit_time,status:t.status,statusAt:t.status_at,createdAt:t.created_at,userId:t.user_id}));
   _cache.myTasksByUser={};
   (_cache.myTasks).forEach(t=>{if(!_cache.myTasksByUser[t.userId])_cache.myTasksByUser[t.userId]=[];_cache.myTasksByUser[t.userId].push(t);});
@@ -3492,15 +3556,22 @@ let chatLastRead=0;
 
 function toggleChat(){
   chatOpen=!chatOpen;
-  $('#chat-window').classList.toggle('open',chatOpen);
+  const win=$('#chat-window');
+  win.classList.toggle('open',chatOpen);
   if(chatOpen){
     chatLastRead=Date.now();
     sessionStorage.setItem('ff_chat_read_'+CUR.user.id,chatLastRead);
     renderChat();
     updateChatPip();
     setTimeout(()=>$('#chat-input')?.focus(),150);
+    // Atualizar nome do grupo no header do chat
+    const sub=$('#chat-group-sub');
+    if(sub) sub.textContent=CUR.groupName||'Grupo';
   }
 }
+
+// Chat NÃO fecha ao navegar — apenas persiste o estado
+// A função go() não precisa fechar o chat
 
 function getChatMessages(){ return _cache.chat||[]; }
 function saveChatMessages(msgs){ _cache.chat=msgs; }
@@ -3543,11 +3614,12 @@ function updateChatPip(){
   const lastRead=parseInt(sessionStorage.getItem('ff_chat_read_'+CUR.user.id)||'0');
   const msgs=getChatMessages();
   const unseen=msgs.filter(m=>m.authorId!==CUR.user.id&&new Date(m.time).getTime()>lastRead).length;
-  // Badge tarefas recebidas
-  const rcv=(_cache.tasks||[]).filter(t=>t.createdBy!==CUR.user.id&&(t.integrateFor||[]).includes(CUR.user.nickname||CUR.user.name)&&t.status!=='done').length;
-  const rcvChip=$('#received-chip');if(rcvChip){rcvChip.textContent=rcv;rcvChip.style.display=rcv>0?'':'none';}
   const pip=$('#chat-pip');
-  if(pip){pip.textContent=unseen>9?'9+':unseen;pip.classList.toggle('show',unseen>0);}
+  if(pip){pip.textContent=unseen>9?'9+':String(unseen);pip.classList.toggle('show',unseen>0);}
+  const navPip=$('#chat-nav-pip');
+  if(navPip){navPip.textContent=unseen>9?'9+':String(unseen);navPip.style.display=unseen>0?'':'none';}
+  const fab=$('#chat-fab');
+  if(fab) fab.dataset.unread=unseen>0?'true':'false';
 }
 
 // Chat powered by Supabase realtime
@@ -4233,7 +4305,7 @@ function renderGroupInfo(){
     return`<div class="gi-member-card">
       <div class="gi-member-av">${avContent||ini(m.name)}</div>
       <div class="gi-member-name">${m.name}</div>
-      <div class="gi-member-role">${isCreator?'👑 Administrador':'Membro'}</div>
+
       ${isMe?`<span class="gi-member-me">Você</span>`:''}
     </div>`;
   }).join('')}</div>`;}
@@ -4780,6 +4852,168 @@ function formatChatMessage(text){
     if(m) return `<span class="chat-mention">${match}</span>`;
     return match;
   });
+}
+
+
+// ═══════════════════════════════════════════════════════════
+//  AJUDA
+// ═══════════════════════════════════════════════════════════
+const HELP_TOPICS = [
+  {
+    icon:'📊', title:'Dashboard',
+    desc:'A página inicial do FleetFlow. Aqui você vê um resumo de tudo que está acontecendo.',
+    items:[
+      'Os 4 cards no topo mostram: tarefas vencidas, seu trabalho de hoje, tarefas abertas e reuniões do dia',
+      'Os 3 painéis de insights mostram: desempenho da equipe, próximas reuniões e seu resumo pessoal',
+      'Clique em qualquer card colorido para ir direto à página correspondente',
+      'O botão "Relatório Semanal" mostra o desempenho de toda a equipe na semana'
+    ]
+  },
+  {
+    icon:'👤', title:'Meu Trabalho',
+    desc:'Suas tarefas pessoais — visíveis só para você. Ideal para rotinas diárias.',
+    items:[
+      'Clique em "+ Nova Tarefa" para criar uma tarefa pessoal',
+      'Defina a recorrência: Diária, Semanal ou Mensal',
+      'O campo "Horário Limite" define até quando a tarefa deve ser concluída (com 1h de tolerância)',
+      'Tarefas diárias resetam automaticamente à meia-noite',
+      'Tarefas semanais resetam toda segunda-feira',
+      'Tarefas mensais resetam no dia 1º de cada mês',
+      'Use os filtros no topo para buscar por nome, recorrência ou status'
+    ]
+  },
+  {
+    icon:'✅', title:'Tarefas',
+    desc:'Tarefas da equipe — pode ser integrada a membros específicos.',
+    items:[
+      'A aba "Recebidas" mostra tarefas que outros membros integraram a você, agrupadas por quem enviou',
+      'A aba "Todas do grupo" mostra tarefas globais visíveis para toda a equipe',
+      'A aba "Criadas por mim" mostra as tarefas que você criou',
+      'Visibilidade Global: todos do grupo veem. Privada: só quem está integrado vê',
+      'Ao integrar um membro, somente ele pode alterar o status da tarefa',
+      'Tarefas recorrentes voltam automaticamente como pendentes no próximo ciclo',
+      'O botão "Ocultar concluídas" esconde as tarefas já feitas para limpar a visualização'
+    ]
+  },
+  {
+    icon:'📅', title:'Agendamento',
+    desc:'Calendário de reuniões da equipe.',
+    items:[
+      'Use o calendário para visualizar reuniões por mês',
+      'Alterne entre "Geral" (toda equipe) e "Individual" (só suas reuniões)',
+      'Use a aba "Lista" para ver todas as reuniões em formato de lista com filtros',
+      'Ao criar uma reunião, informe título, data, horário e participantes',
+      'Reuniões próximas aparecem no Dashboard automaticamente'
+    ]
+  },
+  {
+    icon:'💡', title:'Ideias & Melhorias',
+    desc:'Registre e acompanhe ideias de melhoria da equipe.',
+    items:[
+      'Qualquer membro pode registrar uma ideia',
+      'Status disponíveis: Nova, Em análise, Aprovada, Descartada',
+      'Use este espaço para sugestões de processos, equipamentos ou rotinas'
+    ]
+  },
+  {
+    icon:'📁', title:'Projetos',
+    desc:'Gerencie projetos com etapas e progresso visual.',
+    items:[
+      'Crie um projeto com nome, cor e status',
+      'Adicione etapas dentro do projeto — cada etapa pode ser marcada como concluída',
+      'Quando todas as etapas forem concluídas, o projeto fecha automaticamente',
+      'Use "Compartilhar" para dar acesso a membros específicos',
+      'O administrador pode pausar, retomar ou apagar projetos'
+    ]
+  },
+  {
+    icon:'💬', title:'Chat do Grupo',
+    desc:'Mensagens em tempo real com toda a equipe.',
+    items:[
+      'Clique em "Chat do Grupo" na barra lateral ou no botão flutuante no canto inferior direito',
+      'Digite @nome para mencionar um membro — ele receberá destaque na mensagem',
+      'O badge laranja na sidebar mostra quantas mensagens novas existem',
+      'As mensagens são sincronizadas em tempo real para todos os membros online'
+    ]
+  },
+  {
+    icon:'📬', title:'Caixa de Entrada',
+    desc:'Notificações de tarefas vencidas, conclusões e atualizações do grupo.',
+    items:[
+      'Notificações aparecem quando uma tarefa vence, é concluída ou atualizada',
+      'Tarefas pessoais só geram notificação quando vencem — não ao criar ou concluir',
+      'Clique em uma notificação para marcá-la como lida',
+      'Use "Marcar tudo como lido" para limpar todas de uma vez'
+    ]
+  },
+  {
+    icon:'👥', title:'Meu Grupo',
+    desc:'Informações do grupo, membros e código de acesso.',
+    items:[
+      'O código do grupo é usado para convidar novos membros — clique em "Copiar" para compartilhar',
+      'O administrador (criador) pode editar o nome, foto e descrição do grupo',
+      'Membros podem sair do grupo pelo botão "Sair do Grupo"',
+      'O administrador pode apagar o grupo permanentemente (ação irreversível)'
+    ]
+  },
+  {
+    icon:'🧑', title:'Meu Perfil',
+    desc:'Configure sua foto, nome e apelido.',
+    items:[
+      'Clique no seu nome na barra lateral para acessar o perfil',
+      'Adicione uma foto de perfil (JPG ou PNG, máx. 2MB)',
+      'Defina um apelido para ser chamado no sistema',
+      'Seu apelido substitui o nome completo na barra lateral e no sistema'
+    ]
+  },
+  {
+    icon:'⌨️', title:'Atalhos de Teclado',
+    desc:'Navegue mais rápido com o teclado.',
+    items:[
+      'G → Dashboard',
+      'T → Tarefas',
+      'W → Meu Trabalho',
+      'A → Agendamento',
+      'P → Projetos',
+      'N → Nova tarefa (na página atual)',
+      '/ → Focar na busca',
+      '? → Ver todos os atalhos',
+      'Esc → Fechar modal'
+    ]
+  }
+];
+
+function renderHelp(){
+  const el=document.getElementById('help-content');
+  if(!el) return;
+
+  el.innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      ${HELP_TOPICS.map(t=>`
+        <div class="card" style="border-radius:14px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+            <div style="width:36px;height:36px;border-radius:10px;background:var(--accent-s);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">${t.icon}</div>
+            <div>
+              <div style="font-size:13.5px;font-weight:800;color:var(--tx)">${t.title}</div>
+              <div style="font-size:11.5px;color:var(--tx3);margin-top:1px">${t.desc}</div>
+            </div>
+          </div>
+          <ul style="padding-left:16px;display:flex;flex-direction:column;gap:5px">
+            ${t.items.map(i=>`<li style="font-size:12px;color:var(--tx2);line-height:1.5">${i}</li>`).join('')}
+          </ul>
+        </div>
+      `).join('')}
+    </div>
+    <div class="card" style="margin-top:14px;border-radius:14px;background:linear-gradient(135deg,#2a1f18,#4a3328);border:none">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="font-size:28px">🚀</div>
+        <div>
+          <div style="font-size:14px;font-weight:800;color:#fff">Precisa de mais ajuda?</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:2px">Use o chat do grupo para se comunicar com a equipe em tempo real. Dúvidas sobre o sistema podem ser resolvidas pelo administrador do grupo.</div>
+        </div>
+        <button onclick="toggleChat()" class="btn-main" style="flex-shrink:0;margin-left:auto">Abrir Chat</button>
+      </div>
+    </div>`;
 }
 
 document.addEventListener('DOMContentLoaded',async()=>{
