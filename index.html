@@ -2064,6 +2064,13 @@ function banner(msg,type='info'){
 // ── INBOX ──
 async function addInbox(msg,icon='📋',type='task'){
   if(!CUR.groupId||!CUR.user) return;
+  // Evitar duplicata: checar se já existe notificação igual nos últimos 10 minutos
+  const recent=(_cache.inbox||[]).find(n=>{
+    if(n.msg!==msg) return false;
+    const age=(Date.now()-new Date(n.time).getTime())/60000;
+    return age < 10;
+  });
+  if(recent) return; // já foi notificado recentemente
   const members=_cache.members||[];
   const inserts=members.length ? members.map(m=>({group_id:CUR.groupId,user_id:m.id,msg,icon,type,read:false})) : [{group_id:CUR.groupId,user_id:CUR.user.id,msg,icon,type,read:false}];
   await sb.from('inbox').insert(inserts);
@@ -2338,20 +2345,19 @@ function checkMyLate(){
   const arr=getMyTasks();let chg=false;
   const nowM=nowMin();
   arr.forEach(t=>{
-    if(t.status==='done'||t.status==='late'||!t.limitTime)return;
+    // Só processa tarefas PENDENTES — se já está 'late' não faz nada
+    if(t.status!=='pending'||!t.limitTime)return;
     const limitM=tMin(t.limitTime);
-    // Só vence se o horário+tolerância já passou
     if(nowM <= limitM+60) return;
-    // Não marcar como vencida se foi criada DEPOIS do horário limite
-    // (ex: criou às 20h com limite 18h — aparece normalmente para o dia seguinte)
+    // Não vence se foi criada hoje depois do horário limite
     if(t.createdAt){
-      const createdM = new Date(t.createdAt).getHours()*60 + new Date(t.createdAt).getMinutes();
-      const createdToday = new Date(t.createdAt).toDateString() === new Date().toDateString();
-      // Se foi criada hoje APÓS o horário limite, não vence — é para amanhã
+      const createdM=new Date(t.createdAt).getHours()*60+new Date(t.createdAt).getMinutes();
+      const createdToday=new Date(t.createdAt).toDateString()===new Date().toDateString();
       if(createdToday && createdM > limitM) return;
     }
-    t.status='late';t.statusAt=new Date().toISOString();chg=true;
-    addInbox(`Tarefa pessoal "<strong>${t.title}</strong>" não foi concluída e está vencida.`,'⏰','tarefa vencida');
+    // Transição pending → late: notificar UMA VEZ
+    t.status='late'; t.statusAt=new Date().toISOString(); chg=true;
+    addInbox('Tarefa pessoal "<strong>'+t.title+'</strong>" não foi concluída e está vencida.','⏰','tarefa vencida');
   });
   if(chg)saveMyTasks(arr);
 }
@@ -2559,25 +2565,46 @@ function getCycleDate(frequency){
 }
 
 function purgeTasks(){
-  // Reseta tarefas recorrentes quando entram num novo ciclo
-  // Registra no histórico se foi cumprida ou perdida
-  _cache.tasks = (_cache.tasks||[]).filter(t=>{
-    if(t.frequency==='once') return true; // únicas ficam sempre
-    if(t.status!=='done' && t.status!=='late') return true; // ativas ficam
+  const nowMs = Date.now();
+  const todayStart = new Date(); todayStart.setHours(0,0,0,0);
 
-    if(!t.statusAt) return true;
+  (_cache.tasks||[]).forEach(t=>{
+    // ── 1. Verificar se tarefa pendente venceu (limitTime passou + 1h tolerância) ──
+    if(t.status==='pending' && t.limitTime){
+      const lm = tMin(t.limitTime);
+      const nm = new Date().getHours()*60 + new Date().getMinutes();
+      // Só vence se foi criada ANTES do horário limite de hoje
+      let criadoAntesDoLimite = true;
+      if(t.createdAt){
+        const cDate = new Date(t.createdAt);
+        const isToday = cDate.toDateString() === new Date().toDateString();
+        if(isToday){
+          const createdM = cDate.getHours()*60 + cDate.getMinutes();
+          if(createdM > lm) criadoAntesDoLimite = false; // criada depois do limite = para amanhã
+        }
+      }
+      if(criadoAntesDoLimite && nm > lm + 60){
+        t.status = 'late';
+        t.statusAt = new Date().toISOString();
+        sb.from('tasks').update({status:'late', status_at:t.statusAt}).eq('id',t.id).then(()=>{});
+      }
+    }
+
+    // ── 2. Resetar tarefas recorrentes que já entraram no novo ciclo ──
+    if(t.frequency==='once') return;
+    if(t.status!=='done' && t.status!=='late') return;
+    if(!t.statusAt) return;
 
     const cycleStart = getCycleStart(t.frequency);
     const statusDate = new Date(t.statusAt);
-
-    // Se o statusAt é de um ciclo anterior → registrar histórico e resetar
     const isOldCycle = statusDate < cycleStart;
+
     if(isOldCycle){
-      // Registrar no histórico (missedou done)
-      const cycleDate = new Date(statusDate);
-      cycleDate.setHours(0,0,0,0);
+      // Registrar no histórico antes de resetar
       if(!t._cycleLogged){
         t._cycleLogged = true;
+        const cycleDate = new Date(statusDate);
+        cycleDate.setHours(0,0,0,0);
         sb.from('task_cycles').insert({
           task_id: t.id,
           group_id: CUR.groupId,
@@ -2587,11 +2614,11 @@ function purgeTasks(){
           completed_at: t.status==='done' ? t.statusAt : null
         }).then(()=>{});
       }
-      // Resetar para o novo ciclo
+      // Resetar para novo ciclo
       t.status='pending'; t.statusAt=null; t._cycleLogged=false;
       sb.from('tasks').update({status:'pending',status_at:null}).eq('id',t.id).then(()=>{});
     }
-    return true; // tarefa nunca some, só reseta
+    // NUNCA remove do cache — tarefa sempre permanece visível
   });
 }
 
@@ -3166,14 +3193,9 @@ function checkMeetSoon(){
 }
 
 function checkLateGlobalTasks(){
-  // After 3 days late, purge and notify — handled in purgeTasks
-  // This runs on load to mark any tasks that might have expired
-  const g=getG();
-  (g.tasks||[]).forEach(t=>{
-    if(t.status==='late'&&t.statusAt&&daysSince(t.statusAt)>=3){
-      // will be purged on next purgeTasks call
-    }
-  });
+  // Delega para purgeTasks que já cuida de vencimento + reset de ciclos
+  purgeTasks();
+  if(page==='tasks') renderTasks();
 }
 
 // ═══════════════════════════════════════════════════════════
