@@ -2064,13 +2064,13 @@ function banner(msg,type='info'){
 // ── INBOX ──
 async function addInbox(msg,icon='📋',type='task'){
   if(!CUR.groupId||!CUR.user) return;
-  // Evitar duplicata: checar se já existe notificação igual nos últimos 10 minutos
+  // Evitar duplicata: mesma mensagem nas últimas 24h
   const recent=(_cache.inbox||[]).find(n=>{
     if(n.msg!==msg) return false;
-    const age=(Date.now()-new Date(n.time).getTime())/60000;
-    return age < 10;
+    const age=(Date.now()-new Date(n.time).getTime())/3600000; // horas
+    return age < 24;
   });
-  if(recent) return; // já foi notificado recentemente
+  if(recent) return;
   const members=_cache.members||[];
   const inserts=members.length ? members.map(m=>({group_id:CUR.groupId,user_id:m.id,msg,icon,type,read:false})) : [{group_id:CUR.groupId,user_id:CUR.user.id,msg,icon,type,read:false}];
   await sb.from('inbox').insert(inserts);
@@ -2279,29 +2279,12 @@ function getMWState(t){
 }
 
 function getMWToday(data,overrideArr){
+  // Retorna APENAS tarefas pendentes para hoje — vencidas e concluídas ficam em grupos próprios
   const arr=overrideArr||(data&&data.myTasksByUser&&data.myTasksByUser[CUR.user.id])||getMyTasks();
-  const td=today();
   return arr.filter(t=>{
-    // Tarefas únicas concluídas/vencidas não aparecem mais
-    if(t.frequency==='once'){
-      if(t.status==='done') return false;
-      if(t.status==='late'){
-        // Se foi criada depois do horário → não é vencida de verdade, mostrar
-        if(t.createdAt){
-          const createdM=new Date(t.createdAt).getHours()*60+new Date(t.createdAt).getMinutes();
-          const lm=tMin(t.limitTime);
-          const createdToday=new Date(t.createdAt).toDateString()===new Date().toDateString();
-          if(createdToday && lm && createdM > lm) return true;
-        }
-        return false;
-      }
-      return true;
-    }
-    // Tarefas recorrentes: verificar se já é hora de reaparecer
-    if(t.status==='done'||t.status==='late'){
-      return taskShouldReappear(t);
-    }
-    // Tarefa pendente ou em andamento → sempre aparece hoje se for do ciclo atual
+    // Só pendentes aparecem em "Para hoje"
+    if(t.status!=='pending') return false;
+    if(t.frequency==='once') return true;
     if(t.frequency==='daily') return true;
     if(t.frequency==='weekly') return taskShouldReappear(t)||!t.statusAt;
     if(t.frequency==='monthly') return taskShouldReappear(t)||!t.statusAt;
@@ -2341,23 +2324,31 @@ function taskShouldReappear(t){
 function isTW(t){ return taskShouldReappear(t); }
 function isTM(t){ return taskShouldReappear(t); }
 
+// Controle de notificações já enviadas nesta sessão (por task id + data)
+const _lateNotified = new Set();
+
 function checkMyLate(){
   const arr=getMyTasks();let chg=false;
   const nowM=nowMin();
+  const todayStr=today();
   arr.forEach(t=>{
-    // Só processa tarefas PENDENTES — se já está 'late' não faz nada
     if(t.status!=='pending'||!t.limitTime)return;
     const limitM=tMin(t.limitTime);
     if(nowM <= limitM+60) return;
-    // Não vence se foi criada hoje depois do horário limite
+    // Não vence se criada hoje após o horário limite
     if(t.createdAt){
       const createdM=new Date(t.createdAt).getHours()*60+new Date(t.createdAt).getMinutes();
       const createdToday=new Date(t.createdAt).toDateString()===new Date().toDateString();
       if(createdToday && createdM > limitM) return;
     }
-    // Transição pending → late: notificar UMA VEZ
+    // Marcar como late
     t.status='late'; t.statusAt=new Date().toISOString(); chg=true;
-    addInbox('Tarefa pessoal "<strong>'+t.title+'</strong>" não foi concluída e está vencida.','⏰','tarefa vencida');
+    // Notificar APENAS se ainda não foi notificada hoje nesta sessão
+    const notifKey = t.id+'_'+todayStr;
+    if(!_lateNotified.has(notifKey)){
+      _lateNotified.add(notifKey);
+      addInbox('Tarefa pessoal "<strong>'+t.title+'</strong>" não foi concluída e está vencida.','⏰','tarefa vencida');
+    }
   });
   if(chg)saveMyTasks(arr);
 }
@@ -2439,27 +2430,21 @@ function renderMyWork(){
   const fFreqMW=$('#mw-filter-freq')?.value||'';
   const fStatusMW=$('#mw-filter-status')?.value||'';
 
-  // Aplicar filtros
+  // Aplicar filtros de busca/recorrência/status
   let filtered=all.filter(t=>{
-    // Tarefas únicas concluídas somem após 1 dia
-    if(t.status==='done'&&t.frequency==='once'&&t.statusAt&&daysSince(t.statusAt)>=1)return false;
-    // Tarefas recorrentes: ocultar se ainda não é hora de reaparecer
-    if(t.frequency!=='once'&&(t.status==='done'||t.status==='late')&&t.statusAt){
-      if(!taskShouldReappear(t))return false;
-    }
     if(q&&!t.title.toLowerCase().includes(q))return false;
     if(fFreqMW&&t.frequency!==fFreqMW)return false;
     if(fStatusMW&&t.status!==fStatusMW)return false;
     return true;
   });
 
-  // Separar em grupos
+  // Separar em grupos — cada tarefa vai para exatamente UM grupo
   const lateT    = filtered.filter(t=>t.status==='late');
-  const todayT   = getMWToday(null,filtered);
-  const pendingT = filtered.filter(t=>
-    t.status==='pending'&&!todayT.includes(t)&&!lateT.includes(t)
-  );
   const doneT    = filtered.filter(t=>t.status==='done');
+  const todayT   = getMWToday(null, filtered.filter(t=>t.status==='pending'));
+  const pendingT = filtered.filter(t=>
+    t.status==='pending' && !todayT.includes(t)
+  );
 
   const cont=$('#mw-content');
   if(!filtered.length){
