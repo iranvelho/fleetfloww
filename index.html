@@ -738,6 +738,21 @@ select.fi{appearance:none;cursor:pointer;padding-right:28px;background-image:url
 .fi:disabled{opacity:.5;cursor:not-allowed;background:var(--surface2)!important;}
 .tck-locked:hover{background:var(--surface2)!important;border-color:var(--border)!important;transform:none!important;}
 
+/* ── TASK INNER TABS ── */
+.task-tabs{display:flex;gap:2px;background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;padding:3px;margin-bottom:16px}
+.task-tab{flex:1;padding:7px 12px;border-radius:9px;font-size:12px;font-weight:600;color:var(--tx3);background:transparent;border:none;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
+.task-tab:hover{color:var(--tx2)}
+.task-tab.active{background:var(--surface);color:var(--tx);box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.task-tab .tab-badge{font-size:10px;font-weight:700;background:var(--accent);color:#fff;border-radius:99px;padding:1px 6px;min-width:18px;text-align:center}
+.task-tab.active .tab-badge{background:var(--accent)}
+.task-tab:not(.active) .tab-badge{background:var(--border2);color:var(--tx3)}
+/* Separador entre criador no grupo assigned */
+.assigned-creator-group{margin-bottom:20px}
+.assigned-creator-hd{display:flex;align-items:center;gap:10px;margin-bottom:8px;padding:0 2px}
+.assigned-creator-av{width:28px;height:28px;border-radius:50%;background:var(--accent-s);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--accent);flex-shrink:0;overflow:hidden}
+.assigned-creator-av img{width:100%;height:100%;object-fit:cover}
+.assigned-creator-name{font-size:12px;font-weight:700;color:var(--tx2)}
+.assigned-creator-count{font-size:10.5px;color:var(--tx3);background:var(--surface2);border:1px solid var(--border);border-radius:99px;padding:1px 7px}
 /* ── TASK ORIGIN BADGE ── */
 .task-origin{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;letter-spacing:.3px;padding:2px 7px;border-radius:20px;white-space:nowrap;flex-shrink:0}
 .task-origin.mine{background:rgba(61,107,140,.12);color:#3d6b8c;border:1px solid rgba(61,107,140,.2)}
@@ -979,6 +994,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
         <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></span>
         Tarefas
         <span class="nav-chip" id="late-chip" style="display:none">0</span>
+        <span class="nav-chip soft" id="received-chip" style="display:none">0</span>
       </button>
       <button class="nav-btn" data-page="meetings" onclick="go('meetings')">
         <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
@@ -1130,6 +1146,21 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
               <button class="vb" id="vb-kb" onclick="tView='kanban';setVBtns();renderTasks()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="11" rx="1"/><rect x="17" y="3" width="5" height="14" rx="1"/></svg>Kanban</button>
             </div>
           </div>
+        </div>
+        <!-- Abas internas -->
+        <div class="task-tabs" id="task-tabs">
+          <button class="task-tab active" id="ttab-received" onclick="switchTaskTab('received')">
+            📥 Recebidas
+            <span class="tab-badge" id="ttab-received-count">0</span>
+          </button>
+          <button class="task-tab" id="ttab-all" onclick="switchTaskTab('all')">
+            🌐 Todas do grupo
+            <span class="tab-badge" id="ttab-all-count">0</span>
+          </button>
+          <button class="task-tab" id="ttab-mine" onclick="switchTaskTab('mine')">
+            ✏️ Criadas por mim
+            <span class="tab-badge" id="ttab-mine-count">0</span>
+          </button>
         </div>
         <div id="tasks-content"></div>
       </section>
@@ -2465,7 +2496,15 @@ async function deleteMT(id){
 // ═══════════════════════════════════════════════════════════
 //  TASKS
 // ═══════════════════════════════════════════════════════════
-let tView='list',fStatus='',fVis='',fFreq='',fHideDone=false;
+let tView='list',fStatus='',fVis='',fFreq='',fHideDone=false,tTab='received';
+
+function switchTaskTab(tab){
+  tTab=tab;
+  ['received','all','mine'].forEach(t=>{
+    document.getElementById('ttab-'+t)?.classList.toggle('active',t===tab);
+  });
+  renderTasks();
+}
 function toggleHideDone(){
   fHideDone=!fHideDone;
   const lbl=$('#hide-done-lbl');
@@ -2481,16 +2520,40 @@ function setVBtns(){
 }
 
 function purgeTasks(){
-  // Tarefas recorrentes concluídas/vencidas: resetar após 3 dias (novo ciclo)
-  // Tarefas únicas: ficam visíveis com status concluído indefinidamente (usuário pode arquivar)
+  // Tarefas recorrentes: resetar para pendente quando o novo ciclo chegar
+  // Diária → reseta no dia seguinte à conclusão/vencimento
+  // Semanal/Mensal → reseta após 7 dias / 1 mês
+  // Tarefas únicas: ficam visíveis indefinidamente
   _cache.tasks = (_cache.tasks||[]).filter(t=>{
-    if(t.frequency==='once') return true; // únicas ficam sempre
-    if((t.status==='done'||t.status==='late') && t.statusAt && daysSince(t.statusAt)>=3){
-      // Resetar para pendente no próximo ciclo
-      t.status='pending'; t.statusAt=null;
-      sb.from('tasks').update({status:'pending',status_at:null}).eq('id',t.id).then(()=>{});
+    if(t.frequency==='once') return true;
+    if((t.status==='done'||t.status==='late') && t.statusAt){
+      const statusDate = new Date(t.statusAt);
+      statusDate.setHours(0,0,0,0);
+      const now = new Date();
+      now.setHours(0,0,0,0);
+
+      let shouldReset = false;
+      if(t.frequency==='daily'){
+        // Reseta no dia SEGUINTE
+        const nextDay = new Date(statusDate);
+        nextDay.setDate(statusDate.getDate()+1);
+        shouldReset = now >= nextDay;
+      } else if(t.frequency==='weekly'){
+        const nextWeek = new Date(statusDate);
+        nextWeek.setDate(statusDate.getDate()+7);
+        shouldReset = now >= nextWeek;
+      } else if(t.frequency==='monthly'){
+        const nextMonth = new Date(statusDate);
+        nextMonth.setMonth(statusDate.getMonth()+1);
+        shouldReset = now >= nextMonth;
+      }
+
+      if(shouldReset){
+        t.status='pending'; t.statusAt=null;
+        sb.from('tasks').update({status:'pending',status_at:null}).eq('id',t.id).then(()=>{});
+      }
     }
-    return true;
+    return true; // tarefa nunca some — só reseta
   });
 }
 
@@ -2510,31 +2573,67 @@ function renderTasks(){
 }
 
 function renderTasksList(c,arr){
-  if(!arr.length){c.innerHTML=empty('Nenhuma tarefa encontrada');return;}
-
-  // 1. Atribuídas a mim: alguém me incluiu (eu não criei, mas estou no integrateFor)
-  const atribuidas = arr.filter(t =>
+  // Separar tarefas por papel
+  const recebidas = arr.filter(t =>
     t.createdBy !== CUR.user.id &&
     (t.integrateFor||[]).includes(CUR.user.name)
   );
-
-  // 2. Globais: visíveis para todos (inclui as que eu criei como global)
   const globais = arr.filter(t =>
     (!t.visibility || t.visibility === 'global') &&
     !(t.createdBy !== CUR.user.id && (t.integrateFor||[]).includes(CUR.user.name))
   );
-
-  // 3. Criadas por mim: todas que eu criei (excluindo as que já aparecem em atribuídas)
   const minhas = arr.filter(t =>
     t.createdBy === CUR.user.id &&
-    !atribuidas.includes(t)
+    !recebidas.includes(t)
   );
 
+  // Atualizar contadores das abas
+  const myName = CUR.user.nickname || CUR.user.name;
+  const allVisible = arr.filter(canSeeTask);
+  document.getElementById('ttab-received-count').textContent = recebidas.length;
+  document.getElementById('ttab-all-count').textContent = globais.length;
+  document.getElementById('ttab-mine-count').textContent = minhas.length;
+
   let h='';
-  if(atribuidas.length) h+=taskGroupHTML('📥 Atribuídas a mim', atribuidas, 'assigned-group', 'assigned');
-  if(globais.length)    h+=taskGroupHTML('🌐 Tarefas globais',   globais,   'global-group',   'global');
-  if(minhas.length)     h+=taskGroupHTML('✏️ Criadas por mim',   minhas,    'mine-group',     'mine');
-  if(!h) c.innerHTML=empty('Nenhuma tarefa encontrada');
+
+  if(tTab==='received'){
+    if(!recebidas.length){
+      c.innerHTML=empty('Nenhuma tarefa foi integrada a você ainda.');
+      return;
+    }
+    // Agrupar por criador
+    const byCreator={};
+    recebidas.forEach(t=>{
+      const key = t.createdBy||'unknown';
+      if(!byCreator[key]) byCreator[key]=[];
+      byCreator[key].push(t);
+    });
+    h='';
+    Object.keys(byCreator).forEach(creatorId=>{
+      const tasks = byCreator[creatorId];
+      const creator = (_cache.members||[]).find(m=>m.id===creatorId);
+      const cName = creator ? (creator.nickname||creator.name) : '—';
+      const cAv = creator?.avatar ? `<img src="${creator.avatar}"/>` : ini(cName);
+      h+=`<div class="assigned-creator-group">
+        <div class="assigned-creator-hd">
+          <div class="assigned-creator-av">${cAv}</div>
+          <span class="assigned-creator-name">${cName} integrou você em</span>
+          <span class="assigned-creator-count">${tasks.length} tarefa${tasks.length!==1?'s':''}</span>
+        </div>
+        ${taskGroupHTML('', tasks, 'creator-'+creatorId, 'assigned')}
+      </div>`;
+    });
+  }
+  else if(tTab==='all'){
+    if(!globais.length){c.innerHTML=empty('Nenhuma tarefa global no grupo.');return;}
+    h=taskGroupHTML('', globais, 'global-group', 'global');
+  }
+  else if(tTab==='mine'){
+    if(!minhas.length){c.innerHTML=empty('Você ainda não criou nenhuma tarefa.');return;}
+    h=taskGroupHTML('', minhas, 'mine-group', 'mine');
+  }
+
+  if(!h) c.innerHTML=empty('Nenhuma tarefa encontrada.');
   else c.innerHTML=h;
 }
 
@@ -2544,11 +2643,11 @@ function taskGroupHTML(label,tasks,gid,originType=''){
   const isMineGroup     = originType==='mine';
 
   return`<div class="task-group">
-    <div class="task-group-hd" onclick="toggleGroup(this)">
+    ${label?`<div class="task-group-hd" onclick="toggleGroup(this)">
       <svg class="tg-arr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
       ${label}
       <span class="tg-count">${tasks.length} tarefa${tasks.length!==1?'s':''}</span>
-    </div>
+    </div>`:''}
     <div class="task-group-body">
       <div class="t-wrap" style="border-radius:0;border:none"><table class="t-tbl">
         <thead><tr>
@@ -3182,6 +3281,9 @@ function updateChatPip(){
   const lastRead=parseInt(sessionStorage.getItem('ff_chat_read_'+CUR.user.id)||'0');
   const msgs=getChatMessages();
   const unseen=msgs.filter(m=>m.authorId!==CUR.user.id&&new Date(m.time).getTime()>lastRead).length;
+  // Badge tarefas recebidas
+  const rcv=(_cache.tasks||[]).filter(t=>t.createdBy!==CUR.user.id&&(t.integrateFor||[]).includes(CUR.user.nickname||CUR.user.name)&&t.status!=='done').length;
+  const rcvChip=$('#received-chip');if(rcvChip){rcvChip.textContent=rcv;rcvChip.style.display=rcv>0?'':'none';}
   const pip=$('#chat-pip');
   if(pip){pip.textContent=unseen>9?'9+':unseen;pip.classList.toggle('show',unseen>0);}
 }
