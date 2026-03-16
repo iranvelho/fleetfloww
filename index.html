@@ -258,6 +258,9 @@ input,textarea,select{font-family:inherit;font-size:inherit;outline:none;color:v
 .tck{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--border2);flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all var(--t);background:transparent}
 .tck:hover{border-color:var(--green)}
 .tck.done{background:var(--green);border-color:var(--green)}
+.tck.progress{background:var(--amber);border-color:var(--amber)}
+.tck.late{background:var(--red);border-color:var(--red)}
+.tck.pending{background:var(--surface);border-color:var(--border2)}
 .tck svg{width:9px;height:9px;color:#fff}
 .ti-info{flex:1;min-width:0}
 .ti-nm{font-size:12.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -2994,7 +2997,17 @@ function taskGroupHTML(label,tasks,gid,originType=''){
           const creator   = (_cache.members||[]).find(m=>m.id===t.createdBy);
           const creatorName = creator?creator.name:'—';
           const canToggle = canToggleTask(t);
-          const tckBtn    = `<button class="tck ${t.status==='done'?'done':''} ${!canToggle?'tck-locked':''}" onclick="event.stopPropagation();toggleTask('${t.id}')" title="${!canToggle?'Somente membros integrados podem alterar o status':''}">${t.status==='done'?ICK:(!canToggle?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:11px;height:11px;opacity:.4"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>':'')}</button>`;
+          const tckIco = {
+            done:     ICK,
+            progress: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="width:11px;height:11px"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>',
+            late:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="width:11px;height:11px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+            pending:  ''
+          };
+          const tckCls = !canToggle ? 'tck-locked' : (t.status||'pending');
+          const tckContent = !canToggle
+            ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:11px;height:11px;opacity:.4"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>'
+            : (tckIco[t.status]||'');
+          const tckBtn    = `<button class="tck ${tckCls}" onclick="event.stopPropagation();toggleTask('${t.id}')" title="${!canToggle?'Somente membros integrados podem alterar o status':t.status==='done'?'Clique para desfazer':'Clique para concluir'}">${tckContent}</button>`;
           const integrados = (t.integrateFor||[]).map(m=>`<div class="tc" style="gap:5px">${memberAvatar(m)}<span style="font-size:11.5px">${m}</span></div>`).join('')||'<span style="color:var(--tx3);font-size:12px">—</span>';
           const horario    = t.limitTime
             ? `<span style="display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:var(--accent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${t.limitTime}</span>`
@@ -3074,6 +3087,12 @@ async function toggleTask(id){
   const t=(_cache.tasks||[]).find(x=>x.id===id);if(!t)return;
   if(!canToggleTask(t)){
     banner('Apenas os membros integrados podem alterar o status desta tarefa.','warn');
+    return;
+  }
+  // Se for integrado (não criador): abrir quick status em vez de toggle direto
+  const isAssigned = t.createdBy!==CUR.user.id && (t.integrateFor||[]).includes(CUR.user.nickname||CUR.user.name);
+  if(isAssigned){
+    openQuickStatus(id);
     return;
   }
   const ns=t.status==='done'?'pending':'done';
