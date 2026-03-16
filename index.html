@@ -1587,6 +1587,21 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
   </div>
 </div>
 
+<!-- QUICK STATUS -->
+<div class="overlay" id="m-quick-status">
+  <div class="modal">
+    <div class="modal-hd">
+      <h2>Alterar Status</h2>
+      <button class="modal-x" onclick="closeM('m-quick-status')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="quick-status-task" id="qs-title"></div>
+      <div class="quick-status-meta" id="qs-meta"></div>
+      <div class="quick-status-opts" id="qs-opts"></div>
+    </div>
+  </div>
+</div>
+
 <!-- EDIT TASK -->
 <div class="overlay" id="m-edit-task">
   <div class="modal">
@@ -3188,12 +3203,57 @@ function toggleTaskTimeField(prefix){
   // Dias da semana: só em diárias (ex: seg/qua/sex)
   if(wdWrap) wdWrap.style.display=(freq==='daily')?'block':'none';
 }
+function openQuickStatus(id){
+  const t=(_cache.tasks||[]).find(x=>x.id===id);if(!t)return;
+  document.getElementById('qs-title').textContent = t.title;
+  const creator = (_cache.members||[]).find(m=>m.id===t.createdBy);
+  const creatorName = creator?.nickname||creator?.name||'—';
+  document.getElementById('qs-meta').textContent = `Criado por ${creatorName} · ${t.frequency==='once'?'Única':t.frequency==='daily'?'Diária':t.frequency==='weekly'?'Semanal':'Mensal'}`;
+
+  const statuses = [
+    {value:'pending', label:'Pendente',  color:'#b0a097'},
+    {value:'progress',label:'Em andamento', color:'#b8720a'},
+    {value:'done',    label:'Concluída', color:'#0f7a50'},
+    {value:'late',    label:'Vencida',   color:'#b83c2b'},
+  ];
+
+  document.getElementById('qs-opts').innerHTML = statuses.map(s=>`
+    <div class="qs-opt ${t.status===s.value?'active':''}" onclick="setQuickStatus('${id}','${s.value}')">
+      <div class="qs-dot" style="background:${s.color}"></div>
+      ${s.label}
+      ${t.status===s.value?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px;margin-left:auto;color:var(--accent)"><polyline points="20 6 9 17 4 12"/></svg>':''}
+    </div>`).join('');
+
+  openM('m-quick-status');
+}
+
+async function setQuickStatus(id, newStatus){
+  const t=(_cache.tasks||[]).find(x=>x.id===id);if(!t)return;
+  if(t.status===newStatus){closeM('m-quick-status');return;}
+  const sa = newStatus==='done'?new Date().toISOString():null;
+  await sb.from('tasks').update({status:newStatus,status_at:sa}).eq('id',id);
+  t.status=newStatus; if(sa)t.statusAt=sa; else delete t.statusAt;
+  if(newStatus==='done'){
+    addAct('Tarefa <strong>'+t.title+'</strong> concluída');
+    addInbox('Tarefa "<strong>'+t.title+'</strong>" concluída por '+CUR.user.name+'.','✅','tarefa concluída');
+  }
+  closeM('m-quick-status');
+  renderP(page);
+  banner('Status atualizado!','ok');
+}
+
 async function openEditTask(id){
   const t=(_cache.tasks||[]).find(x=>x.id===id);if(!t)return;
 
   // Verificar papel do usuário nesta tarefa
   const isCreator = t.createdBy === CUR.user.id;
   const isAssigned = !isCreator && (t.integrateFor||[]).includes(CUR.user.nickname||CUR.user.name);
+
+  // Se for integrado: abrir modal compacto só com status
+  if(isAssigned){
+    openQuickStatus(id);
+    return;
+  }
 
   $('#et-id').value=id;
   $('#et-title').value=t.title;
@@ -3207,44 +3267,18 @@ async function openEditTask(id){
   toggleTaskTimeField('et');
   renderMemberGrid('et-members-grid', t.integrateFor||[]);
 
-  // Se for integrado (não criador): bloquear tudo exceto status
+  // Para o criador: desbloquear todos os campos
   const fieldsToLock = ['et-title','et-freq','et-prio','et-vis','et-time','et-due'];
   fieldsToLock.forEach(fid=>{
     const el=$('#'+fid);
-    if(el){ el.disabled=isAssigned; el.style.opacity=isAssigned?'.5':''; el.style.cursor=isAssigned?'not-allowed':''; }
+    if(el){ el.disabled=false; el.style.opacity=''; el.style.cursor=''; }
   });
-  // Bloquear grid de membros
   const grid=document.getElementById('et-members-grid');
-  if(grid){ grid.style.pointerEvents=isAssigned?'none':''; grid.style.opacity=isAssigned?'.5':'1'; }
-  // Bloquear seletor de dias
+  if(grid){ grid.style.pointerEvents=''; grid.style.opacity='1'; }
   const wdWrap=$('#et-weekdays-wrap');
-  if(wdWrap){ wdWrap.style.pointerEvents=isAssigned?'none':''; wdWrap.style.opacity=isAssigned?'.5':'1'; }
-
-  // Status: integrado pode alterar, mas só se canToggleTask
+  if(wdWrap){ wdWrap.style.pointerEvents=''; wdWrap.style.opacity='1'; }
   const statusSel=$('#et-status');
-  if(statusSel){
-    statusSel.disabled=!canToggleTask(t);
-    statusSel.style.opacity='';
-    statusSel.style.cursor='';
-    statusSel.title=!canToggleTask(t)?'Somente membros integrados podem alterar o status':'';
-  }
-
-  // Mostrar aviso se for integrado
-  const modal = document.getElementById('m-edit-task');
-  let banner = modal?.querySelector('.assigned-readonly-banner');
-  if(isAssigned){
-    if(!banner){
-      banner = document.createElement('div');
-      banner.className='assigned-readonly-banner info-note';
-      banner.style.cssText='margin:0 0 12px;font-size:12px';
-      banner.innerHTML='🔒 <strong>Tarefa integrada a você.</strong> Apenas o status pode ser alterado.';
-      const body = modal?.querySelector('.modal-body');
-      if(body) body.insertBefore(banner, body.firstChild);
-    }
-    banner.style.display='block';
-  } else {
-    if(banner) banner.style.display='none';
-  }
+  if(statusSel){ statusSel.disabled=false; statusSel.style.opacity=''; statusSel.title=''; }
 
   // Mostrar histórico de ciclos se for recorrente
   const cycleWrap = document.getElementById('et-cycle-history');
