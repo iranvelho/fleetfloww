@@ -2230,21 +2230,25 @@ function banner(msg,type='info'){
 }
 
 // ── INBOX ──
-async function addInbox(msg,icon='📋',type='task'){
+function addInbox(msg,icon='📋',type='task'){
   if(!CUR.groupId||!CUR.user) return;
   // Evitar duplicata: mesma mensagem nas últimas 24h
   const recent=(_cache.inbox||[]).find(n=>{
     if(n.msg!==msg) return false;
-    const age=(Date.now()-new Date(n.time).getTime())/3600000; // horas
+    const age=(Date.now()-new Date(n.time).getTime())/3600000;
     return age < 24;
   });
   if(recent) return;
-  const members=_cache.members||[];
-  const inserts=members.length ? members.map(m=>({group_id:CUR.groupId,user_id:m.id,msg,icon,type,read:false})) : [{group_id:CUR.groupId,user_id:CUR.user.id,msg,icon,type,read:false}];
-  await sb.from('inbox').insert(inserts);
+  // Atualizar cache local imediatamente (sem esperar o banco)
   _cache.inbox=_cache.inbox||[];
   _cache.inbox.unshift({id:uid(),msg,icon,type,readBy:[],time:new Date().toISOString()});
   updateBadges();
+  // Persistir no banco de forma assíncrona (não bloqueia a UI)
+  const members=_cache.members||[];
+  const inserts=members.length
+    ? members.map(m=>({group_id:CUR.groupId,user_id:m.id,msg,icon,type,read:false}))
+    : [{group_id:CUR.groupId,user_id:CUR.user.id,msg,icon,type,read:false}];
+  sb.from('inbox').insert(inserts).then(()=>{}).catch(()=>{});
 }
 
 function unreadCount(){
@@ -2257,6 +2261,8 @@ async function clearOldNotifications(){
     .eq('group_id',CUR.groupId)
     .eq('user_id',CUR.user.id);
   _cache.inbox=[];
+  // Salvar timestamp do apagamento — loadGroupData vai ignorar notificações anteriores
+  localStorage.setItem('ff_inbox_cleared_'+CUR.user.id, Date.now().toString());
   renderInbox();updateBadges();
   banner('Todas as notificações foram apagadas.','ok');
 }
@@ -2297,9 +2303,9 @@ async function markRead(id){
 }
 
 // ── ACTIVITY ──
-async function addAct(text){
+function addAct(text){
   if(!CUR.groupId||!CUR.user) return;
-  sb.from('activity').insert({group_id:CUR.groupId,user_id:CUR.user.id,text}).then(()=>{});
+  sb.from('activity').insert({group_id:CUR.groupId,user_id:CUR.user.id,text}).then(()=>{}).catch(()=>{});
   _cache.activity=_cache.activity||[];
   _cache.activity.unshift({text,time:new Date().toISOString(),author:CUR.user.name});
   if(_cache.activity.length>60)_cache.activity=_cache.activity.slice(0,60);
@@ -2761,10 +2767,9 @@ function mwSectionHTML(label, tasks, section, icon, collapsed=false){
 async function toggleMT(id){
   const arr=getMyTasks();const t=arr.find(x=>x.id===id);if(!t)return;
   const ns=t.status==='done'?'pending':'done';const sa=ns==='done'?new Date().toISOString():null;
-  await sb.from('my_tasks').update({status:ns,status_at:sa}).eq('id',id);
   t.status=ns;if(sa)t.statusAt=sa;else delete t.statusAt;
-  if(ns==='done'){addAct('Tarefa pessoal <strong>'+t.title+'</strong> concluída');} // sem notificação de inbox — é tarefa pessoal
-  renderP(page);
+  saveMyTasks(arr);renderP(page);
+  sb.from('my_tasks').update({status:ns,status_at:sa}).eq('id',id).then(()=>{});
 }
 async function deleteMT(id){
   const arr=getMyTasks();const t=arr.find(x=>x.id===id);if(!t)return;
@@ -3106,34 +3111,23 @@ function fillMemberFilter(){
 
 async function toggleTask(id){
   const t=(_cache.tasks||[]).find(x=>x.id===id);if(!t)return;
-  if(!canToggleTask(t)){
-    banner('Apenas os membros integrados podem alterar o status desta tarefa.','warn');
-    return;
-  }
-  // Se for integrado (não criador): abrir quick status em vez de toggle direto
-  const isAssigned = t.createdBy!==CUR.user.id && (t.integrateFor||[]).includes(CUR.user.nickname||CUR.user.name);
-  if(isAssigned){
-    openQuickStatus(id);
-    return;
-  }
+  if(!canToggleTask(t)){banner('Apenas os membros integrados podem alterar o status desta tarefa.','warn');return;}
+  const isAssigned=t.createdBy!==CUR.user.id&&(t.integrateFor||[]).includes(CUR.user.nickname||CUR.user.name);
+  if(isAssigned){openQuickStatus(id);return;}
   const ns=t.status==='done'?'pending':'done';
   const sa=ns==='done'?new Date().toISOString():null;
-  await sb.from('tasks').update({status:ns,status_at:sa}).eq('id',id);
+  // Otimista — atualizar UI imediatamente
   t.status=ns;if(sa)t.statusAt=sa;else delete t.statusAt;
-
+  renderP(page);
+  // Persistir em background
+  sb.from('tasks').update({status:ns,status_at:sa}).eq('id',id).then(()=>{});
   if(ns==='done'){
     addAct('Tarefa <strong>'+t.title+'</strong> concluída');
     addInbox('Tarefa "<strong>'+t.title+'</strong>" concluída por '+CUR.user.name+'.','✅','tarefa concluída');
-    // Registrar ciclo cumprido se for recorrente
     if(t.frequency!=='once'){
-      sb.from('task_cycles').insert({
-        task_id:id, group_id:CUR.groupId, user_id:CUR.user.id,
-        cycle_date:getCycleDate(t.frequency),
-        status:'done', completed_at:sa
-      }).then(()=>{});
+      sb.from('task_cycles').insert({task_id:id,group_id:CUR.groupId,user_id:CUR.user.id,cycle_date:getCycleDate(t.frequency),status:'done',completed_at:sa}).then(()=>{});
     }
   }
-  renderP(page);
 }
 
 async function deleteTask(id){
@@ -3303,16 +3297,16 @@ function openQuickStatus(id){
 async function setQuickStatus(id, newStatus){
   const t=(_cache.tasks||[]).find(x=>x.id===id);if(!t)return;
   if(t.status===newStatus){closeM('m-quick-status');return;}
-  const sa = newStatus==='done'?new Date().toISOString():null;
-  await sb.from('tasks').update({status:newStatus,status_at:sa}).eq('id',id);
-  t.status=newStatus; if(sa)t.statusAt=sa; else delete t.statusAt;
+  const sa=newStatus==='done'?new Date().toISOString():null;
+  // Otimista
+  t.status=newStatus;if(sa)t.statusAt=sa;else delete t.statusAt;
+  closeM('m-quick-status');renderP(page);banner('Status atualizado!','ok');
+  // Background
+  sb.from('tasks').update({status:newStatus,status_at:sa}).eq('id',id).then(()=>{});
   if(newStatus==='done'){
     addAct('Tarefa <strong>'+t.title+'</strong> concluída');
     addInbox('Tarefa "<strong>'+t.title+'</strong>" concluída por '+CUR.user.name+'.','✅','tarefa concluída');
   }
-  closeM('m-quick-status');
-  renderP(page);
-  banner('Status atualizado!','ok');
 }
 
 async function openEditTask(id){
@@ -3622,7 +3616,12 @@ async function loadGroupData(){
   _cache.meetings=(meetings||[]).map(m=>({id:m.id,title:m.title,description:m.description,participants:m.participants,date:m.date,time:m.time,calType:m.cal_type,owner:m.profiles?.name||'',ownerId:m.owner,createdAt:m.created_at}));
   _cache.projects=(projects||[]).map(p=>({id:p.id,name:p.name,description:p.description,color:p.color,status:p.status,sharedWith:p.shared_with||[],createdBy:p.created_by,completedAt:p.completed_at,createdAt:p.created_at,steps:(steps||[]).filter(s=>s.project_id===p.id).map(s=>({id:s.id,name:s.name,done:s.done,position:s.position,addedBy:s.added_by,createdAt:s.created_at})).sort((a,b)=>a.position-b.position)}));
   _cache.members=(members||[]).map(m=>({id:m.profiles?.id||m.user_id,name:m.profiles?.name||'?',avatar:m.profiles?.avatar||null,role:m.role}));
-  _cache.inbox=(inbox||[]).map(n=>({id:n.id,msg:n.msg,icon:n.icon,type:n.type,readBy:n.read?[CUR.user.id]:[],time:n.created_at}));
+  // Respeitar apagamento manual — ignorar notificações anteriores ao último clear
+  const clearedAt = parseInt(localStorage.getItem('ff_inbox_cleared_'+CUR.user.id)||'0');
+  const _clearedAt2=parseInt(localStorage.getItem('ff_inbox_cleared_'+CUR.user.id)||'0');
+  _cache.inbox=(inbox||[])
+    .filter(n=>!_clearedAt2||new Date(n.created_at).getTime()>clearedAt)
+    .map(n=>({id:n.id,msg:n.msg,icon:n.icon,type:n.type,readBy:n.read?[CUR.user.id]:[],time:n.created_at}));
   _cache.activity=(activity||[]).map(a=>({text:a.text,time:a.created_at,author:a.profiles?.name||''}));
   // Load chat
   const {data:chat}=await sb.from('chat_messages').select('*,profiles(name,avatar)').eq('group_id',gid).order('created_at').limit(200);
