@@ -3190,7 +3190,13 @@ function toggleTaskTimeField(prefix){
 }
 async function openEditTask(id){
   const t=(_cache.tasks||[]).find(x=>x.id===id);if(!t)return;
-  $('#et-id').value=id;$('#et-title').value=t.title;
+
+  // Verificar papel do usuário nesta tarefa
+  const isCreator = t.createdBy === CUR.user.id;
+  const isAssigned = !isCreator && (t.integrateFor||[]).includes(CUR.user.nickname||CUR.user.name);
+
+  $('#et-id').value=id;
+  $('#et-title').value=t.title;
   $('#et-freq').value=t.frequency||'once';
   $('#et-status').value=t.status||'pending';
   $('#et-prio').value=t.priority||'medium';
@@ -3200,8 +3206,45 @@ async function openEditTask(id){
   setSelectedDays('et', t.weekdays||[]);
   toggleTaskTimeField('et');
   renderMemberGrid('et-members-grid', t.integrateFor||[]);
+
+  // Se for integrado (não criador): bloquear tudo exceto status
+  const fieldsToLock = ['et-title','et-freq','et-prio','et-vis','et-time','et-due'];
+  fieldsToLock.forEach(fid=>{
+    const el=$('#'+fid);
+    if(el){ el.disabled=isAssigned; el.style.opacity=isAssigned?'.5':''; el.style.cursor=isAssigned?'not-allowed':''; }
+  });
+  // Bloquear grid de membros
+  const grid=document.getElementById('et-members-grid');
+  if(grid){ grid.style.pointerEvents=isAssigned?'none':''; grid.style.opacity=isAssigned?'.5':'1'; }
+  // Bloquear seletor de dias
+  const wdWrap=$('#et-weekdays-wrap');
+  if(wdWrap){ wdWrap.style.pointerEvents=isAssigned?'none':''; wdWrap.style.opacity=isAssigned?'.5':'1'; }
+
+  // Status: integrado pode alterar, mas só se canToggleTask
   const statusSel=$('#et-status');
-  if(statusSel){statusSel.disabled=!canToggleTask(t);statusSel.title=!canToggleTask(t)?'Somente membros integrados podem alterar o status':'';}
+  if(statusSel){
+    statusSel.disabled=!canToggleTask(t);
+    statusSel.style.opacity='';
+    statusSel.style.cursor='';
+    statusSel.title=!canToggleTask(t)?'Somente membros integrados podem alterar o status':'';
+  }
+
+  // Mostrar aviso se for integrado
+  const modal = document.getElementById('m-edit-task');
+  let banner = modal?.querySelector('.assigned-readonly-banner');
+  if(isAssigned){
+    if(!banner){
+      banner = document.createElement('div');
+      banner.className='assigned-readonly-banner info-note';
+      banner.style.cssText='margin:0 0 12px;font-size:12px';
+      banner.innerHTML='🔒 <strong>Tarefa integrada a você.</strong> Apenas o status pode ser alterado.';
+      const body = modal?.querySelector('.modal-body');
+      if(body) body.insertBefore(banner, body.firstChild);
+    }
+    banner.style.display='block';
+  } else {
+    if(banner) banner.style.display='none';
+  }
 
   // Mostrar histórico de ciclos se for recorrente
   const cycleWrap = document.getElementById('et-cycle-history');
