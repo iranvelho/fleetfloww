@@ -1009,21 +1009,22 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
 #conn-status svg{width:14px;height:14px}
 
 /* ── ONBOARDING CHECKLIST ── */
-.onboard-wrap{background:linear-gradient(135deg,#2a1f18,#4a3328);border-radius:16px;padding:20px 22px;margin-bottom:20px}
-.onboard-title{font-size:13px;font-weight:800;color:#fff;margin-bottom:4px}
-.onboard-sub{font-size:11.5px;color:rgba(255,255,255,.55);margin-bottom:14px}
-.onboard-progress{height:5px;background:rgba(255,255,255,.15);border-radius:99px;margin-bottom:14px;overflow:hidden}
+.onboard-wrap{background:linear-gradient(135deg,#2a1f18,#4a3328);border-radius:12px;padding:12px 16px;margin-bottom:16px;position:relative}
+.onboard-hd{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.onboard-title{font-size:12px;font-weight:800;color:#fff;flex:1}
+.onboard-close{background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:16px;padding:0;line-height:1;transition:color .15s}
+.onboard-close:hover{color:#fff}
+.onboard-sub{font-size:11px;color:rgba(255,255,255,.45);margin-bottom:8px}
+.onboard-progress{height:3px;background:rgba(255,255,255,.15);border-radius:99px;margin-bottom:10px;overflow:hidden}
 .onboard-progress-fill{height:100%;background:#fff;border-radius:99px;transition:width .4s ease}
-.onboard-items{display:flex;flex-direction:column;gap:6px}
-.onboard-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.08);cursor:pointer;transition:background .15s}
-.onboard-item:hover{background:rgba(255,255,255,.12)}
-.onboard-item.done{opacity:.6}
-.onboard-item-ico{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px}
-.onboard-item.done .onboard-item-ico{background:rgba(15,122,80,.6)}
-.onboard-item-lbl{font-size:12px;font-weight:600;color:rgba(255,255,255,.85);flex:1}
-.onboard-item.done .onboard-item-lbl{text-decoration:line-through;color:rgba(255,255,255,.4)}
-.onboard-dismiss{margin-top:12px;font-size:11.5px;color:rgba(255,255,255,.4);background:none;border:none;cursor:pointer;padding:0}
-.onboard-dismiss:hover{color:rgba(255,255,255,.7)}
+.onboard-items{display:flex;flex-direction:column;gap:3px}
+.onboard-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer;transition:background .15s}
+.onboard-item:hover{background:rgba(255,255,255,.08)}
+.onboard-item.done{opacity:.5}
+.onboard-item-ico{width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:9px;font-weight:800;color:rgba(255,255,255,.7)}
+.onboard-item.done .onboard-item-ico{background:rgba(15,122,80,.5);color:#fff}
+.onboard-item-lbl{font-size:11.5px;font-weight:500;color:rgba(255,255,255,.8);flex:1}
+.onboard-item.done .onboard-item-lbl{text-decoration:line-through;color:rgba(255,255,255,.35)}
 
 /* ── TRASH ── */
 .trash-item{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;margin-bottom:8px}
@@ -5852,18 +5853,20 @@ function renderOnboarding(container){
   div.id='onboard-wrap';
   div.className='onboard-wrap';
   div.innerHTML=`
-    <div class="onboard-title">🚀 Primeiros passos no FleetFlow</div>
-    <div class="onboard-sub">${doneCount} de ${total} concluídos</div>
-    <div class="onboard-progress"><div class="onboard-progress-fill" style="width:${pct}%"></div></div>
+    <div class="onboard-hd">
+      <span style="font-size:14px">🚀</span>
+      <span class="onboard-title">Primeiros passos · ${doneCount}/${total}</span>
+      <div class="onboard-progress" style="width:80px;margin:0 8px 0 0"><div class="onboard-progress-fill" style="width:${pct}%"></div></div>
+      <button class="onboard-close" onclick="dismissOnboard()" title="Fechar">×</button>
+    </div>
     <div class="onboard-items">
       ${steps.map((s,i)=>`
         <div class="onboard-item ${s.done?'done':''}" onclick="onboardClick('${s.id}')">
           <div class="onboard-item-ico">${s.done?'✓':(i+1)}</div>
           <div class="onboard-item-lbl">${s.label}</div>
-          ${!s.done?'<svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="2" style="width:14px;height:14px;flex-shrink:0"><polyline points="9 18 15 12 9 6"/></svg>':''}
+          ${!s.done?'<svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="2" style="width:12px;height:12px;flex-shrink:0"><polyline points="9 18 15 12 9 6"/></svg>':''}
         </div>`).join('')}
-    </div>
-    <button class="onboard-dismiss" onclick="dismissOnboard()">Dispensar checklist</button>`;
+    </div>`;
   container.insertBefore(div, container.firstChild);
 }
 function onboardClick(stepId){
