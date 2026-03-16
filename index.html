@@ -689,6 +689,18 @@ select.fi{appearance:none;cursor:pointer;padding-right:28px;background-image:url
 .comment-send{width:34px;height:34px;background:var(--accent);border-radius:var(--r);display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;transition:background var(--t)}
 .comment-send:hover{background:var(--accent-h)}
 .comment-send svg{width:15px;height:15px}
+.comment-attach-btn{width:34px;height:34px;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--r);display:flex;align-items:center;justify-content:center;color:var(--tx3);flex-shrink:0;cursor:pointer;transition:all .15s}
+.comment-attach-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-s)}
+.comment-attach-btn svg{width:15px;height:15px}
+.comment-attachment{margin-top:6px;display:flex;align-items:center;gap:7px;padding:7px 10px;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;max-width:260px;cursor:pointer;transition:border-color .15s;text-decoration:none}
+.comment-attachment:hover{border-color:var(--accent)}
+.comment-attachment-ico{width:28px;height:28px;border-radius:6px;background:var(--accent-s);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px}
+.comment-attachment-name{font-size:11.5px;font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.comment-attachment-size{font-size:10.5px;color:var(--tx3)}
+.attach-preview{margin-top:8px;padding:8px;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--tx2)}
+.attach-preview-name{flex:1;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.attach-preview-remove{background:none;border:none;color:var(--tx3);cursor:pointer;font-size:14px;padding:0;line-height:1}
+.attach-preview-remove:hover{color:var(--red)}
 
 /* ── FLOATING CHAT ── */
 #chat-fab{
@@ -1925,8 +1937,17 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
     <div class="modal-body" style="gap:0;padding-bottom:0">
       <input type="hidden" id="comments-task-id"/>
       <div id="comments-list" style="max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;min-height:60px"></div>
-      <div class="comment-input-row" style="padding-bottom:4px;margin-top:12px">
-        <textarea id="comment-input" class="comment-input" placeholder="Escreva um comentário..."></textarea>
+      <div id="comment-attach-preview" style="display:none" class="attach-preview">
+        <span id="comment-attach-ico" style="font-size:18px">📎</span>
+        <span class="attach-preview-name" id="comment-attach-name"></span>
+        <button class="attach-preview-remove" onclick="removeCommentAttach()" title="Remover">✕</button>
+      </div>
+      <div class="comment-input-row" style="padding-bottom:4px;margin-top:8px">
+        <label class="comment-attach-btn" for="comment-attach-file" title="Anexar arquivo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+        </label>
+        <input type="file" id="comment-attach-file" style="display:none" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.mp4,.mov" onchange="previewCommentAttach(this)"/>
+        <textarea id="comment-input" class="comment-input" placeholder="Escreva um comentário... (Enter para enviar)"></textarea>
         <button class="comment-send" onclick="submitComment()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
       </div>
     </div>
@@ -3630,7 +3651,7 @@ async function openComments(taskId){
   $('#comments-task-title').textContent=t?t.title:'Tarefa';
   const {data}=await sb.from('task_comments').select('*,profiles(name,avatar)').eq('task_id',taskId).order('created_at');
   _cache.comments=_cache.comments||{};
-  _cache.comments[taskId]=(data||[]).map(c=>({id:c.id,author:c.profiles?.name||'?',authorId:c.user_id,text:c.text,time:c.created_at}));
+  _cache.comments[taskId]=(data||[]).map(c=>({id:c.id,author:c.profiles?.name||'?',authorId:c.user_id,text:c.text,time:c.created_at,attachmentUrl:c.attachment_url||null,attachmentName:c.attachment_name||null,attachmentType:c.attachment_type||null}));
   renderCommentsList(taskId);openM('m-comments');
 }
 
@@ -3653,25 +3674,117 @@ function renderCommentsList(taskId){
           <span class="comment-time">${relT(c.time)}</span>
           ${isMe?`<button class="comment-del" onclick="deleteComment('${taskId}','${c.id}')">${IDEL}</button>`:''}
         </div>
-        <div class="comment-text">${c.text.replace(/\n/g,'<br>')}</div>
+        <div class="comment-text">${c.text?c.text.replace(/\n/g,'<br>'):''}</div>
+        ${c.attachmentUrl?commentAttachmentHTML(c):''}
       </div>
     </div>`;
   }).join('');
   el.scrollTop=el.scrollHeight;
 }
 
+// Controle do anexo pendente
+let _pendingAttach = null;
+
+function previewCommentAttach(inp){
+  if(!inp.files[0]) return;
+  const file = inp.files[0];
+  if(file.size > 10*1024*1024){ banner('Arquivo muito grande. Máximo 10MB.','warn'); inp.value=''; return; }
+  _pendingAttach = file;
+  const preview = document.getElementById('comment-attach-preview');
+  const nameEl = document.getElementById('comment-attach-name');
+  const icoEl = document.getElementById('comment-attach-ico');
+  if(preview) preview.style.display='flex';
+  if(nameEl) nameEl.textContent = file.name;
+  if(icoEl) icoEl.textContent = file.type.startsWith('image/')?'🖼️':file.type==='application/pdf'?'📄':file.type.includes('video')?'🎥':'📎';
+}
+
+function removeCommentAttach(){
+  _pendingAttach = null;
+  const preview = document.getElementById('comment-attach-preview');
+  const fileInp = document.getElementById('comment-attach-file');
+  if(preview) preview.style.display='none';
+  if(fileInp) fileInp.value='';
+}
+
+function attachFileIcon(type){
+  if(!type) return '📎';
+  if(type.startsWith('image/')) return '🖼️';
+  if(type === 'application/pdf') return '📄';
+  if(type.includes('word')) return '📝';
+  if(type.includes('excel') || type.includes('spreadsheet')) return '📊';
+  if(type.startsWith('video/')) return '🎥';
+  return '📎';
+}
+
+function commentAttachmentHTML(c){
+  const isImage = c.attachmentType && c.attachmentType.startsWith('image/');
+  if(isImage){
+    return `<a href="${c.attachmentUrl}" target="_blank" style="display:block;margin-top:6px">
+      <img src="${c.attachmentUrl}" style="max-width:220px;max-height:160px;border-radius:8px;border:1.5px solid var(--border);object-fit:cover;display:block"/>
+    </a>`;
+  }
+  return `<a href="${c.attachmentUrl}" target="_blank" class="comment-attachment">
+    <div class="comment-attachment-ico">${attachFileIcon(c.attachmentType)}</div>
+    <div style="min-width:0">
+      <div class="comment-attachment-name">${c.attachmentName||'Arquivo'}</div>
+      <div class="comment-attachment-size">Clique para abrir</div>
+    </div>
+  </a>`;
+}
+
 async function submitComment(){
   const taskId=$('#comments-task-id').value;
-  const inp=$('#comment-input');const text=inp.value.trim();
-  if(!text||!taskId)return;
-  const {data:c,error}=await sb.from('task_comments').insert({task_id:taskId,user_id:CUR.user.id,text}).select().single();
-  if(error){banner('Erro ao comentar','err');return;}
-  _cache.comments=_cache.comments||{};_cache.comments[taskId]=_cache.comments[taskId]||[];
-  _cache.comments[taskId].push({id:c.id,author:CUR.user.name,authorId:CUR.user.id,text,time:c.created_at});
+  const inp=$('#comment-input');
+  const text=inp.value.trim();
+  if(!text && !_pendingAttach) return;
+  if(!taskId) return;
+
+  showLoader('Enviando...');
+
+  let attachmentUrl=null, attachmentName=null, attachmentType=null;
+
+  // Upload do arquivo se houver
+  if(_pendingAttach){
+    const ext = _pendingAttach.name.split('.').pop();
+    const path = `${CUR.groupId}/${taskId}/${Date.now()}.${ext}`;
+    const {data:up, error:upErr} = await sb.storage.from('comment-attachments').upload(path, _pendingAttach, {
+      contentType: _pendingAttach.type, upsert:false
+    });
+    if(upErr){ hideLoader(); banner('Erro ao enviar arquivo: '+upErr.message,'err'); return; }
+    const {data:urlData} = sb.storage.from('comment-attachments').getPublicUrl(path);
+    attachmentUrl = urlData.publicUrl;
+    attachmentName = _pendingAttach.name;
+    attachmentType = _pendingAttach.type;
+  }
+
+  const {data:c,error}=await sb.from('task_comments').insert({
+    task_id:taskId, user_id:CUR.user.id,
+    text: text||'',
+    attachment_url:attachmentUrl,
+    attachment_name:attachmentName,
+    attachment_type:attachmentType
+  }).select().single();
+
+  hideLoader();
+  if(error){ banner('Erro ao comentar','err'); return; }
+
+  _cache.comments=_cache.comments||{};
+  _cache.comments[taskId]=_cache.comments[taskId]||[];
+  _cache.comments[taskId].push({
+    id:c.id, author:CUR.user.name, authorId:CUR.user.id,
+    text, time:c.created_at,
+    attachmentUrl, attachmentName, attachmentType
+  });
+
   const t=(_cache.tasks||[]).find(x=>x.id===taskId);
-  addInbox(CUR.user.name+' comentou em "<strong>'+(t?.title||'?')+'</strong>": '+text.slice(0,60)+(text.length>60?'…':''),'💬','comentário');
+  const preview = text ? text.slice(0,60)+(text.length>60?'…':'') : (attachmentName||'arquivo');
+  addInbox(CUR.user.name+' comentou em "<strong>'+(t?.title||'?')+'</strong>": '+preview,'💬','comentário');
   addAct('Comentário em <strong>'+(t?.title||'?')+'</strong>');
-  inp.value='';renderCommentsList(taskId);renderP(page);
+
+  inp.value='';
+  removeCommentAttach();
+  renderCommentsList(taskId);
+  renderP(page);
 }
 
 async function deleteComment(taskId,cid){
