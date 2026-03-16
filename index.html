@@ -1186,10 +1186,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
           <span class="notif-pip" id="notif-pip"></span>
         </button>
-        <button class="btn-main" onclick="doNewMain()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          <span id="new-lbl">Novo</span>
-        </button>
+
       </div>
     </header>
     <div id="notif-banner"></div>
@@ -1933,7 +1930,13 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
 <!-- COMMENTS MODAL -->
 <div class="overlay" id="m-comments">
   <div class="modal">
-    <div class="modal-hd"><h2 id="comments-modal-title">Comentários</h2><button class="modal-x" onclick="closeM('m-comments')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div class="modal-hd">
+      <div>
+        <h2>Comentários</h2>
+        <div id="comments-task-title" style="font-size:12px;color:var(--tx3);margin-top:2px;font-weight:400"></div>
+      </div>
+      <button class="modal-x" onclick="closeM('m-comments')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
     <div class="modal-body" style="gap:0;padding-bottom:0">
       <input type="hidden" id="comments-task-id"/>
       <div id="comments-list" style="max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;min-height:60px"></div>
@@ -2186,10 +2189,7 @@ function go(p){
   $$('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.page===p));
   $$('.page').forEach(el=>el.classList.toggle('active',el.id==='page-'+p));
   $('#hdr-title').textContent=PAGE_TITLES[p]||p;
-  const nl=NEW_LABELS[p];
-  $('#new-lbl').textContent=nl||'Novo';
-  const mainBtn=document.querySelector('button.btn-main');
-  if(mainBtn)mainBtn.style.display=(p==='inbox'||p==='groupinfo'||!nl)?'none':'flex';
+
   renderP(p);
 }
 
@@ -3647,8 +3647,11 @@ function setupRealtime(){
 // ═══════════════════════════════════════════════════════════
 async function openComments(taskId){
   const t=(_cache.tasks||[]).find(x=>x.id===taskId);
-  $('#comments-task-id').value=taskId;
-  $('#comments-task-title').textContent=t?t.title:'Tarefa';
+  if(!t) return;
+  const taskIdEl = document.getElementById('comments-task-id');
+  if(taskIdEl) taskIdEl.value = taskId;
+  const titleEl = document.getElementById('comments-task-title');
+  if(titleEl) titleEl.textContent = t.title;
   const {data}=await sb.from('task_comments').select('*,profiles(name,avatar)').eq('task_id',taskId).order('created_at');
   _cache.comments=_cache.comments||{};
   _cache.comments[taskId]=(data||[]).map(c=>({id:c.id,author:c.profiles?.name||'?',authorId:c.user_id,text:c.text,time:c.created_at,attachmentUrl:c.attachment_url||null,attachmentName:c.attachment_name||null,attachmentType:c.attachment_type||null}));
