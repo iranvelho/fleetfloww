@@ -780,6 +780,25 @@ tr.prio-low{opacity:.8}
 .archive-hd.open svg{transform:rotate(90deg)}
 .archive-body{display:none}
 .archive-body.open{display:block}
+/* ── QUICK STATUS MODAL ── */
+#m-quick-status .modal{max-width:360px;border-radius:20px;overflow:hidden;padding:0}
+#m-quick-status .modal-hd{display:none!important}
+.qs-header{padding:20px 20px 0}
+.qs-task-name{font-size:15px;font-weight:800;color:var(--tx);line-height:1.4;margin-bottom:4px}
+.qs-task-meta{font-size:11.5px;color:var(--tx3);margin-bottom:16px;display:flex;align-items:center;gap:6px}
+.qs-divider{height:1px;background:var(--border);margin:0 0 8px}
+.qs-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--tx3);padding:0 20px;margin-bottom:8px}
+.qs-opts{padding:0 12px 12px}
+.qs-opt{display:flex;align-items:center;gap:12px;padding:11px 10px;border-radius:12px;cursor:pointer;transition:background .12s;position:relative}
+.qs-opt:hover{background:var(--surface2)}
+.qs-opt.active{background:var(--surface2)}
+.qs-opt-ico{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px}
+.qs-opt-body{flex:1}
+.qs-opt-lbl{font-size:13.5px;font-weight:600}
+.qs-opt-desc{font-size:11px;color:var(--tx3);margin-top:1px}
+.qs-check{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.qs-cancel{width:100%;padding:14px;text-align:center;font-size:13.5px;font-weight:600;color:var(--tx3);background:var(--surface2);border:none;cursor:pointer;border-top:1px solid var(--border);transition:background .12s}
+.qs-cancel:hover{background:var(--border);color:var(--tx2)}
 /* ── TASK CYCLE INDICATOR ── */
 .cycle-bar{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;color:var(--tx3);margin-top:3px}
 .cycle-dots{display:flex;gap:2px}
@@ -1589,16 +1608,16 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
 
 <!-- QUICK STATUS -->
 <div class="overlay" id="m-quick-status">
-  <div class="modal">
-    <div class="modal-hd">
-      <h2>Alterar Status</h2>
-      <button class="modal-x" onclick="closeM('m-quick-status')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  <div class="modal" style="padding:0;overflow:hidden">
+    <div class="modal-hd" style="display:none"></div>
+    <div class="qs-header">
+      <div class="qs-task-name" id="qs-title"></div>
+      <div class="qs-task-meta" id="qs-meta"></div>
     </div>
-    <div class="modal-body">
-      <div class="quick-status-task" id="qs-title"></div>
-      <div class="quick-status-meta" id="qs-meta"></div>
-      <div class="quick-status-opts" id="qs-opts"></div>
-    </div>
+    <div class="qs-divider"></div>
+    <div class="qs-label">Selecionar status</div>
+    <div class="qs-opts" id="qs-opts"></div>
+    <button class="qs-cancel" onclick="closeM('m-quick-status')">Cancelar</button>
   </div>
 </div>
 
@@ -3208,21 +3227,35 @@ function openQuickStatus(id){
   document.getElementById('qs-title').textContent = t.title;
   const creator = (_cache.members||[]).find(m=>m.id===t.createdBy);
   const creatorName = creator?.nickname||creator?.name||'—';
-  document.getElementById('qs-meta').textContent = `Criado por ${creatorName} · ${t.frequency==='once'?'Única':t.frequency==='daily'?'Diária':t.frequency==='weekly'?'Semanal':'Mensal'}`;
+  const freqLabel = {once:'Única',daily:'Diária',weekly:'Semanal',monthly:'Mensal'}[t.frequency]||t.frequency;
+
+  // Meta com avatar do criador
+  const cAv = creator?.avatar
+    ? `<img src="${creator.avatar}" style="width:16px;height:16px;border-radius:50%;object-fit:cover"/>`
+    : `<div style="width:16px;height:16px;border-radius:50%;background:var(--accent-s);display:inline-flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:var(--accent)">${ini(creatorName)}</div>`;
+  document.getElementById('qs-meta').innerHTML =
+    `${cAv} <span>Por ${creatorName}</span> <span style="color:var(--border2)">·</span> <span>${freqLabel}</span>`;
 
   const statuses = [
-    {value:'pending', label:'Pendente',  color:'#b0a097'},
-    {value:'progress',label:'Em andamento', color:'#b8720a'},
-    {value:'done',    label:'Concluída', color:'#0f7a50'},
-    {value:'late',    label:'Vencida',   color:'#b83c2b'},
+    {value:'pending',  label:'Pendente',      desc:'Aguardando execução',   ico:'⏳', bg:'rgba(176,160,151,.12)', clr:'#7a6a5e'},
+    {value:'progress', label:'Em andamento',  desc:'Sendo executada agora', ico:'🔄', bg:'rgba(184,114,10,.12)',  clr:'#b8720a'},
+    {value:'done',     label:'Concluída',     desc:'Tarefa finalizada',     ico:'✅', bg:'rgba(15,122,80,.12)',   clr:'#0f7a50'},
+    {value:'late',     label:'Vencida',       desc:'Prazo não cumprido',    ico:'⚠️', bg:'rgba(184,60,43,.12)',   clr:'#b83c2b'},
   ];
 
-  document.getElementById('qs-opts').innerHTML = statuses.map(s=>`
-    <div class="qs-opt ${t.status===s.value?'active':''}" onclick="setQuickStatus('${id}','${s.value}')">
-      <div class="qs-dot" style="background:${s.color}"></div>
-      ${s.label}
-      ${t.status===s.value?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px;margin-left:auto;color:var(--accent)"><polyline points="20 6 9 17 4 12"/></svg>':''}
-    </div>`).join('');
+  document.getElementById('qs-opts').innerHTML = statuses.map(s=>{
+    const isActive = t.status===s.value;
+    return `<div class="qs-opt ${isActive?'active':''}" onclick="setQuickStatus('${id}','${s.value}')">
+      <div class="qs-opt-ico" style="background:${s.bg}">${s.ico}</div>
+      <div class="qs-opt-body">
+        <div class="qs-opt-lbl" style="color:${isActive?s.clr:'var(--tx)'}">${s.label}</div>
+        <div class="qs-opt-desc">${s.desc}</div>
+      </div>
+      ${isActive?`<div class="qs-check" style="background:${s.bg}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="${s.clr}" stroke-width="3" style="width:10px;height:10px"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>`:''}
+    </div>`;
+  }).join('');
 
   openM('m-quick-status');
 }
