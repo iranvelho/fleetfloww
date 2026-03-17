@@ -3836,6 +3836,10 @@ async function loadGroupData(){
   _cache.meetings=(meetings||[]).map(m=>({id:m.id,title:m.title,description:m.description,participants:m.participants,date:m.date,time:m.time,calType:m.cal_type,owner:m.profiles?.name||'',ownerId:m.owner,createdAt:m.created_at}));
   _cache.projects=(projects||[]).map(p=>({id:p.id,name:p.name,description:p.description,color:p.color,status:p.status,sharedWith:p.shared_with||[],createdBy:p.created_by,completedAt:p.completed_at,createdAt:p.created_at,steps:(steps||[]).filter(s=>s.project_id===p.id).map(s=>({id:s.id,name:s.name,done:s.done,position:s.position,addedBy:s.added_by,createdAt:s.created_at})).sort((a,b)=>a.position-b.position)}));
   _cache.members=(members||[]).map(m=>({id:m.profiles?.id||m.user_id,name:m.profiles?.name||'?',avatar:m.profiles?.avatar||null,role:m.role,nickname:m.profiles?.nickname||null,status:m.status||'active'}));
+  // Garantir que o próprio usuário está no cache
+  if(CUR.user && !_cache.members.find(m=>m.id===CUR.user.id)){
+    _cache.members.push({id:CUR.user.id,name:CUR.user.name,avatar:CUR.user.avatar||null,nickname:CUR.user.nickname||null,role:'member',status:'active'});
+  }
   // Respeitar apagamento manual — ignorar notificações anteriores ao último clear
   const clearedAt = parseInt(localStorage.getItem('ff_inbox_cleared_'+CUR.user.id)||'0');
   const _clearedAt2=parseInt(localStorage.getItem('ff_inbox_cleared_'+CUR.user.id)||'0');
@@ -3858,6 +3862,36 @@ function setupRealtime(){
     .on('postgres_changes',{event:'*',schema:'public',table:'ideas',filter:'group_id=eq.'+CUR.groupId},()=>{loadGroupData().then(()=>{});})
     .on('postgres_changes',{event:'*',schema:'public',table:'chat_messages',filter:'group_id=eq.'+CUR.groupId},()=>{sb.from('chat_messages').select('*,profiles(name,avatar)').eq('group_id',CUR.groupId).order('created_at').limit(200).then(({data})=>{_cache.chat=(data||[]).map(m=>({id:m.id,author:m.profiles?.name||'?',authorId:m.user_id,avatar:m.profiles?.avatar||null,text:m.text,time:m.created_at}));if(chatOpen)renderChat();updateChatPip();});})
     .on('postgres_changes',{event:'*',schema:'public',table:'inbox',filter:'group_id=eq.'+CUR.groupId},()=>{sb.from('inbox').select('*').eq('group_id',CUR.groupId).eq('user_id',CUR.user.id).order('created_at',{ascending:false}).limit(100).then(({data})=>{_cache.inbox=(data||[]).map(n=>({id:n.id,msg:n.msg,icon:n.icon,type:n.type,readBy:n.read?[CUR.user.id]:[],time:n.created_at}));updateBadges();if(page==='inbox')renderInbox();});})
+    .on('postgres_changes',{event:'*',schema:'public',table:'group_members',filter:'group_id=eq.'+CUR.groupId},(payload)=>{
+      // Recarregar membros em tempo real quando alguém entra, sai ou é desativado
+      const rtEvent = payload.eventType; // INSERT | UPDATE | DELETE
+      sb.from('group_members').select('*,profiles(id,name,avatar,nickname)').eq('group_id',CUR.groupId).then(({data:members})=>{
+        _cache.members=(members||[]).map(m=>({
+          id:m.profiles?.id||m.user_id,
+          name:m.profiles?.name||'?',
+          avatar:m.profiles?.avatar||null,
+          nickname:m.profiles?.nickname||null,
+          role:m.role,
+          status:m.status||'active'
+        }));
+        // Garantir que o próprio usuário está incluído
+        if(CUR.user&&!_cache.members.find(m=>m.id===CUR.user.id)){
+          _cache.members.push({id:CUR.user.id,name:CUR.user.name,avatar:CUR.user.avatar||null,nickname:CUR.user.nickname||null,role:'member',status:'active'});
+        }
+        updateBadges();
+        fillMemberSelects();
+        // Atualizar contagem em tempo real em qualquer página
+        const statEl=document.getElementById('gi-stat-members');
+        if(statEl) statEl.textContent=_cache.members.filter(m=>m.status!=='inactive').length;
+        const countEl2=document.getElementById('gi-member-count');
+        if(countEl2) countEl2.textContent='('+_cache.members.filter(m=>m.status!=='inactive').length+')';
+        if(page==='groupinfo') renderGroupInfo();
+        if(page==='dashboard') renderDash();
+        // Banner contextual por tipo de evento
+        if(rtEvent==='INSERT') banner('👋 Novo membro entrou no grupo!','ok');
+        else if(rtEvent==='DELETE') banner('Membro saiu do grupo.','info');
+      });
+    })
     .subscribe();
 }
 
@@ -4772,27 +4806,32 @@ function renderGroupInfo(){
 
   // Stats
   const stats=$('#gi-stats');
+  const activeMembers = (_cache.members||[]).filter(m=>m.status!=='inactive');
   if(stats){stats.innerHTML=`
     <div class="gi-stat"><span class="gi-stat-val">${(_cache.tasks||[]).length}</span><span class="gi-stat-lbl">Tarefas</span></div>
     <div class="gi-stat"><span class="gi-stat-val">${(_cache.tasks||[]).filter(t=>t.status==='done').length}</span><span class="gi-stat-lbl">Concluídas</span></div>
     <div class="gi-stat"><span class="gi-stat-val">${(_cache.meetings||[]).length}</span><span class="gi-stat-lbl">Reuniões</span></div>
-    <div class="gi-stat"><span class="gi-stat-val">${(_cache.ideas||[]).length}</span><span class="gi-stat-lbl">Ideias</span></div>
-    <div class="gi-stat"><span class="gi-stat-val">${(_cache.members||[]).length}</span><span class="gi-stat-lbl">Membros</span></div>
+    <div class="gi-stat"><span class="gi-stat-val">${(_cache.projects||[]).length}</span><span class="gi-stat-lbl">Projetos</span></div>
+    <div class="gi-stat"><span class="gi-stat-val" id="gi-stat-members">${(_cache.members||[]).filter(m=>m.status!=='inactive').length}</span><span class="gi-stat-lbl">Membros ativos</span></div>
   `;}
   // Members
   const countEl=$('#gi-member-count');
-  if(countEl)countEl.textContent=`(${(_cache.members||[]).length})`;
+  const activeMembersCount=(_cache.members||[]).filter(m=>m.status!=='inactive').length;
+  if(countEl)countEl.textContent=`(${activeMembersCount})`;
   const mg=$('#gi-members-grid');
   const members2=(_cache.members||[]);
+  const isAdmin2=CUR.groupCreatedBy===CUR.user.id;
   if(mg){mg.innerHTML=`<div class="gi-members-grid">${members2.map(m=>{
-    const isCreator=CUR.groupCreatedBy===m.id;
     const isMe=m.id===CUR.user.id;
+    const isInactive=m.status==='inactive';
     const avContent=m.avatar?`<img src="${m.avatar}"/>`:'';
-    return`<div class="gi-member-card">
+    const displayName=m.nickname||m.name;
+    return`<div class="gi-member-card" style="${isInactive?'opacity:.45;filter:grayscale(.5)':''}">
       <div class="gi-member-av">${avContent||ini(m.name)}</div>
-      <div class="gi-member-name">${m.name}</div>
-
-      ${isMe?`<span class="gi-member-me">Você</span>`:''}
+      <div class="gi-member-name">${displayName}</div>
+      ${isInactive?'<span style="font-size:9px;font-weight:700;color:var(--red);background:var(--red-s);padding:1px 5px;border-radius:99px">Inativo</span>':''}
+      ${isMe?'<span class="gi-member-me">Você</span>':''}
+      ${isAdmin2&&!isMe?`<button onclick="event.stopPropagation();${isInactive?`reactivateMember('${m.id}','${displayName}')`:`deactivateMember('${m.id}','${displayName}')`}" style="font-size:9.5px;padding:2px 7px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;color:${isInactive?'var(--green)':'var(--tx3)'};">${isInactive?'Reativar':'Desativar'}</button>`:''}
     </div>`;
   }).join('')}</div>`;}
 }
