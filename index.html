@@ -3873,13 +3873,46 @@ async function loadGroupData(){
 }
 
 let _realtimeCh=null;
+// Timers de debounce para realtime (evita múltiplos reloads em cascata)
+const _rtTimer={task:null,meet:null,proj:null};
+function _debRT(key,fn,ms=350){clearTimeout(_rtTimer[key]);_rtTimer[key]=setTimeout(fn,ms);}
+
 function setupRealtime(){
   if(_realtimeCh) sb.removeChannel(_realtimeCh);
   _realtimeCh=sb.channel('group-'+CUR.groupId)
-    .on('postgres_changes',{event:'*',schema:'public',table:'tasks',filter:'group_id=eq.'+CUR.groupId},()=>{loadGroupData().then(()=>{updateBadges();if(page==='tasks'||page==='dashboard')renderP(page);});})
-    .on('postgres_changes',{event:'*',schema:'public',table:'meetings',filter:'group_id=eq.'+CUR.groupId},()=>{loadGroupData().then(()=>{if(page==='meetings')renderP(page);});})
-    .on('postgres_changes',{event:'*',schema:'public',table:'projects',filter:'group_id=eq.'+CUR.groupId},()=>{loadGroupData().then(()=>{if(page==='projects')renderProjects();});})
-    .on('postgres_changes',{event:'*',schema:'public',table:'ideas',filter:'group_id=eq.'+CUR.groupId},()=>{loadGroupData().then(()=>{});})
+    // TASKS — busca só tarefas, não tudo
+    .on('postgres_changes',{event:'*',schema:'public',table:'tasks',filter:'group_id=eq.'+CUR.groupId},()=>{
+      _debRT('task',()=>{
+        sb.from('tasks').select('*').eq('group_id',CUR.groupId).order('created_at',{ascending:false}).then(({data:tasks})=>{
+          _cache.tasks=(tasks||[]).map(t=>({id:t.id,title:t.title,status:t.status,priority:t.priority,frequency:t.frequency,visibility:t.visibility,integrateFor:t.integrate_for||[],createdBy:t.created_by,statusAt:t.status_at,createdAt:t.created_at,limitTime:t.description||null,dueDate:t.due_date||null,weekdays:t.weekdays||null,archived:t.archived||false,archivedAt:t.archived_at||null}));
+          updateBadges();
+          if(page==='tasks'||page==='dashboard'||page==='mywork')renderP(page);
+        });
+      });
+    })
+    // MEETINGS — busca só reuniões
+    .on('postgres_changes',{event:'*',schema:'public',table:'meetings',filter:'group_id=eq.'+CUR.groupId},()=>{
+      _debRT('meet',()=>{
+        sb.from('meetings').select('*,profiles(name,avatar)').eq('group_id',CUR.groupId).order('date').then(({data:meetings})=>{
+          _cache.meetings=(meetings||[]).map(m=>({id:m.id,title:m.title,date:m.date,time:m.time,description:m.description,ownerId:m.owner,ownerName:m.profiles?.name||'',ownerAvatar:m.profiles?.avatar||null,participants:m.participants||[]}));
+          if(page==='meetings')renderP(page);
+        });
+      });
+    })
+    // PROJECTS — busca só projetos
+    .on('postgres_changes',{event:'*',schema:'public',table:'projects',filter:'group_id=eq.'+CUR.groupId},()=>{
+      _debRT('proj',()=>{
+        Promise.all([
+          sb.from('projects').select('*').eq('group_id',CUR.groupId).order('created_at',{ascending:false}),
+          sb.from('project_steps').select('*').order('position')
+        ]).then(([{data:proj},{data:steps}])=>{
+          _cache.projects=(proj||[]).map(p=>({id:p.id,title:p.title,description:p.description,status:p.status,createdBy:p.created_by,createdAt:p.created_at,steps:(steps||[]).filter(s=>s.project_id===p.id)}));
+          if(page==='projects')renderProjects();
+        });
+      });
+    })
+    // IDEAS — ignorada (aba removida)
+    .on('postgres_changes',{event:'*',schema:'public',table:'ideas',filter:'group_id=eq.'+CUR.groupId},()=>{})
     .on('postgres_changes',{event:'*',schema:'public',table:'chat_messages',filter:'group_id=eq.'+CUR.groupId},()=>{sb.from('chat_messages').select('*,profiles(name,avatar)').eq('group_id',CUR.groupId).order('created_at').limit(200).then(({data})=>{_cache.chat=(data||[]).map(m=>({id:m.id,author:m.profiles?.name||'?',authorId:m.user_id,avatar:m.profiles?.avatar||null,text:m.text,time:m.created_at}));if(chatOpen)renderChat();updateChatPip();});})
     .on('postgres_changes',{event:'*',schema:'public',table:'inbox',filter:'group_id=eq.'+CUR.groupId},()=>{sb.from('inbox').select('*').eq('group_id',CUR.groupId).eq('user_id',CUR.user.id).order('created_at',{ascending:false}).limit(100).then(({data})=>{_cache.inbox=(data||[]).map(n=>({id:n.id,msg:n.msg,icon:n.icon,type:n.type,readBy:n.read?[CUR.user.id]:[],time:n.created_at}));updateBadges();if(page==='inbox')renderInbox();});})
     .on('postgres_changes',{event:'*',schema:'public',table:'group_members',filter:'group_id=eq.'+CUR.groupId},(payload)=>{
