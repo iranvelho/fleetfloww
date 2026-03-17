@@ -3828,7 +3828,7 @@ async function loadGroupData(){
     sb.from('meetings').select('*,profiles(name,avatar)').eq('group_id',gid).order('date'),
     sb.from('projects').select('*').eq('group_id',gid).order('created_at',{ascending:false}),
     sb.from('project_steps').select('*').order('position'),
-    sb.from('group_members').select('*,profiles(id,name,avatar,nickname)').eq('group_id',gid),
+    sb.from('group_members').select('*').eq('group_id',gid),
     sb.from('inbox').select('*').eq('group_id',gid).eq('user_id',uid_val).order('created_at',{ascending:false}).limit(100),
     sb.from('activity').select('*,profiles(name)').eq('group_id',gid).order('created_at',{ascending:false}).limit(50)
   ]);
@@ -3838,15 +3838,24 @@ async function loadGroupData(){
   (_cache.myTasks).forEach(t=>{if(!_cache.myTasksByUser[t.userId])_cache.myTasksByUser[t.userId]=[];_cache.myTasksByUser[t.userId].push(t);});
   _cache.meetings=(meetings||[]).map(m=>({id:m.id,title:m.title,description:m.description,participants:m.participants,date:m.date,time:m.time,calType:m.cal_type,owner:m.profiles?.name||'',ownerId:m.owner,createdAt:m.created_at}));
   _cache.projects=(projects||[]).map(p=>({id:p.id,name:p.name,description:p.description,color:p.color,status:p.status,sharedWith:p.shared_with||[],createdBy:p.created_by,completedAt:p.completed_at,createdAt:p.created_at,steps:(steps||[]).filter(s=>s.project_id===p.id).map(s=>({id:s.id,name:s.name,done:s.done,position:s.position,addedBy:s.added_by,createdAt:s.created_at})).sort((a,b)=>a.position-b.position)}));
-  // Mapear todos os membros, incluindo os sem profile completo
-  _cache.members=(members||[]).filter(m=>m.user_id).map(m=>({
-    id:m.profiles?.id||m.user_id,
-    name:m.profiles?.name||m.user_id.slice(0,8),
-    avatar:m.profiles?.avatar||null,
-    role:m.role,
-    nickname:m.profiles?.nickname||null,
-    status:m.status||'active'
-  }));
+  // Buscar profiles dos membros separadamente (evita problemas de join)
+  const memberIds=(members||[]).filter(m=>m.user_id).map(m=>m.user_id);
+  let profilesMap={};
+  if(memberIds.length>0){
+    const {data:profilesData}=await sb.from('profiles').select('id,name,avatar,nickname').in('id',memberIds);
+    (profilesData||[]).forEach(p=>{profilesMap[p.id]=p;});
+  }
+  _cache.members=(members||[]).filter(m=>m.user_id).map(m=>{
+    const p=profilesMap[m.user_id]||{};
+    return {
+      id:m.user_id,
+      name:p.name||m.user_id.slice(0,8),
+      avatar:p.avatar||null,
+      role:m.role||'member',
+      nickname:p.nickname||null,
+      status:m.status||'active'
+    };
+  });
   // Garantir que o próprio usuário está no cache
   if(CUR.user&&!_cache.members.find(m=>m.id===CUR.user.id)){
     _cache.members.push({id:CUR.user.id,name:CUR.user.name,avatar:CUR.user.avatar||null,nickname:CUR.user.nickname||null,role:'member',status:'active'});
@@ -3877,15 +3886,14 @@ function setupRealtime(){
       // Recarregar membros em tempo real quando alguém entra, sai ou é desativado
       const rtEvent = payload.eventType; // INSERT | UPDATE | DELETE
       sb.from('group_members').select('*,profiles(id,name,avatar,nickname)').eq('group_id',CUR.groupId).then(({data:members})=>{
-        _cache.members=(members||[]).map(m=>({
+        _cache.members=(members||[]).filter(m=>m.user_id).map(m=>({
           id:m.profiles?.id||m.user_id,
-          name:m.profiles?.name||'?',
+          name:m.profiles?.name||m.user_id.slice(0,8),
           avatar:m.profiles?.avatar||null,
+          role:m.role||'member',
           nickname:m.profiles?.nickname||null,
-          role:m.role,
           status:m.status||'active'
         }));
-        // Garantir que o próprio usuário está incluído
         if(CUR.user&&!_cache.members.find(m=>m.id===CUR.user.id)){
           _cache.members.push({id:CUR.user.id,name:CUR.user.name,avatar:CUR.user.avatar||null,nickname:CUR.user.nickname||null,role:'member',status:'active'});
         }
