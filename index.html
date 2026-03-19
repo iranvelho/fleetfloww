@@ -586,8 +586,12 @@ select.fi{appearance:none;cursor:pointer;padding-right:28px;background-image:url
 
 /* ── GROUP INFO PAGE ── */
 .gi-hero{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden;box-shadow:var(--sh)}
-.gi-cover{height:100px;background:linear-gradient(135deg,#4c1d95 0%,#2e1a3a 100%);position:relative}
-.gi-cover::after{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Ccircle cx='20' cy='20' r='3'/%3E%3C/g%3E%3C/svg%3E")}
+.gi-cover{height:100px;background:linear-gradient(135deg,#4c1d95 0%,#2e1a3a 100%);position:relative;overflow:hidden}
+.gi-cover img.gi-cover-img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;z-index:1}
+.gi-cover-edit-btn{position:absolute;bottom:8px;right:8px;z-index:2;background:rgba(0,0,0,.5);color:#fff;border:none;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;backdrop-filter:blur(4px)}
+.gi-cover-edit-btn:hover{background:rgba(0,0,0,.7)}
+.gi-cover::after{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Ccircle cx='20' cy='20' r='3'/%3E%3C/g%3E%3C/svg%3E");z-index:0}
+
 .gi-hero-body{padding:0 24px 24px;display:flex;align-items:flex-end;gap:16px;margin-top:-36px;position:relative}
 .gi-av{
   width:72px;height:72px;border-radius:50%;background:var(--accent);
@@ -1346,6 +1350,10 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
         <span class="nav-chip inbox" id="chat-nav-pip" style="display:none">0</span>
       </button>
       <div class="sb-sec" style="margin-top:6px">Configurações</div>
+      <button class="nav-btn" data-page="email-summary" onclick="go('email-summary')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        <span class="nav-lbl">Resumo Email</span>
+      </button>
       <button class="nav-btn" data-page="groupinfo" onclick="go('groupinfo')">
         <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></span>
         Meu Grupo
@@ -1616,6 +1624,21 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
       </section>
 
       <!-- GRUPO -->
+      <!-- RESUMO EMAIL -->
+      <section id="page-email-summary" class="page">
+        <div class="ph">
+          <div><h1>Resumo Email</h1><div class="ph-sub">Configurações e histórico de e-mails enviados</div></div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 20px;text-align:center">
+          <div style="width:72px;height:72px;border-radius:20px;background:var(--accent-s);display:flex;align-items:center;justify-content:center;margin-bottom:20px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5" style="width:36px;height:36px"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          </div>
+          <h2 style="font-size:20px;font-weight:800;color:var(--tx);margin-bottom:8px">Em desenvolvimento</h2>
+          <p style="font-size:14px;color:var(--tx3);max-width:340px;line-height:1.6">Esta seção exibirá o histórico de e-mails enviados, configurações de notificações e preferências do digest diário.</p>
+          <div style="margin-top:24px;padding:12px 20px;background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;font-size:12.5px;color:var(--tx3)">🚧 Disponível em breve</div>
+        </div>
+      </section>
+
       <section id="page-groupinfo" class="page">
         <div class="ph">
           <div><h1>Meu Grupo</h1><div class="ph-sub">Informações, membros e código de acesso</div></div>
@@ -1639,7 +1662,14 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
           </div>
         </div>
         <div class="gi-hero">
-          <div class="gi-cover"></div>
+          <div class="gi-cover" id="gi-cover-div">
+            <img class="gi-cover-img" id="gi-cover-img" style="display:none"/>
+            <button class="gi-cover-edit-btn" onclick="document.getElementById('gi-cover-file').click()" title="Alterar capa">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              Alterar capa
+            </button>
+            <input type="file" id="gi-cover-file" accept="image/*" style="display:none" onchange="previewGroupCover(this)"/>
+          </div>
           <div class="gi-hero-body">
             <div class="gi-av" id="gi-av"><span id="gi-av-ini">G</span><img id="gi-av-img" style="display:none"/></div>
             <div class="gi-hero-info">
@@ -1827,7 +1857,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
         <div style="font-size:11px;color:var(--tx3);margin-top:4px">💡 Se nenhum dia for selecionado, aparece todos os dias</div>
       </div>
       <div class="fg" id="nt-time-wrap" style="display:none"><label>Horário limite <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">deve ser concluída até este horário</span></label><input type="time" id="nt-time" class="fi"/></div>
-      <div class="fg"><label>Status</label><select id="nt-status" class="fi"><option value="pending">Pendente</option><option value="progress">Em andamento</option><option value="done">Concluída</option></select></div>
+      <!-- Status sempre "pending" ao criar — integrado pode alterar depois -->
       <div class="info-note" id="nt-cycle-note" style="display:none">♻️ <strong>Tarefa recorrente:</strong> A tarefa some ao iniciar o próximo ciclo — diária some à meia-noite, semanal na segunda-feira, mensal no dia 1º.</div>
     </div>
     <div class="modal-ft"><button class="btn-sec" onclick="closeM('m-new-task')">Cancelar</button><button class="btn-main" onclick="submitTask()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Criar</button></div>
@@ -2135,6 +2165,14 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
             <input type="file" id="eg-av-file" accept="image/*" style="display:none" onchange="previewEditGrpAvatar(this)"/>
           </div>
         </div>
+      </div>
+      <div class="fg">
+        <label>Capa do grupo <span style="font-size:10px;color:var(--tx3);font-weight:400">imagem de fundo</span></label>
+        <div id="eg-cover-preview" style="width:100%;height:60px;border-radius:10px;background:linear-gradient(135deg,#4c1d95,#2e1a3a);overflow:hidden;position:relative;margin-bottom:6px;cursor:pointer" onclick="document.getElementById('eg-cover-file').click()">
+          <img id="eg-cover-img" style="width:100%;height:100%;object-fit:cover;display:none"/>
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.6);font-size:11px;font-weight:600">Clique para alterar</div>
+        </div>
+        <input type="file" id="eg-cover-file" accept="image/*" style="display:none" onchange="previewEgCover(this)"/>
       </div>
       <div class="fg"><label>Nome do grupo</label><input type="text" id="eg-name" class="fi" placeholder="Nome do grupo"/></div>
       <div class="fg"><label>Descrição</label><textarea id="eg-desc" class="fi" placeholder="Descreva o grupo, sua finalidade..." style="min-height:80px"></textarea></div>
@@ -2595,7 +2633,13 @@ function memberAvatar(name){
 // ═══════════════════════════════════════════════════════════
 //  DASHBOARD
 // ═══════════════════════════════════════════════════════════
+let _dashTimer=null;
 function renderDash(){
+  // Debounce — evita renders em cascata
+  if(_dashTimer) cancelAnimationFrame(_dashTimer);
+  _dashTimer = requestAnimationFrame(_doRenderDash);
+}
+function _doRenderDash(){
   const h=new Date().getHours();
   const g=h<12?'Bom dia ☀️':h<18?'Boa tarde 👋':'Boa noite 🌙';
   const displayName=CUR.user.nickname||CUR.user.name.split(' ')[0];
@@ -2709,7 +2753,8 @@ function renderDash(){
     `;
   }
 
-  // My work today
+  // My work today — renderizar só se visível (evita trabalho desnecessário)
+  if(page!=='dashboard') return;
   const dm=$('#d-my');
   dm.innerHTML=myT.length?myT.slice(0,6).map(t=>{
     const st=getMWState(t);
@@ -3655,7 +3700,7 @@ async function submitTask(){
   if(!title){banner('Informe o título','warn');return;}
   const mnames=getSelectedMembers('nt-members-grid');
   showLoader('Salvando...');
-  const ntDays=getSelectedDays('nt'); const {data:t,error}=await sb.from('tasks').insert({group_id:CUR.groupId,title,integrate_for:mnames,frequency:$('#nt-freq').value,status:$('#nt-status').value,priority:$('#nt-prio').value,visibility:$('#nt-vis').value,created_by:CUR.user.id,description:$('#nt-time').value||null,due_date:$('#nt-due').value||null,weekdays:ntDays.length?ntDays:null}).select().single();
+  const ntDays=getSelectedDays('nt'); const {data:t,error}=await sb.from('tasks').insert({group_id:CUR.groupId,title,integrate_for:mnames,frequency:$('#nt-freq').value,status:'pending',priority:$('#nt-prio').value,visibility:$('#nt-vis').value,created_by:CUR.user.id,description:$('#nt-time').value||null,due_date:$('#nt-due').value||null,weekdays:ntDays.length?ntDays:null}).select().single();
   if(error){hideLoader();banner('Erro ao criar tarefa','err');return;}
   _cache.tasks=_cache.tasks||[];
   _cache.tasks.unshift({id:t.id,title,integrateFor:mnames,frequency:t.frequency,status:t.status,priority:t.priority,visibility:t.visibility,createdBy:t.created_by,createdAt:t.created_at,limitTime:t.description||null,dueDate:t.due_date||null,weekdays:t.weekdays||null});
@@ -4475,6 +4520,13 @@ function refreshAppForGroup(){
   const gname=CUR.groupName||'—',gcode=CUR.groupCode||'';
   $('#sb-group-display').textContent=gname;
   $('#sb-group-name').textContent=gcode?`${gcode} · ${gname}`:gname;
+  // Mostrar capa do grupo
+  const coverImg = document.getElementById('gi-cover-img');
+  if(coverImg && CUR.groupCover){ coverImg.src=CUR.groupCover; coverImg.style.display='block'; }
+  else if(coverImg){ coverImg.style.display='none'; }
+  // Preencher cover no modal de edição
+  const egCoverImg = document.getElementById('eg-cover-img');
+  if(egCoverImg && CUR.groupCover){ egCoverImg.src=CUR.groupCover; egCoverImg.style.display='block'; }
   if(CUR.groupAvatar){$('#sb-grp-av-img').src=CUR.groupAvatar;$('#sb-grp-av-img').style.display='block';$('#sb-grp-av-ini').style.display='none';}
   else{$('#sb-grp-av-img').style.display='none';$('#sb-grp-av-ini').style.display='';$('#sb-grp-av-ini').textContent=gname?ini(gname):'G';}
   chatLastRead=0;updateChatPip();fillMemberSelects();go('dashboard');setupRealtime();
@@ -4951,11 +5003,14 @@ async function deleteGroup(){
 async function saveGroupInfo(){
   const name=$('#eg-name').value.trim()||CUR.groupName;
   const upd={name,description:$('#eg-desc').value.trim()||null};
-  if(_editGrpAvB64)upd.avatar=_editGrpAvB64;
+  if(_editGrpAvB64) upd.avatar=_editGrpAvB64;
+  if(_pendingCoverB64) upd.cover_image=_pendingCoverB64;
   showLoader('Salvando...');
   await sb.from('groups').update(upd).eq('id',CUR.groupId);
   hideLoader();
-  CUR.groupName=name;if(_editGrpAvB64)CUR.groupAvatar=_editGrpAvB64;
+  CUR.groupName=name;
+  if(_editGrpAvB64) CUR.groupAvatar=_editGrpAvB64;
+  if(_pendingCoverB64){ CUR.groupCover=_pendingCoverB64; _pendingCoverB64=null; }
   closeM('m-edit-group');
   $('#sb-group-name').textContent=`${CUR.groupCode} · ${name}`;
   renderGroupInfo();
@@ -5965,6 +6020,54 @@ function onboardClick(stepId){
   markOnboardStep(stepId);
   const step=ONBOARD_STEPS.find(s=>s.id===stepId);
   if(step) step.action();
+}
+
+// ════════════════════════════════════════════════════
+//  CAPA DO GRUPO
+// ════════════════════════════════════════════════════
+let _pendingCoverB64 = null;
+
+function previewGroupCover(inp){
+  if(!inp.files[0]) return;
+  const file = inp.files[0];
+  if(file.size > 5*1024*1024){ banner('Imagem muito grande. Máximo 5MB.','warn'); return; }
+  const r = new FileReader();
+  r.onload = e => {
+    _pendingCoverB64 = e.target.result;
+    const img = document.getElementById('gi-cover-img');
+    if(img){ img.src=e.target.result; img.style.display='block'; }
+    // Salvar imediatamente
+    saveGroupCover(e.target.result);
+  };
+  r.readAsDataURL(file);
+}
+
+function previewEgCover(inp){
+  if(!inp.files[0]) return;
+  const file = inp.files[0];
+  if(file.size > 5*1024*1024){ banner('Imagem muito grande. Máximo 5MB.','warn'); return; }
+  const r = new FileReader();
+  r.onload = e => {
+    _pendingCoverB64 = e.target.result;
+    const img = document.getElementById('eg-cover-img');
+    if(img){ img.src=e.target.result; img.style.display='block'; }
+  };
+  r.readAsDataURL(file);
+}
+
+async function saveGroupCover(b64){
+  if(!b64||!CUR.groupId) return;
+  await sb.from('groups').update({cover_image:b64}).eq('id',CUR.groupId);
+  CUR.groupCover = b64;
+  banner('Capa atualizada!','ok');
+}
+
+function loadGroupCover(){
+  const cover = CUR.groupCover;
+  const img = document.getElementById('gi-cover-img');
+  if(img && cover){
+    img.src=cover; img.style.display='block';
+  }
 }
 
 document.addEventListener('DOMContentLoaded',async()=>{
