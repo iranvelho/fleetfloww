@@ -51,6 +51,29 @@ input,textarea,select{font-family:inherit;font-size:inherit;outline:none;color:v
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:#c8c8d4;border-radius:99px}
 
+/* ── CONFIRM MODAL ── */
+#ff-confirm-overlay{
+  position:fixed;inset:0;background:rgba(20,12,4,.6);
+  display:flex;align-items:center;justify-content:center;
+  z-index:99999;padding:20px;opacity:0;pointer-events:none;
+}
+#ff-confirm-overlay.open{opacity:1;pointer-events:all}
+.ff-confirm-box{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:18px;padding:28px 28px 20px;max-width:380px;width:100%;
+  box-shadow:0 20px 60px rgba(0,0,0,.2);
+}
+.ff-confirm-ico{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;flex-shrink:0}
+.ff-confirm-ico.warn{background:var(--red-s)}
+.ff-confirm-ico.question{background:rgba(217,119,6,.1)}
+.ff-confirm-ico svg{width:20px;height:20px}
+.ff-confirm-ttl{font-size:16px;font-weight:800;color:var(--tx);text-align:center;margin-bottom:8px;line-height:1.3}
+.ff-confirm-msg{font-size:13px;color:var(--tx3);text-align:center;line-height:1.6;margin-bottom:22px}
+.ff-confirm-btns{display:flex;gap:8px}
+.ff-confirm-btns button{flex:1;padding:10px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer}
+.ff-confirm-cancel{background:var(--surface2);border:1px solid var(--border);color:var(--tx2)}
+.ff-confirm-ok{background:var(--accent);border:none;color:#fff}
+.ff-confirm-ok.danger{background:var(--red)}
 /* ── AUTH ── */
 /* Trocar conta */
 .switch-account-btn{
@@ -1888,6 +1911,21 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
   </div>
 </div>
 
+<!-- CONFIRM MODAL -->
+<div id="ff-confirm-overlay">
+  <div class="ff-confirm-box">
+    <div class="ff-confirm-ico" id="ff-c-ico">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    </div>
+    <div class="ff-confirm-ttl" id="ff-c-ttl">Confirmar</div>
+    <div class="ff-confirm-msg" id="ff-c-msg"></div>
+    <div class="ff-confirm-btns">
+      <button class="ff-confirm-cancel" id="ff-c-cancel">Cancelar</button>
+      <button class="ff-confirm-ok" id="ff-c-ok">Confirmar</button>
+    </div>
+  </div>
+</div>
+
 <!-- WELCOME -->
 <div class="overlay" id="m-welcome" style="display:none">
   <div class="modal" style="padding:0">
@@ -2535,7 +2573,7 @@ function showLoggedAccountInfo(){
 
 // Trocar de conta — faz logout e volta para o login
 async function switchAccount(){
-  if(!confirm('Deseja sair desta conta e entrar com outra?')) return;
+  if(!await ffConfirm('Deseja sair desta conta e entrar com <strong>outra conta</strong>?', {title:'Trocar de conta', okLabel:'Sair', cancelLabel:'Ficar'})) return;
   await sb.auth.signOut();
   // Limpar estado
   CUR.user=null; CUR.groupId=null; CUR.groupName=null;
@@ -2676,6 +2714,44 @@ document.addEventListener('keydown',e=>{
 
 // ── BANNER ──
 let _bt;
+// ════════════════════════════════════════════════════
+//  CONFIRM MODAL — substitui window.confirm()
+// ════════════════════════════════════════════════════
+function ffConfirm(msg, opts={}){
+  const {title='Confirmar', danger=false, okLabel='Confirmar', cancelLabel='Cancelar'} = opts;
+  return new Promise(resolve=>{
+    const overlay = document.getElementById('ff-confirm-overlay');
+    const ttl = document.getElementById('ff-c-ttl');
+    const msgEl = document.getElementById('ff-c-msg');
+    const okBtn = document.getElementById('ff-c-ok');
+    const cancelBtn = document.getElementById('ff-c-cancel');
+    const ico = document.getElementById('ff-c-ico');
+    ttl.textContent = title;
+    msgEl.innerHTML = msg;
+    okBtn.textContent = okLabel;
+    cancelBtn.textContent = cancelLabel;
+    okBtn.className = 'ff-confirm-ok' + (danger ? ' danger' : '');
+    ico.className = 'ff-confirm-ico ' + (danger ? 'warn' : 'question');
+    ico.innerHTML = danger
+      ? '<svg viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
+      : '<svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+    overlay.classList.add('open');
+    const cleanup = (result) => {
+      overlay.classList.remove('open');
+      okBtn.removeEventListener('click', onOk);
+      cancelBtn.removeEventListener('click', onCancel);
+      overlay.removeEventListener('click', onBackdrop);
+      resolve(result);
+    };
+    const onOk = () => cleanup(true);
+    const onCancel = () => cleanup(false);
+    const onBackdrop = (e) => { if(e.target === overlay) cleanup(false); };
+    okBtn.addEventListener('click', onOk);
+    cancelBtn.addEventListener('click', onCancel);
+    overlay.addEventListener('click', onBackdrop);
+  });
+}
+
 function banner(msg,type='info'){
   const b=$('#notif-banner');
   b.textContent=msg;b.className='show '+(type);
@@ -2709,7 +2785,7 @@ function unreadCount(){
 }
 
 async function clearOldNotifications(){
-  if(!window.confirm('Apagar TODAS as notificações? Esta ação não pode ser desfeita.')) return;
+  if(!await ffConfirm('Apagar <strong>todas</strong> as notificações? Esta ação não pode ser desfeita.', {title:'Apagar notificações', danger:true, okLabel:'Apagar tudo'})) return;
   await sb.from('inbox').delete()
     .eq('group_id',CUR.groupId)
     .eq('user_id',CUR.user.id);
@@ -3782,6 +3858,31 @@ function toggleMembersField(){
   // Membros sempre visíveis — integrar é relevante tanto em global quanto privada
   const w=$('#nt-members-wrap');if(w)w.style.display='flex';
 }
+function toggleNmDays(){
+  const freq=document.getElementById('nm-freq')?.value;
+  const daysWrap=document.getElementById('nm-days-wrap');
+  const timeWrap=document.getElementById('nm-time-wrap');
+  if(daysWrap) daysWrap.style.display=(freq==='daily'||freq==='custom')?'':'none';
+  if(timeWrap) timeWrap.style.display=(freq!=='once'&&freq!=='custom')?'':'none';
+}
+
+function toggleEmDays(){
+  const freq=document.getElementById('em-freq')?.value;
+  let wrap=document.getElementById('em-days-wrap');
+  if(!wrap&&(freq==='daily'||freq==='custom')){
+    const body=document.querySelector('#m-edit-my .modal-body');
+    wrap=document.createElement('div');
+    wrap.id='em-days-wrap';wrap.className='fg';
+    const days=['seg','ter','qua','qui','sex','sab','dom'];
+    const lbls=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+    const btns=days.map((d,i)=>`<button type="button" class="wd-btn" data-day="${d}" onclick="toggleWdBtn(this,'em')">${lbls[i]}</button>`).join('');
+    wrap.innerHTML=`<label>Dias da semana</label><div style="display:flex;gap:6px;flex-wrap:wrap">${btns}</div>`;
+    const freqEl=document.getElementById('em-freq');
+    if(freqEl&&body) freqEl.closest('.fr').after(wrap);
+  }
+  if(wrap) wrap.style.display=(freq==='daily'||freq==='custom')?'':'none';
+}
+
 function toggleTaskTimeField(prefix){
   const freq=$('#'+prefix+'-freq')?.value;
   const timeWrap=$('#'+prefix+'-time-wrap');
@@ -4784,7 +4885,7 @@ async function renderMyGroupsList(){
 }
 
 async function leaveGroup(groupId){
-  if(!window.confirm('Sair do grupo "'+CUR.groupName+'"? Você poderá entrar novamente com o código.')) return;
+  if(!await ffConfirm('Sair do grupo <strong>"'+CUR.groupName+'"</strong>? Você poderá entrar novamente com o código.', {title:'Sair do grupo', okLabel:'Sair', cancelLabel:'Ficar'})) return;
   showLoader('Saindo do grupo...');
   await sb.from('group_members').delete().eq('group_id',groupId).eq('user_id',CUR.user.id);
   const {data:ms}=await sb.from('group_members').select('group_id,groups(*)').eq('user_id',CUR.user.id);
@@ -5107,7 +5208,7 @@ async function _changeProjStatus(projId,status){
 async function deleteProject(projId){
   const projs=getProjects();const p=projs.find(x=>x.id===projId);if(!p)return;
   if(p.createdBy!==CUR.user.id){banner('Somente o criador pode excluir.','err');return;}
-  if(!window.confirm('Excluir o projeto "'+p.name+'" permanentemente?'))return;
+  if(!await ffConfirm('Excluir o projeto <strong>"'+p.name+'"</strong> permanentemente? Esta ação não pode ser desfeita.', {title:'Excluir projeto', danger:true, okLabel:'Excluir'}))return;
   showLoader('Excluindo...');
   await sb.from('projects').delete().eq('id',projId);
   hideLoader();
@@ -5292,8 +5393,8 @@ function openEditGroupModal(){
 
 async function deleteGroup(){
   if(CUR.groupCreatedBy !== CUR.user.id){ banner('Somente o administrador pode apagar o grupo.','err'); return; }
-  if(!window.confirm('⚠️ Apagar o grupo "'+CUR.groupName+'" permanentemente?\n\nTodos os dados (tarefas, reuniões, projetos) serão perdidos. Esta ação não pode ser desfeita.')) return;
-  if(!window.confirm('Tem certeza absoluta? Digite OK para confirmar.\n\nIsso apagará TUDO.')) return;
+  if(!await ffConfirm('Apagar o grupo <strong>"'+CUR.groupName+'"</strong> permanentemente?<br><br>Todos os dados (tarefas, reuniões, projetos) serão perdidos.', {title:'⚠️ Apagar grupo', danger:true, okLabel:'Continuar'})) return;
+  if(!await ffConfirm('Esta ação é <strong>irreversível</strong>. Todos os dados do grupo serão apagados permanentemente.', {title:'Confirmação final', danger:true, okLabel:'Apagar tudo', cancelLabel:'Cancelar'})) return;
   showLoader('Apagando grupo...');
   const gid = CUR.groupId;
   // Delete all group data
@@ -5649,7 +5750,7 @@ function showWelcomeIfNeeded(){
 }
 
 async function doLogout(){
-  if(!window.confirm('Sair da conta?')) return;
+  if(!await ffConfirm('Deseja sair da sua conta?', {title:'Sair', okLabel:'Sair', cancelLabel:'Ficar'})) return;
   showLoader('Saindo...');
   await sb.auth.signOut();
   hideLoader();
@@ -6220,7 +6321,7 @@ setInterval(updateConnStatus, 15000);
 // ═══════════════════════════════════════════════════════════
 async function deleteTask(id){
   const t=(_cache.tasks||[]).find(x=>x.id===id);if(!t)return;
-  if(!window.confirm('Mover "'+t.title+'" para o lixo? Você tem 30 dias para restaurar.')) return;
+  if(!await ffConfirm('Mover <strong>"'+t.title+'"</strong> para o lixo?<br><small style="color:var(--tx3)">Você tem 30 dias para restaurar.</small>', {title:'Mover para o lixo', okLabel:'Mover', danger:false})) return;
 
   // Salvar no lixo antes de deletar
   await sb.from('tasks_trash').insert({
@@ -6318,7 +6419,7 @@ async function restoreTask(trashId, originalId){
 async function deactivateMember(memberId, memberName){
   if(memberId===CUR.user.id){banner('Você não pode desativar a si mesmo.','warn');return;}
   if(CUR.groupCreatedBy!==CUR.user.id){banner('Apenas o administrador pode desativar membros.','warn');return;}
-  if(!window.confirm('Desativar '+memberName+'? Ele não poderá mais acessar o grupo. As tarefas dele permanecerão visíveis.')) return;
+  if(!await ffConfirm('Desativar <strong>'+memberName+'</strong>? Ele não poderá mais acessar o grupo. As tarefas permanecerão visíveis.', {title:'Desativar membro', danger:true, okLabel:'Desativar'})) return;
 
   await sb.from('group_members').update({
     status:'inactive',
@@ -6443,7 +6544,7 @@ function previewEgCover(inp){
 
 // Remove capa imediatamente
 async function removeGroupCover(){
-  if(!confirm('Remover a capa do grupo?')) return;
+  if(!await ffConfirm('Remover a capa do grupo?', {title:'Remover capa', okLabel:'Remover'})) return;
   await sb.from('groups').update({cover_image:null}).eq('id',CUR.groupId);
   CUR.groupCover = null;
   _pendingCoverB64 = null;
