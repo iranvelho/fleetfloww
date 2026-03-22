@@ -258,8 +258,14 @@ input,textarea,select{font-family:inherit;font-size:inherit;outline:none;color:v
 .dash-hero-right{text-align:right}
 .dash-greeting{font-size:20px;font-weight:800;color:var(--tx)}
 .dash-group-badge{display:inline-flex;align-items:center;gap:5px;background:var(--accent-s);color:var(--accent);border:1px solid rgba(217,119,6,.18);border-radius:20px;padding:3px 10px;font-size:11.5px;font-weight:700;margin-top:5px}
-.dash-day-bar{height:3px;background:var(--border);border-radius:2px;margin-bottom:6px;overflow:hidden}
-.dash-day-fill{height:100%;background:linear-gradient(90deg,var(--accent),#f59e0b);border-radius:2px}
+.dash-day-bar{height:6px;background:var(--border);border-radius:3px;margin-bottom:6px;position:relative}
+.dash-day-fill{height:100%;background:linear-gradient(90deg,var(--accent),#f59e0b);border-radius:3px;pointer-events:none}
+.dash-task-dot{position:absolute;top:50%;transform:translate(-50%,-50%);width:10px;height:10px;border-radius:50%;border:2px solid var(--surface);z-index:2;cursor:pointer}
+.dash-task-dot.pending{background:var(--accent)}
+.dash-task-dot.progress{background:var(--amber)}
+.dash-task-dot.late{background:var(--red)}
+.dash-task-dot.done{display:none}
+.dash-task-dot:hover::after{content:attr(title);position:absolute;bottom:14px;left:50%;transform:translateX(-50%);background:var(--tx);color:var(--surface);padding:3px 7px;border-radius:6px;font-size:10.5px;white-space:nowrap;pointer-events:none;z-index:10}
 .dash-day-label{font-size:10px;color:var(--tx3);margin-bottom:20px;display:flex;justify-content:space-between}
 .stat-row-new{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
 .stat-pill{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer}
@@ -1489,7 +1495,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
             </div>
           </div>
           <!-- Barra progresso do dia -->
-          <div class="dash-day-bar"><div class="dash-day-fill" id="dash-day-fill" style="width:0%"></div></div>
+          <div class="dash-day-bar" id="dash-day-bar"><div class="dash-day-fill" id="dash-day-fill" style="width:0%"></div></div>
           <div class="dash-day-label"><span>00:00</span><span id="dash-day-pct">0% do dia</span><span>23:59</span></div>
         </div>
 
@@ -1950,7 +1956,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
       <div class="fg"><label>Visibilidade</label>
         <select id="nt-vis" class="fi" onchange="toggleMembersField()">
           <option value="global">🌐 Global — todos do grupo veem</option>
-          <option value="private">🔒 Privada — apenas integrados veem</option>
+          <option value="private" selected>🔒 Privada — apenas integrados veem</option>
         </select>
       </div>
       <div class="fg" id="nt-members-wrap" style="display:flex"><label>Integrar membros <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">opcional</span></label><div class="member-check-grid" id="nt-members-grid"></div>
@@ -2039,8 +2045,29 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
     <div class="modal-body">
       <div class="fg"><label>Título *</label><input type="text" id="nm-title" class="fi" placeholder="Ex: Conferir fretes, Verificar abastecimento..."/></div>
       <div class="fr">
-        <div class="fg"><label>Recorrência</label><select id="nm-freq" class="fi"><option value="once">Apenas esta vez</option><option value="daily">Diária</option><option value="weekly">Semanal</option><option value="monthly">Mensal</option></select></div>
-        <div class="fg"><label>Horário limite</label><input type="time" id="nm-time" class="fi"/></div>
+        <div class="fg"><label>Recorrência</label>
+          <select id="nm-freq" class="fi" onchange="toggleNmDays()">
+            <option value="once">Apenas esta vez</option>
+            <option value="daily">Diária</option>
+            <option value="weekly">Semanal</option>
+            <option value="monthly">Mensal</option>
+            <option value="custom">Personalizada (dias específicos)</option>
+          </select>
+        </div>
+        <div class="fg" id="nm-time-wrap"><label>Horário limite</label><input type="time" id="nm-time" class="fi"/></div>
+      </div>
+      <div class="fg" id="nm-days-wrap" style="display:none">
+        <label>Dias da semana <span style="font-size:10px;color:var(--tx3);font-weight:400">em quais dias deve aparecer</span></label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button type="button" class="wd-btn" data-day="seg" onclick="toggleWdBtn(this,'nm')">Seg</button>
+          <button type="button" class="wd-btn" data-day="ter" onclick="toggleWdBtn(this,'nm')">Ter</button>
+          <button type="button" class="wd-btn" data-day="qua" onclick="toggleWdBtn(this,'nm')">Qua</button>
+          <button type="button" class="wd-btn" data-day="qui" onclick="toggleWdBtn(this,'nm')">Qui</button>
+          <button type="button" class="wd-btn" data-day="sex" onclick="toggleWdBtn(this,'nm')">Sex</button>
+          <button type="button" class="wd-btn" data-day="sab" onclick="toggleWdBtn(this,'nm')">Sáb</button>
+          <button type="button" class="wd-btn" data-day="dom" onclick="toggleWdBtn(this,'nm')">Dom</button>
+        </div>
+        <div style="font-size:11px;color:var(--tx3);margin-top:4px">💡 Se nenhum dia for selecionado, aparece todos os dias</div>
       </div>
       <div class="info-note">⏱ <strong>+1h de tolerância</strong> após o horário limite. Tarefas recorrentes somem após 3 dias e voltam no próximo ciclo.</div>
     </div>
@@ -2056,7 +2083,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
       <input type="hidden" id="em-id"/>
       <div class="fg"><label>Título</label><input type="text" id="em-title" class="fi"/></div>
       <div class="fr">
-        <div class="fg"><label>Recorrência</label><select id="em-freq" class="fi"><option value="once">Apenas esta vez</option><option value="daily">Diária</option><option value="weekly">Semanal</option><option value="monthly">Mensal</option></select></div>
+        <div class="fg"><label>Recorrência</label><select id="em-freq" class="fi" onchange="toggleEmDays()"><option value="once">Apenas esta vez</option><option value="daily">Diária</option><option value="weekly">Semanal</option><option value="monthly">Mensal</option><option value="custom">Personalizada (dias específicos)</option></select></div>
         <div class="fg"><label>Horário limite</label><input type="time" id="em-time" class="fi"/></div>
       </div>
       <div class="fg"><label>Status</label><select id="em-status" class="fi"><option value="pending">Pendente</option><option value="done">Concluída</option><option value="late">Vencida</option></select></div>
@@ -2617,7 +2644,28 @@ function doNewMain(){
 }
 
 // ── MODALS ──
-function openM(id){$('#'+id).classList.add('open');}
+function openM(id){
+  $('#'+id).classList.add('open');
+  // Ao abrir modal de nova tarefa, garantir membros atualizados
+  if(id==='m-new-task'||id==='m-edit-task'){
+    sb.from('group_members').select('*,profiles(id,name,avatar,nickname)').eq('group_id',CUR.groupId).then(({data:members})=>{
+      if(!members) return;
+      const mapped=(members||[]).filter(m=>m.user_id).map(m=>({
+        id:m.profiles?.id||m.user_id,
+        name:m.profiles?.name||m.user_id.slice(0,8),
+        avatar:m.profiles?.avatar||null,
+        role:m.role||'member',
+        nickname:m.profiles?.nickname||null,
+        status:m.status||'active'
+      }));
+      if(CUR.user&&!mapped.find(m=>m.id===CUR.user.id)){
+        mapped.push({id:CUR.user.id,name:CUR.user.name,avatar:CUR.user.avatar||null,nickname:CUR.user.nickname||null,role:'member',status:'active'});
+      }
+      _cache.members=mapped;
+      fillMemberSelects();
+    });
+  }
+}
 function closeM(id){$('#'+id).classList.remove('open');}
 document.addEventListener('click',e=>{
   if(e.target.classList.contains('overlay')) closeM(e.target.id);
@@ -2803,6 +2851,28 @@ function _doRenderDash(){
   const pct=Math.round((now.getHours()*60+now.getMinutes())/(24*60)*100);
   const fill=$('#dash-day-fill');if(fill)fill.style.width=pct+'%';
   const pctEl=$('#dash-day-pct');if(pctEl)pctEl.textContent=`${pct}% do dia`;
+  // Dots de tarefas na barra do dia
+  const bar=$('#dash-day-bar');
+  if(bar){
+    // Remover dots anteriores
+    bar.querySelectorAll('.dash-task-dot').forEach(d=>d.remove());
+    // Tarefas do grupo com horário hoje
+    const allTasks=[
+      ...(_cache.tasks||[]).filter(t=>canSeeTask(t)&&t.limitTime&&t.status!=='done'),
+      ...(getMyTasks().filter(t=>t.limitTime&&t.status!=='done'))
+    ];
+    allTasks.forEach(t=>{
+      const [h,m]=(t.limitTime||'').split(':').map(Number);
+      if(isNaN(h)||isNaN(m)) return;
+      const pctPos=((h*60+m)/(24*60)*100).toFixed(2);
+      const dot=document.createElement('div');
+      dot.className=`dash-task-dot ${t.status||'pending'}`;
+      dot.style.left=pctPos+'%';
+      dot.title=`${t.title} — ${t.limitTime}`;
+      dot.onclick=()=>{if(t.frequency!==undefined)openEditTask(t.id);else go('mywork');};
+      bar.appendChild(dot);
+    });
+  }
 
   const h=now.getHours();
   const g=h<12?'Bom dia ☀️':h<18?'Boa tarde 👋':'Boa noite 🌙';
@@ -3899,6 +3969,11 @@ function clearF(id){
   $$(`#${id} input,#${id} textarea,#${id} select`).forEach(el=>{
     if(el.tagName==='SELECT')el.selectedIndex=0;else el.value='';
   });
+  // Restaurar padrões específicos após limpar
+  if(id==='m-new-task'){
+    const vis=document.getElementById('nt-vis');
+    if(vis) vis.value='private';
+  }
 }
 
 async function submitTask(){
@@ -3919,7 +3994,7 @@ async function submitMyTask(){
   const title=$('#nm-title').value.trim();
   if(!title){banner('Informe o título','warn');return;}
   showLoader('Salvando...');
-  const {data:t,error}=await sb.from('my_tasks').insert({group_id:CUR.groupId,user_id:CUR.user.id,title,frequency:$('#nm-freq').value,limit_time:$('#nm-time').value||null,status:'pending'}).select().single();
+  const nmDays=getSelectedDays('nm');const {data:t,error}=await sb.from('my_tasks').insert({group_id:CUR.groupId,user_id:CUR.user.id,title,frequency:$('#nm-freq').value,limit_time:$('#nm-time').value||null,status:'pending',weekdays:nmDays.length?nmDays:null}).select().single();
   if(error){hideLoader();banner('Erro','err');return;}
   const task={id:t.id,title,frequency:t.frequency,limitTime:t.limit_time,status:'pending',createdAt:t.created_at,userId:CUR.user.id};
   _cache.myTasks=_cache.myTasks||[];_cache.myTasks.unshift(task);
@@ -4062,6 +4137,33 @@ async function initApp(){
   // Timer de 2min — funções leves. purgeTasks separado a cada 5min
   setInterval(()=>{checkMyLate();checkMeetSoon();updateBadges();if(page==='mywork')renderMyWork();},120000);
   setInterval(()=>{purgeTasks();},300000); // purge a cada 5min
+  // Sync de membros a cada 30s como fallback do realtime
+  setInterval(()=>{
+    if(!CUR.groupId) return;
+    sb.from('group_members').select('*,profiles(id,name,avatar,nickname)').eq('group_id',CUR.groupId).then(({data:members})=>{
+      if(!members) return;
+      const mapped=(members||[]).filter(m=>m.user_id).map(m=>({
+        id:m.profiles?.id||m.user_id,
+        name:m.profiles?.name||m.user_id.slice(0,8),
+        avatar:m.profiles?.avatar||null,
+        role:m.role||'member',
+        nickname:m.profiles?.nickname||null,
+        status:m.status||'active'
+      }));
+      // Só atualiza se houver diferença
+      const prevIds=(_cache.members||[]).map(m=>m.id).sort().join();
+      const newIds=mapped.map(m=>m.id).sort().join();
+      if(prevIds!==newIds){
+        if(CUR.user&&!mapped.find(m=>m.id===CUR.user.id)){
+          mapped.push({id:CUR.user.id,name:CUR.user.name,avatar:CUR.user.avatar||null,nickname:CUR.user.nickname||null,role:'member',status:'active'});
+        }
+        _cache.members=mapped;
+        fillMemberSelects();
+        const statEl=document.getElementById('gi-stat-members');
+        if(statEl) statEl.textContent=mapped.filter(m=>m.status!=='inactive').length;
+      }
+    });
+  }, 30000);
   purgeTasks();checkMyLate();checkMeetSoon();updateBadges();updateNotifBell();
   // Relógio do dashboard — atualizar a cada minuto
   setInterval(()=>{if(page==='dashboard')renderDash();},60000);
