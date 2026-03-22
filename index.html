@@ -138,7 +138,7 @@ input,textarea,select{font-family:inherit;font-size:inherit;outline:none;color:v
 }
 .group-option-card{
   background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--r);
-  padding:14px 16px;cursor:pointer;transition:all var(--t);margin-bottom:8px;display:flex;align-items:center;gap:12px;
+  padding:14px 16px;cursor:pointer;transition:border-color var(--t),background var(--t);margin-bottom:8px;display:flex;align-items:center;gap:12px;
 }
 .group-option-card:hover{background:rgba(126,34,206,.07);border-color:rgba(126,34,206,.14)}
 .group-option-card.selected{background:rgba(126,34,206,.07);border-color:var(--accent)}
@@ -158,7 +158,7 @@ input,textarea,select{font-family:inherit;font-size:inherit;outline:none;color:v
 }
 #sidebar.collapsed{width:0;border-right:none}
 #sidebar.collapsed *{opacity:0;pointer-events:none}
-#sidebar *{transition:opacity .15s;opacity:1}
+#sidebar *{opacity:1}
 
 #app{position:relative}
 #main{position:relative}
@@ -175,7 +175,7 @@ input,textarea,select{font-family:inherit;font-size:inherit;outline:none;color:v
 .sb-sec{font-size:9.5px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.09em;padding:10px 10px 4px}
 .nav-btn{
   display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:var(--r);
-  color:var(--tx2);cursor:pointer;transition:all var(--t);white-space:nowrap;
+  color:var(--tx2);cursor:pointer;transition:background var(--t),color var(--t);white-space:nowrap;
   background:transparent;width:100%;text-align:left;font-size:12.5px;font-weight:500;
 }
 .nav-btn:hover{background:rgba(126,34,206,.07);color:var(--accent)}
@@ -221,7 +221,7 @@ input,textarea,select{font-family:inherit;font-size:inherit;outline:none;color:v
 .sr-item:hover{background:var(--surface2)}
 .sr-lbl{font-size:9.5px;font-weight:700;color:var(--tx3);margin-left:auto;text-transform:uppercase}
 .hdr-acts{display:flex;align-items:center;gap:6px;margin-left:auto}
-.ico-btn{width:32px;height:32px;border-radius:var(--r);display:flex;align-items:center;justify-content:center;color:var(--tx2);transition:all var(--t);position:relative;background:transparent}
+.ico-btn{width:32px;height:32px;border-radius:var(--r);display:flex;align-items:center;justify-content:center;color:var(--tx2);transition:background var(--t),color var(--t);position:relative;background:transparent}
 .ico-btn:hover{background:var(--surface2);color:var(--tx)}
 .ico-btn svg{width:17px;height:17px}
 .notif-pip{position:absolute;top:5px;right:5px;width:7px;height:7px;border-radius:50%;background:var(--accent);border:2px solid var(--surface);display:none}
@@ -2705,46 +2705,34 @@ function _doRenderDash(){
   const ds=$('#dash-sub');if(ds)ds.textContent=CUR.groupName?`${CUR.groupCode} · ${CUR.groupName}`:'';
 
   const td=today();
-  const data=getG();
-  const myT=getMWToday(data);
-  const lateTasks=(_cache.tasks||[]).filter(t=>t.status==='late'&&canSeeTask(t));
-  const todayM=(_cache.meetings||[]).filter(m=>m.date===td&&(m.calType==='general'||m.ownerId===CUR.user.id));
+  // Calcular uma vez, reutilizar — evita múltiplos filter() sobre o mesmo array
+  const tasks=_cache.tasks||[];
+  const myT=getMWToday(getG());
+  const myTasks=getMyTasks();
+  const meetings=_cache.meetings||[];
   const members=_cache.members||[];
+  const lateTasks=tasks.filter(t=>t.status==='late'&&canSeeTask(t));
+  const todayM=meetings.filter(m=>m.date===td&&(m.calType==='general'||m.ownerId===CUR.user.id));
+  const myTasksLate=myTasks.filter(t=>t.status==='late').length;
+  const doneToday=tasks.filter(t=>t.status==='done'&&t.statusAt&&t.statusAt.slice(0,10)===td).length;
 
   $('#s-late').textContent=lateTasks.length;
   $('#s-my').textContent=myT.length;
-  $('#s-tasks').textContent=(_cache.tasks||[]).filter(t=>t.status!=='done'&&t.status!=='late'&&canSeeTask(t)).length;
+  $('#s-tasks').textContent=tasks.filter(t=>t.status!=='done'&&t.status!=='late'&&canSeeTask(t)).length;
   $('#s-meets').textContent=todayM.length;
 
-  // ── INSIGHTS INTELIGENTES ──
   const insightsEl=$('#dash-insights');
   if(insightsEl){
-    // Insight 1: Membros com mais tarefas vencidas
     const lateByMember={};
-    (_cache.tasks||[]).filter(t=>t.status==='late').forEach(t=>{
-      (t.integrateFor||[]).forEach(name=>{
-        lateByMember[name]=(lateByMember[name]||0)+1;
-      });
-      // Criador também conta
-      const creator=members.find(m=>m.id===t.createdBy);
-      if(creator&&!(t.integrateFor||[]).length){
-        lateByMember[creator.name]=(lateByMember[creator.name]||0)+1;
+    lateTasks.forEach(t=>{
+      (t.integrateFor||[]).forEach(n=>{lateByMember[n]=(lateByMember[n]||0)+1;});
+      if(!(t.integrateFor||[]).length){
+        const cr=members.find(m=>m.id===t.createdBy);
+        if(cr)lateByMember[cr.name]=(lateByMember[cr.name]||0)+1;
       }
     });
     const lateRanking=Object.entries(lateByMember).sort((a,b)=>b[1]-a[1]).slice(0,4);
-
-    // Insight 2: Próxima reunião
-    const upcoming=(_cache.meetings||[])
-      .filter(m=>m.date>=td)
-      .sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time))
-      .slice(0,3);
-
-    // Insight 3: Tarefas concluídas hoje (vs total)
-    const doneToday=(_cache.tasks||[]).filter(t=>t.status==='done'&&t.statusAt&&t.statusAt.slice(0,10)===td).length;
-    const totalActive=(_cache.tasks||[]).filter(t=>canSeeTask(t)).length;
-    const myTasksLate=getMyTasks().filter(t=>t.status==='late').length;
-    const myTasksDone=getMyTasks().filter(t=>t.status==='done').length;
-    const myTasksTotal=getMyTasks().length;
+    const upcoming=meetings.filter(m=>m.date>=td).sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time)).slice(0,3);
 
     insightsEl.innerHTML=`
       <!-- Card: Desempenho do grupo -->
@@ -2811,8 +2799,7 @@ function _doRenderDash(){
     `;
   }
 
-  // My work today — renderizar só se visível (evita trabalho desnecessário)
-  if(page!=='dashboard') return;
+  // My work today
   const dm=$('#d-my');
   dm.innerHTML=myT.length?myT.slice(0,6).map(t=>{
     const st=getMWState(t);
@@ -3025,7 +3012,7 @@ function mwCardHTML(t){
 }
 
 function renderMyWork(){
-  purgeAndResetMyTasks();checkMyLate();
+  checkMyLate();
   const all=getMyTasks();
   const q=($('#mw-search')?.value||'').toLowerCase();
   const fFreqMW=$('#mw-filter-freq')?.value||'';
@@ -3238,7 +3225,7 @@ function cycleIndicatorHTML(cycles, frequency){
 }
 
 function renderTasks(){
-  purgeTasks();
+  // purgeTasks só roda pelo timer — não a cada render
   const g=getG();
   let arr=(g.tasks||[]).filter(canSeeTask);
   if(fHideDone)arr=arr.filter(t=>t.status!=='done');
@@ -3911,8 +3898,10 @@ async function initApp(){
   initSearch();fillMemberSelects();go('dashboard');
   const mmo=$('#m-new-meet');
   if(mmo){new MutationObserver(()=>{if(mmo.classList.contains('open')){const s=$('#nm2-cal');if(s)s.value=calView;}}).observe(mmo,{attributes:true,attributeFilter:['class']});}
-  setInterval(()=>{checkMyLate();checkMeetSoon();checkLateGlobalTasks();if(page==='mywork')renderMyWork();updateBadges();},60000);
-  checkMyLate();checkMeetSoon();updateBadges();
+  // Timer de 2min — funções leves. purgeTasks separado a cada 5min
+  setInterval(()=>{checkMyLate();checkMeetSoon();updateBadges();if(page==='mywork')renderMyWork();},120000);
+  setInterval(()=>{purgeTasks();},300000); // purge a cada 5min
+  purgeTasks();checkMyLate();checkMeetSoon();updateBadges();
   setupRealtime();
   initSidebarState();
   initCompactMode();
@@ -3979,7 +3968,7 @@ async function loadGroupData(){
 let _realtimeCh=null;
 // Timers de debounce para realtime (evita múltiplos reloads em cascata)
 const _rtTimer={task:null,meet:null,proj:null};
-function _debRT(key,fn,ms=350){clearTimeout(_rtTimer[key]);_rtTimer[key]=setTimeout(fn,ms);}
+function _debRT(key,fn,ms=500){clearTimeout(_rtTimer[key]);_rtTimer[key]=setTimeout(fn,ms);}
 
 function setupRealtime(){
   if(_realtimeCh) sb.removeChannel(_realtimeCh);
@@ -5889,7 +5878,7 @@ function updateConnStatus(){
 
 window.addEventListener('online',  ()=>{ updateConnStatus(); banner('Conexão restaurada!','ok'); });
 window.addEventListener('offline', ()=>{ updateConnStatus(); });
-setInterval(updateConnStatus, 5000);
+setInterval(updateConnStatus, 15000);
 
 // ═══════════════════════════════════════════════════════════
 //  3. LIXO TEMPORÁRIO
