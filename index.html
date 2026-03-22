@@ -1998,7 +1998,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
         </select>
       </div>
       <div class="fg" id="nt-members-wrap" style="display:flex"><label>Integrar membros <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">opcional</span></label><div class="member-check-grid" id="nt-members-grid"></div>
-      <div class="info-note" style="margin-top:6px;font-size:11.5px">💡 <strong>O que é integrar?</strong> O membro integrado recebe a tarefa na aba "Recebidas" e é o único que pode marcar como concluída. Se não integrar ninguém, você mesmo gerencia a tarefa.</div>
+      <div class="info-note" style="margin-top:6px;font-size:11.5px">⚠️ <strong>Integrar é obrigatório.</strong> Selecione ao menos um membro — ele será o responsável pela tarefa e o único que pode marcá-la como concluída. Sem integração, a tarefa não será atribuída a ninguém.</div>
       </div>
       <div class="fr">
         <div class="fg"><label>Frequência</label><select id="nt-freq" class="fi" onchange="toggleTaskTimeField('nt')"><option value="once">Apenas esta vez</option><option value="daily">Diária</option><option value="weekly">Semanal</option><option value="monthly">Mensal</option><option value="custom">Personalizada (dias específicos)</option></select></div>
@@ -2096,14 +2096,14 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
       </div>
       <div class="fg" id="nm-days-wrap" style="display:none">
         <label>Dias da semana <span style="font-size:10px;color:var(--tx3);font-weight:400">em quais dias deve aparecer</span></label>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <button type="button" class="wd-btn" data-day="seg" onclick="toggleWdBtn(this,'nm')">Seg</button>
-          <button type="button" class="wd-btn" data-day="ter" onclick="toggleWdBtn(this,'nm')">Ter</button>
-          <button type="button" class="wd-btn" data-day="qua" onclick="toggleWdBtn(this,'nm')">Qua</button>
-          <button type="button" class="wd-btn" data-day="qui" onclick="toggleWdBtn(this,'nm')">Qui</button>
-          <button type="button" class="wd-btn" data-day="sex" onclick="toggleWdBtn(this,'nm')">Sex</button>
-          <button type="button" class="wd-btn" data-day="sab" onclick="toggleWdBtn(this,'nm')">Sáb</button>
-          <button type="button" class="wd-btn" data-day="dom" onclick="toggleWdBtn(this,'nm')">Dom</button>
+        <div class="weekday-sel" id="nm-weekdays">
+          <button type="button" class="wd-btn" data-day="1" onclick="toggleWD(this,'nm')">Seg</button>
+          <button type="button" class="wd-btn" data-day="2" onclick="toggleWD(this,'nm')">Ter</button>
+          <button type="button" class="wd-btn" data-day="3" onclick="toggleWD(this,'nm')">Qua</button>
+          <button type="button" class="wd-btn" data-day="4" onclick="toggleWD(this,'nm')">Qui</button>
+          <button type="button" class="wd-btn" data-day="5" onclick="toggleWD(this,'nm')">Sex</button>
+          <button type="button" class="wd-btn" data-day="6" onclick="toggleWD(this,'nm')">Sáb</button>
+          <button type="button" class="wd-btn" data-day="0" onclick="toggleWD(this,'nm')">Dom</button>
         </div>
         <div style="font-size:11px;color:var(--tx3);margin-top:4px">💡 Se nenhum dia for selecionado, aparece todos os dias</div>
       </div>
@@ -3873,10 +3873,10 @@ function toggleEmDays(){
     const body=document.querySelector('#m-edit-my .modal-body');
     wrap=document.createElement('div');
     wrap.id='em-days-wrap';wrap.className='fg';
-    const days=['seg','ter','qua','qui','sex','sab','dom'];
+    const days=[1,2,3,4,5,6,0];
     const lbls=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
-    const btns=days.map((d,i)=>`<button type="button" class="wd-btn" data-day="${d}" onclick="toggleWdBtn(this,'em')">${lbls[i]}</button>`).join('');
-    wrap.innerHTML=`<label>Dias da semana</label><div style="display:flex;gap:6px;flex-wrap:wrap">${btns}</div>`;
+    const btns=days.map((d,i)=>`<button type="button" class="wd-btn" data-day="${d}" onclick="toggleWD(this,'em')">${lbls[i]}</button>`).join('');
+    wrap.innerHTML=`<label>Dias da semana</label><div class="weekday-sel" id="em-weekdays">${btns}</div>`;
     const freqEl=document.getElementById('em-freq');
     if(freqEl&&body) freqEl.closest('.fr').after(wrap);
   }
@@ -4081,6 +4081,7 @@ async function submitTask(){
   const title=$('#nt-title').value.trim();
   if(!title){banner('Informe o título','warn');return;}
   const mnames=getSelectedMembers('nt-members-grid');
+  if(!mnames.length){banner('Selecione ao menos um membro para integrar à tarefa.','warn');return;}
   showLoader('Salvando...');
   const ntDays=getSelectedDays('nt'); const {data:t,error}=await sb.from('tasks').insert({group_id:CUR.groupId,title,integrate_for:mnames,frequency:$('#nt-freq').value,status:'pending',priority:$('#nt-prio').value,visibility:$('#nt-vis').value,created_by:CUR.user.id,description:$('#nt-time').value||null,due_date:$('#nt-due').value||null,weekdays:ntDays.length?ntDays:null}).select().single();
   if(error){hideLoader();banner('Erro ao criar tarefa','err');return;}
@@ -5980,109 +5981,114 @@ function formatChatMessage(text){
 const HELP_TOPICS = [
   {
     icon:'📊', title:'Dashboard',
-    desc:'A página inicial do FleetFlow. Aqui você vê um resumo de tudo que está acontecendo.',
+    desc:'Página inicial com visão geral do dia em tempo real.',
     items:[
-      'Os 4 cards no topo mostram: tarefas vencidas, seu trabalho de hoje, tarefas abertas e reuniões do dia',
-      'Os 3 painéis de insights mostram: desempenho da equipe, próximas reuniões e seu resumo pessoal',
-      'Clique em qualquer card colorido para ir direto à página correspondente',
-      'O botão "Relatório Semanal" mostra o desempenho de toda a equipe na semana'
+      'Relógio grande com data atual e barra de progresso do dia (0% às 00:00 → 100% às 23:59)',
+      'Pontos coloridos na barra do dia indicam tarefas com horário definido — some quando concluída',
+      '4 métricas rápidas: Vencidas, Meu trabalho hoje, Tarefas abertas e Reuniões',
+      'Painel "Meu Dia": suas tarefas pessoais com checkbox direto no dashboard',
+      'Painel "Equipe": membros com mais tarefas vencidas e quantidade',
+      'Painel "Agenda de hoje": próximas reuniões com horário',
+      'Botão "Relatório Semanal" para ver desempenho completo da semana'
     ]
   },
   {
     icon:'👤', title:'Meu Trabalho',
-    desc:'Suas tarefas pessoais — visíveis só para você. Ideal para rotinas diárias.',
+    desc:'Suas tarefas pessoais — visíveis só para você.',
     items:[
-      'Clique em "+ Nova Tarefa" para criar uma tarefa pessoal',
-      'Defina a recorrência: Diária, Semanal ou Mensal',
-      'O campo "Horário Limite" define até quando a tarefa deve ser concluída (com 1h de tolerância)',
-      'Tarefas diárias resetam automaticamente à meia-noite',
-      'Tarefas semanais resetam toda segunda-feira',
-      'Tarefas mensais resetam no dia 1º de cada mês',
-      'Use os filtros no topo para buscar por nome, recorrência ou status'
+      'Crie tarefas com recorrência: Única, Diária, Semanal, Mensal ou Personalizada (dias específicos)',
+      'Na opção "Personalizada", selecione os dias da semana em que a tarefa deve aparecer',
+      'O "Horário Limite" define até quando a tarefa deve ser concluída (com 1h de tolerância)',
+      'Tarefas diárias e semanais resetam automaticamente no início do próximo ciclo',
+      'Use os filtros no topo para buscar por nome, frequência ou status'
     ]
   },
   {
     icon:'✅', title:'Tarefas',
-    desc:'Tarefas da equipe — pode ser integrada a membros específicos.',
+    desc:'Tarefas da equipe — sempre integradas a um responsável.',
     items:[
-      'A aba "Recebidas" mostra tarefas que outros membros integraram a você, agrupadas por quem enviou',
-      'A aba "Todas do grupo" mostra tarefas globais visíveis para toda a equipe',
-      'A aba "Criadas por mim" mostra as tarefas que você criou',
-      'Visibilidade Global: todos do grupo veem. Privada: só quem está integrado vê',
-      'Ao integrar um membro, somente ele pode alterar o status da tarefa',
-      'Tarefas recorrentes voltam automaticamente como pendentes no próximo ciclo',
-      'O botão "Ocultar concluídas" esconde as tarefas já feitas para limpar a visualização'
+      'Toda tarefa DEVE ser integrada a ao menos um membro — ele é o único responsável',
+      'O membro integrado recebe a tarefa na aba "Recebidas" e é o único que pode concluí-la',
+      'Visibilidade "Privada" (padrão): só o integrado vê. "Global": toda a equipe vê',
+      'Aba "Recebidas": tarefas que outros integraram a você, agrupadas por quem criou',
+      'Aba "Todas do grupo": tarefas globais da equipe',
+      'Aba "Criadas por mim": tarefas que você criou',
+      'Botão ⊘ nas tarefas recebidas permite ignorar uma tarefa — ela vai para "Ignoradas"',
+      'Frequência "Personalizada": defina quais dias da semana a tarefa aparece',
+      'Tarefas arquivadas ficam em seção colapsada no final da lista'
     ]
   },
   {
     icon:'📅', title:'Agendamento',
     desc:'Calendário de reuniões da equipe.',
     items:[
-      'Use o calendário para visualizar reuniões por mês',
+      'Visualize reuniões no calendário mensal ou na lista com filtros',
       'Alterne entre "Geral" (toda equipe) e "Individual" (só suas reuniões)',
-      'Use a aba "Lista" para ver todas as reuniões em formato de lista com filtros',
-      'Ao criar uma reunião, informe título, data, horário e participantes',
-      'Reuniões próximas aparecem no Dashboard automaticamente'
-    ]
-  },
-  {
-    icon:'💡', title:'Ideias & Melhorias',
-    desc:'Registre e acompanhe ideias de melhoria da equipe.',
-    items:[
-      'Qualquer membro pode registrar uma ideia',
-      'Status disponíveis: Nova, Em análise, Aprovada, Descartada',
-      'Use este espaço para sugestões de processos, equipamentos ou rotinas'
+      'Reuniões do dia atual aparecem no Dashboard automaticamente',
+      'Ao criar, informe título, data, horário e participantes'
     ]
   },
   {
     icon:'📁', title:'Projetos',
     desc:'Gerencie projetos com etapas e progresso visual.',
     items:[
-      'Crie um projeto com nome, cor e status',
+      'Crie um projeto com nome, cor e status (Ativo, Pausado)',
       'Adicione etapas dentro do projeto — cada etapa pode ser marcada como concluída',
-      'Quando todas as etapas forem concluídas, o projeto fecha automaticamente',
-      'Use "Compartilhar" para dar acesso a membros específicos',
-      'O administrador pode pausar, retomar ou apagar projetos'
+      'A barra de progresso mostra automaticamente o % de etapas concluídas',
+      'Quando todas as etapas forem concluídas, o projeto fecha automaticamente'
     ]
   },
   {
     icon:'💬', title:'Chat do Grupo',
     desc:'Mensagens em tempo real com toda a equipe.',
     items:[
-      'Clique em "Chat do Grupo" na barra lateral ou no botão flutuante no canto inferior direito',
-      'Digite @nome para mencionar um membro — ele receberá destaque na mensagem',
-      'O badge laranja na sidebar mostra quantas mensagens novas existem',
-      'As mensagens são sincronizadas em tempo real para todos os membros online'
+      'Acesse pelo botão flutuante laranja no canto inferior direito ou pela sidebar',
+      'Use @nome para mencionar um membro — ele recebe destaque',
+      'O badge na sidebar mostra quantas mensagens novas existem',
+      'Mensagens sincronizadas em tempo real para todos os membros online'
     ]
   },
   {
     icon:'📬', title:'Caixa de Entrada',
-    desc:'Notificações de tarefas vencidas, conclusões e atualizações do grupo.',
+    desc:'Notificações de tarefas, atualizações e alertas do grupo.',
     items:[
-      'Notificações aparecem quando uma tarefa vence, é concluída ou atualizada',
-      'Tarefas pessoais só geram notificação quando vencem — não ao criar ou concluir',
-      'Clique em uma notificação para marcá-la como lida',
-      'Use "Marcar tudo como lido" para limpar todas de uma vez'
+      'Receba alertas quando uma tarefa for integrada a você, vencer ou for concluída',
+      'Botão 🔕 na toolbar desativa/ativa notificações sem precisar ir ao perfil',
+      'O sino no cabeçalho do app também ativa/desativa notificações com um clique',
+      'Use "Marcar tudo como lido" para limpar todas as notificações de uma vez',
+      'Notificações anteriores ao último "apagar" não voltam mesmo recarregando'
+    ]
+  },
+  {
+    icon:'✉️', title:'Resumo Email',
+    desc:'Receba notificações por e-mail sobre tarefas.',
+    items:[
+      'E-mails são enviados automaticamente quando uma tarefa é integrada a você',
+      'O e-mail contém detalhes da tarefa: criador, prioridade, frequência e prazo',
+      'Desative e-mails em Meu Perfil → Preferências → Notificações por e-mail',
+      'Seção em desenvolvimento: em breve histórico e configurações avançadas'
     ]
   },
   {
     icon:'👥', title:'Meu Grupo',
-    desc:'Informações do grupo, membros e código de acesso.',
+    desc:'Informações, membros, capa e código de acesso.',
     items:[
-      'O código do grupo é usado para convidar novos membros — clique em "Copiar" para compartilhar',
-      'O administrador (criador) pode editar o nome, foto e descrição do grupo',
-      'Membros podem sair do grupo pelo botão "Sair do Grupo"',
-      'O administrador pode apagar o grupo permanentemente (ação irreversível)'
+      'O código do grupo é usado para convidar novos membros — clique em "Copiar"',
+      'O administrador pode editar nome, foto, capa de fundo e descrição do grupo',
+      'Para alterar a capa: clique em "Alterar capa" na faixa de fundo da página Meu Grupo',
+      'Para remover a capa: clique em "Remover capa" (botão vermelho ao lado)',
+      'O administrador pode desativar membros — eles perdem acesso mas os dados ficam',
+      'Novos membros aparecem em tempo real sem precisar recarregar a página'
     ]
   },
   {
     icon:'🧑', title:'Meu Perfil',
-    desc:'Configure sua foto, nome e apelido.',
+    desc:'Configure foto, nome, apelido e preferências.',
     items:[
-      'Clique no seu nome na barra lateral para acessar o perfil',
-      'Adicione uma foto de perfil (JPG ou PNG, máx. 2MB)',
-      'Defina um apelido para ser chamado no sistema',
-      'Seu apelido substitui o nome completo na barra lateral e no sistema'
+      'Adicione uma foto de perfil (JPG ou PNG)',
+      'Defina um apelido — ele substitui o nome completo em todo o sistema',
+      'Ative ou desative notificações da Caixa de Entrada',
+      'Ative ou desative e-mails de notificação de tarefas'
     ]
   },
   {
@@ -6096,7 +6102,6 @@ const HELP_TOPICS = [
       'P → Projetos',
       'N → Nova tarefa (na página atual)',
       '/ → Focar na busca',
-      '? → Ver todos os atalhos',
       'Esc → Fechar modal'
     ]
   }
