@@ -602,7 +602,9 @@ select.fi{appearance:none;cursor:pointer;padding-right:28px;background-image:url
 .gi-hero{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden;box-shadow:var(--sh)}
 .gi-cover{height:100px;background:linear-gradient(135deg,#d97706 0%,#92400e 100%);position:relative;overflow:hidden}
 .gi-cover img.gi-cover-img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;z-index:1}
-.gi-cover-edit-btn{position:absolute;bottom:8px;right:8px;z-index:2;background:rgba(0,0,0,.5);color:#fff;border:none;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Ccircle cx='20' cy='20' r='3'/%3E%3C/g%3E%3C/svg%3E");z-index:0}
+.gi-cover-edit-btn{background:rgba(0,0,0,.5);color:#fff;border:none;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px}
+.gi-cover-edit-btn:hover{background:rgba(0,0,0,.75)}
+.gi-cover-btns{position:absolute;bottom:8px;right:8px;z-index:2;display:flex;gap:6px}
 
 .gi-hero-body{padding:0 24px 24px;display:flex;align-items:flex-end;gap:16px;margin-top:-36px;position:relative}
 .gi-av{
@@ -1682,10 +1684,16 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
         <div class="gi-hero">
           <div class="gi-cover" id="gi-cover-div">
             <img class="gi-cover-img" id="gi-cover-img" style="display:none"/>
-            <button class="gi-cover-edit-btn" onclick="document.getElementById('gi-cover-file').click()" title="Alterar capa">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-              Alterar capa
-            </button>
+            <div style="position:absolute;bottom:8px;right:8px;z-index:2;display:flex;gap:6px">
+              <button class="gi-cover-edit-btn" style="position:static" onclick="document.getElementById('gi-cover-file').click()" title="Alterar capa">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Alterar capa
+              </button>
+              <button class="gi-cover-edit-btn" id="gi-cover-remove-btn" style="position:static;background:rgba(180,0,0,.6);display:none" onclick="removeGroupCover()" title="Remover capa">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                Remover capa
+              </button>
+            </div>
             <input type="file" id="gi-cover-file" accept="image/*" style="display:none" onchange="previewGroupCover(this)"/>
           </div>
           <div class="gi-hero-body">
@@ -2191,6 +2199,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
           <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.6);font-size:11px;font-weight:600">Clique para alterar</div>
         </div>
         <input type="file" id="eg-cover-file" accept="image/*" style="display:none" onchange="previewEgCover(this)"/>
+        <button type="button" id="eg-cover-remove-btn" onclick="removeEgCover()" style="font-size:11.5px;color:var(--red);background:none;border:none;cursor:pointer;padding:4px 0;display:none">✕ Remover capa atual</button>
       </div>
       <div class="fg"><label>Nome do grupo</label><input type="text" id="eg-name" class="fi" placeholder="Nome do grupo"/></div>
       <div class="fg"><label>Descrição</label><textarea id="eg-desc" class="fi" placeholder="Descreva o grupo, sua finalidade..." style="min-height:80px"></textarea></div>
@@ -2459,7 +2468,7 @@ async function handleAuthSession(session){
   if(!session) return;
   showLoader('Carregando perfil...');
   const {data:profile}=await sb.from('profiles').select('*').eq('id',session.user.id).single();
-  CUR.user=profile ? {id:profile.id,name:profile.name,email:profile.email,avatar:profile.avatar,nickname:profile.nickname||null} : {id:session.user.id,name:session.user.email.split('@')[0],email:session.user.email,avatar:null,nickname:null};
+  CUR.user=profile ? {id:profile.id,name:profile.name,email:profile.email,avatar:profile.avatar,nickname:profile.nickname||null,ignoredTasks:profile.ignored_tasks||[],notifDisabled:profile.notifications_disabled||false} : {id:session.user.id,name:session.user.email.split('@')[0],email:session.user.email,avatar:null,nickname:null,ignoredTasks:[],notifDisabled:false};
   const {data:memberships}=await sb.from('group_members').select('group_id,role,groups(*)').eq('user_id',session.user.id).order('joined_at',{ascending:false});
   hideLoader();
   if(memberships&&memberships.length){
@@ -3233,9 +3242,16 @@ function renderTasks(){
 
 function renderTasksList(c,arr){
   // Separar tarefas por papel
+  const _ignored = CUR.user.ignoredTasks || [];
   const recebidas = arr.filter(t =>
     t.createdBy !== CUR.user.id &&
-    (t.integrateFor||[]).includes(CUR.user.name)
+    (t.integrateFor||[]).includes(CUR.user.name) &&
+    !_ignored.includes(t.id)
+  );
+  const ignoradas = arr.filter(t =>
+    t.createdBy !== CUR.user.id &&
+    (t.integrateFor||[]).includes(CUR.user.name) &&
+    _ignored.includes(t.id)
   );
   const globais = arr.filter(t =>
     (!t.visibility || t.visibility === 'global') &&
@@ -3283,6 +3299,21 @@ function renderTasksList(c,arr){
       </div>`;
     });
   }
+  // Seção de ignoradas (colapsada por padrão)
+  if(tTab==='received' && ignoradas.length){
+    h += `<details style="margin-top:12px">
+      <summary style="font-size:11.5px;color:var(--tx3);cursor:pointer;padding:6px 2px;font-weight:600;user-select:none">
+        ${ignoradas.length} tarefa${ignoradas.length!==1?'s':''} ignorada${ignoradas.length!==1?'s':''} — clique para ver
+      </summary>
+      <div style="margin-top:4px;opacity:.55">
+        ${ignoradas.map(t=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);margin-bottom:4px;font-size:12.5px">
+          <span style="color:var(--tx2)">${t.title}</span>
+          <button onclick="unignoreTask('${t.id}')" style="font-size:11px;color:var(--accent);background:none;border:none;cursor:pointer;padding:2px 6px;border-radius:4px;white-space:nowrap">↩ Restaurar</button>
+        </div>`).join('')}
+      </div>
+    </details>`;
+  }
+
   else if(tTab==='all'){
     if(!globais.length){c.innerHTML=empty('Nenhuma tarefa global no grupo.');return;}
     h=taskGroupHTML('', globais, 'global-group', 'global');
@@ -3366,6 +3397,7 @@ function taskGroupHTML(label,tasks,gid,originType=''){
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
                 <span>${((_cache.comments||{})[t.id]||[]).length||''}</span>
               </button>
+              ${isAssignedGroup?`<button class="del-btn" onclick="event.stopPropagation();ignoreTask('${t.id}')" title="Ignorar tarefa" style="color:var(--tx3)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></button>`:''}
               ${isMine?`
                 <button class="del-btn" onclick="event.stopPropagation();archiveTask('${t.id}')" title="Arquivar" style="margin-right:2px">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
@@ -3378,6 +3410,24 @@ function taskGroupHTML(label,tasks,gid,originType=''){
       </table></div>
     </div>
   </div>`;
+}
+
+// Ignorar tarefa atribuída
+async function ignoreTask(taskId){
+  const ignored = [...(CUR.user.ignoredTasks||[])];
+  if(!ignored.includes(taskId)) ignored.push(taskId);
+  CUR.user.ignoredTasks = ignored;
+  await sb.from('profiles').update({ignored_tasks:ignored}).eq('id',CUR.user.id);
+  renderTasks();
+  banner('Tarefa ignorada. Você pode restaurá-la nas tarefas ignoradas.','ok');
+}
+
+async function unignoreTask(taskId){
+  const ignored = (CUR.user.ignoredTasks||[]).filter(id=>id!==taskId);
+  CUR.user.ignoredTasks = ignored;
+  await sb.from('profiles').update({ignored_tasks:ignored}).eq('id',CUR.user.id);
+  renderTasks();
+  banner('Tarefa restaurada!','ok');
 }
 
 function toggleGroup(hd){
@@ -3439,7 +3489,7 @@ async function deleteTask(id){
     // Criar notificação só para quem estava integrado
     const integratedMembers = (_cache.members||[]).filter(m=>integrated.includes(m.name));
     for(const m of integratedMembers){
-      await sb.from('inbox').insert({
+      if(!m.notifDisabled) await sb.from('inbox').insert({
         group_id:CUR.groupId,
         user_id:m.id,
         msg:`<strong>${CUR.user.nickname||CUR.user.name}</strong> excluiu a tarefa "<strong>${t.title}</strong>" que foi atribuída a você.`,
@@ -3893,7 +3943,7 @@ async function initApp(){
   // Timer de 2min — funções leves. purgeTasks separado a cada 5min
   setInterval(()=>{checkMyLate();checkMeetSoon();updateBadges();if(page==='mywork')renderMyWork();},120000);
   setInterval(()=>{purgeTasks();},300000); // purge a cada 5min
-  purgeTasks();checkMyLate();checkMeetSoon();updateBadges();
+  purgeTasks();checkMyLate();checkMeetSoon();updateBadges();updateNotifBell();
   setupRealtime();
   initSidebarState();
   initCompactMode();
@@ -4565,9 +4615,14 @@ function refreshAppForGroup(){
   const coverImg = document.getElementById('gi-cover-img');
   if(coverImg && CUR.groupCover){ coverImg.src=CUR.groupCover; coverImg.style.display='block'; }
   else if(coverImg){ coverImg.style.display='none'; }
+  const removeBtn = document.getElementById('gi-cover-remove-btn');
+  if(removeBtn) removeBtn.style.display = CUR.groupCover ? 'flex' : 'none';
   // Preencher cover no modal de edição
   const egCoverImg = document.getElementById('eg-cover-img');
   if(egCoverImg && CUR.groupCover){ egCoverImg.src=CUR.groupCover; egCoverImg.style.display='block'; }
+  const egRemoveBtn = document.getElementById('eg-cover-remove-btn');
+  if(egRemoveBtn) egRemoveBtn.style.display = CUR.groupCover ? 'block' : 'none';
+  _pendingCoverRemoved = false;
   if(CUR.groupAvatar){$('#sb-grp-av-img').src=CUR.groupAvatar;$('#sb-grp-av-img').style.display='block';$('#sb-grp-av-ini').style.display='none';}
   else{$('#sb-grp-av-img').style.display='none';$('#sb-grp-av-ini').style.display='';$('#sb-grp-av-ini').textContent=gname?ini(gname):'G';}
   chatLastRead=0;updateChatPip();fillMemberSelects();go('dashboard');setupRealtime();
@@ -5047,12 +5102,14 @@ async function saveGroupInfo(){
   const upd={name,description:$('#eg-desc').value.trim()||null};
   if(_editGrpAvB64) upd.avatar=_editGrpAvB64;
   if(_pendingCoverB64) upd.cover_image=_pendingCoverB64;
+  if(_pendingCoverRemoved) upd.cover_image=null;
   showLoader('Salvando...');
   await sb.from('groups').update(upd).eq('id',CUR.groupId);
   hideLoader();
   CUR.groupName=name;
   if(_editGrpAvB64) CUR.groupAvatar=_editGrpAvB64;
   if(_pendingCoverB64){ CUR.groupCover=_pendingCoverB64; _pendingCoverB64=null; }
+  if(_pendingCoverRemoved){ CUR.groupCover=null; _pendingCoverRemoved=false; }
   closeM('m-edit-group');
   $('#sb-group-name').textContent=`${CUR.groupCode} · ${name}`;
   renderGroupInfo();
@@ -5154,7 +5211,60 @@ function renderProfile(){
           <div class="profile-field-val">${u.email}</div>
         </div>
       </div>
+    </div>
+    <!-- Preferências -->
+    <div style="margin-top:16px">
+      <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Preferências</div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--tx);margin-bottom:2px">Notificações da Caixa de Entrada</div>
+          <div style="font-size:12px;color:var(--tx3)">Receber alertas quando tarefas forem integradas a você</div>
+        </div>
+        <label style="position:relative;display:inline-block;width:40px;height:22px;flex-shrink:0;cursor:pointer">
+          <input type="checkbox" id="pref-notif-toggle" ${u.notifDisabled?'':'checked'} onchange="toggleNotifications(this.checked)" style="opacity:0;width:0;height:0;position:absolute">
+          <span style="position:absolute;inset:0;border-radius:22px;background:${u.notifDisabled?'var(--border2)':'var(--accent)'};transition:background .15s" id="pref-notif-track">
+            <span style="position:absolute;width:16px;height:16px;border-radius:50%;background:#fff;top:3px;left:${u.notifDisabled?'3px':'21px'};box-shadow:0 1px 3px rgba(0,0,0,.2)" id="pref-notif-thumb"></span>
+          </span>
+        </label>
+      </div>
     </div>`;
+}
+
+// Toggle rápido pelo sino no header
+function updateNotifBell(){
+  const on = document.getElementById('notif-bell-on');
+  const off = document.getElementById('notif-bell-off');
+  if(!on||!off) return;
+  const disabled = CUR.user?.notifDisabled;
+  on.style.display = disabled ? 'none' : '';
+  off.style.display = disabled ? '' : 'none';
+  const btn = document.getElementById('notif-toggle-btn');
+  if(btn) btn.title = disabled ? 'Notificações desativadas — clique para ativar' : 'Notificações ativas — clique para desativar';
+}
+
+async function quickToggleNotif(){
+  const newDisabled = !CUR.user.notifDisabled;
+  CUR.user.notifDisabled = newDisabled;
+  await sb.from('profiles').update({notifications_disabled:newDisabled}).eq('id',CUR.user.id);
+  updateNotifBell();
+  // Atualizar toggle no perfil se estiver aberto
+  const track = document.getElementById('pref-notif-track');
+  const thumb = document.getElementById('pref-notif-thumb');
+  if(track) track.style.background = newDisabled ? 'var(--border2)' : 'var(--accent)';
+  if(thumb) thumb.style.left = newDisabled ? '3px' : '21px';
+  banner(newDisabled ? '🔕 Notificações desativadas.' : '🔔 Notificações ativadas!', newDisabled?'info':'ok');
+}
+
+async function toggleNotifications(enabled){
+  const disabled = !enabled;
+  CUR.user.notifDisabled = disabled;
+  await sb.from('profiles').update({notifications_disabled:disabled}).eq('id',CUR.user.id);
+  // Atualizar visual do toggle
+  const track = document.getElementById('pref-notif-track');
+  const thumb = document.getElementById('pref-notif-thumb');
+  if(track) track.style.background = disabled ? 'var(--border2)' : 'var(--accent)';
+  if(thumb) thumb.style.left = disabled ? '3px' : '21px';
+  banner(disabled ? 'Notificações desativadas.' : 'Notificações ativadas!', disabled?'info':'ok');
 }
 
 function openEditProfileModal(){
@@ -6068,6 +6178,7 @@ function onboardClick(stepId){
 //  CAPA DO GRUPO
 // ════════════════════════════════════════════════════
 let _pendingCoverB64 = null;
+let _pendingCoverRemoved = false;
 
 function previewGroupCover(inp){
   if(!inp.files[0]) return;
@@ -6095,6 +6206,30 @@ function previewEgCover(inp){
     if(img){ img.src=e.target.result; img.style.display='block'; }
   };
   r.readAsDataURL(file);
+}
+
+// Remove capa imediatamente
+async function removeGroupCover(){
+  if(!confirm('Remover a capa do grupo?')) return;
+  await sb.from('groups').update({cover_image:null}).eq('id',CUR.groupId);
+  CUR.groupCover = null;
+  _pendingCoverB64 = null;
+  const img = document.getElementById('gi-cover-img');
+  if(img){ img.src=''; img.style.display='none'; }
+  const removeBtn = document.getElementById('gi-cover-remove-btn');
+  if(removeBtn) removeBtn.style.display='none';
+  banner('Capa removida.','ok');
+}
+
+// Remove capa no modal (marca para salvar)
+function removeEgCover(){
+  _pendingCoverRemoved = true;
+  _pendingCoverB64 = null;
+  const img = document.getElementById('eg-cover-img');
+  if(img){ img.src=''; img.style.display='none'; }
+  const btn = document.getElementById('eg-cover-remove-btn');
+  if(btn) btn.style.display='none';
+  banner('Capa será removida ao salvar.','info');
 }
 
 async function saveGroupCover(b64){
