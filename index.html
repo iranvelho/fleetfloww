@@ -188,11 +188,11 @@ input,textarea,select{font-family:inherit;font-size:inherit;outline:none;color:v
 .user-row{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:var(--r);cursor:pointer;}
 .user-row:hover{background:rgba(217,119,6,.07)}
 .u-av{
-  width:28px;height:28px;border-radius:50%;background:var(--accent);
+  width:28px;height:28px;min-width:28px;min-height:28px;border-radius:50%;background:var(--accent);
   display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0;
   overflow:hidden;border:1.5px solid rgba(217,119,6,.25);
 }
-.u-av img{width:100%;height:100%;object-fit:cover}
+.u-av img,.u-av svg{width:100%;height:100%;object-fit:cover}
 .u-name{font-size:12px;font-weight:600;color:var(--tx)}
 .u-role{font-size:10.5px;color:var(--tx3)}
 
@@ -487,7 +487,7 @@ select.fi{appearance:none;cursor:pointer;padding-right:28px;background-image:url
 /* ── AVATAR UPLOAD ── */
 .av-upload-area{display:flex;align-items:center;gap:14px;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r)}
 .av-big{width:56px;height:56px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;overflow:hidden;flex-shrink:0;border:2px solid var(--border2)}
-.av-big img{width:100%;height:100%;object-fit:cover}
+.av-big img,.av-big svg{width:100%;height:100%;object-fit:cover;max-width:100%;max-height:100%}
 .av-upload-btn{font-size:12px;font-weight:600;color:var(--accent);background:rgba(217,119,6,.07);border:1px solid rgba(217,119,6,.12);border-radius:var(--r);padding:6px 12px;cursor:pointer;}
 .av-upload-btn:hover{background:rgba(217,119,6,.10)}
 
@@ -898,7 +898,10 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
   100%{opacity:0;transform:scale(.92) translateY(20px)}
 }
 @keyframes overlayFadeOut{
-  0%{background:rgba(10,7,5,.75);
+  0%{opacity:1}
+  100%{opacity:0}
+}
+.welcome-screen-modal{
   border:1.5px solid var(--border);
   border-radius:20px;
   max-width:520px;width:100%;
