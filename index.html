@@ -250,22 +250,54 @@ input,textarea,select{font-family:inherit;font-size:inherit;outline:none;color:v
 .card-ttl svg{width:12px;height:12px}
 
 /* ── STATS ── */
-.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:14px 16px;box-shadow:var(--sh);;border-left:3px solid transparent}
-.stat.red  {border-left-color:var(--red)}
-.stat.blue {border-left-color:var(--accent)}
-.stat.amber{border-left-color:var(--amber)}
-.stat.green{border-left-color:var(--green)}
-.stat-ico{width:28px;height:28px;min-width:28px;min-height:28px;border-radius:var(--r);display:flex;align-items:center;justify-content:center;margin-bottom:8px;overflow:hidden}
-.stat-ico svg{width:14px;height:14px;flex-shrink:0}
-.stat-lbl{font-size:10.5px;color:var(--tx3);font-weight:500;margin-bottom:3px}
-.stat-val{font-size:26px;font-weight:800;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
-.stat.red   .stat-ico{background:var(--red-s);color:var(--red)}
-.stat.blue  .stat-ico{background:rgba(217,119,6,.07);color:var(--accent)}
-.stat.amber .stat-ico{background:var(--amber-s);color:var(--amber)}
-.stat.green .stat-ico{background:var(--green-s);color:var(--green)}
-.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.dash-grid .card{max-height:270px;overflow-y:auto}
+/* ── NOVO DASHBOARD ── */
+.dash-hero{padding:0 0 18px}
+.dash-hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:14px}
+.dash-clock{font-size:48px;font-weight:900;letter-spacing:-3px;color:var(--tx);line-height:1;font-variant-numeric:tabular-nums}
+.dash-clock-sub{font-size:13px;color:var(--tx3);margin-top:4px;font-weight:500}
+.dash-hero-right{text-align:right}
+.dash-greeting{font-size:20px;font-weight:800;color:var(--tx)}
+.dash-group-badge{display:inline-flex;align-items:center;gap:5px;background:var(--accent-s);color:var(--accent);border:1px solid rgba(217,119,6,.18);border-radius:20px;padding:3px 10px;font-size:11.5px;font-weight:700;margin-top:5px}
+.dash-day-bar{height:3px;background:var(--border);border-radius:2px;margin-bottom:6px;overflow:hidden}
+.dash-day-fill{height:100%;background:linear-gradient(90deg,var(--accent),#f59e0b);border-radius:2px}
+.dash-day-label{font-size:10px;color:var(--tx3);margin-bottom:20px;display:flex;justify-content:space-between}
+.stat-row-new{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
+.stat-pill{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer}
+.stat-pill-ico{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.stat-pill-ico svg{width:16px;height:16px}
+.stat-pill-val{font-size:22px;font-weight:900;letter-spacing:-1px;line-height:1;color:var(--tx)}
+.stat-pill-lbl{font-size:11px;color:var(--tx3);font-weight:500;margin-top:2px}
+.stat-pill.red .stat-pill-ico{background:var(--red-s);color:var(--red)}
+.stat-pill.amber .stat-pill-ico{background:var(--amber-s);color:var(--amber)}
+.stat-pill.blue .stat-pill-ico{background:rgba(217,119,6,.1);color:var(--accent)}
+.stat-pill.green .stat-pill-ico{background:var(--green-s);color:var(--green)}
+.dash-3col{display:grid;grid-template-columns:1fr 1.2fr 1fr;gap:12px;margin-bottom:0}
+.dash-col-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+.dash-col-hd{padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px}
+.dash-col-hd-ico{width:22px;height:22px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.dash-col-hd-ico svg{width:12px;height:12px}
+.dash-col-hd-ttl{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--tx3)}
+.dash-col-body{padding:8px 14px;max-height:260px;overflow-y:auto}
+.dash-task-row{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid var(--border)}
+.dash-task-row:last-child{border-bottom:none}
+.dash-task-tck{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--border2);flex-shrink:0;cursor:pointer}
+.dash-task-tck.done{background:var(--green);border-color:var(--green)}
+.dash-task-nm{font-size:12.5px;color:var(--tx);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dash-task-nm.done{text-decoration:line-through;color:var(--tx3)}
+.dash-task-time{font-size:10.5px;color:var(--tx3);flex-shrink:0}
+.dash-member-row2{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid var(--border)}
+.dash-member-row2:last-child{border-bottom:none}
+.dash-late-pill{background:var(--red-s);color:var(--red);border-radius:20px;font-size:10px;font-weight:700;padding:2px 7px;flex-shrink:0}
+.dash-meet-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)}
+.dash-meet-row:last-child{border-bottom:none}
+.dash-meet-time{font-size:11px;font-weight:700;color:var(--accent);min-width:36px}
+.dash-meet-nm{font-size:12.5px;color:var(--tx);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dash-meet-today{background:rgba(217,119,6,.1);color:var(--accent);border-radius:20px;font-size:10px;font-weight:700;padding:2px 7px;flex-shrink:0}
+/* Ocultar legacy */
+.stats-row{display:none!important}
+.stat{display:none!important}
+.dash-smart-grid{display:none!important}
+.dash-grid{display:none!important}
 
 /* ── TASK ITEMS ── */
 .ti{display:flex;align-items:center;gap:10px;padding:8px 2px;border-bottom:1px solid var(--border);}
@@ -1099,7 +1131,9 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
   .ph-sub{font-size:12px}
 
   /* ── DASHBOARD ── */
-  .stats-row{grid-template-columns:repeat(2,1fr);gap:8px;padding:0 14px}
+  .stat-row-new{grid-template-columns:repeat(2,1fr);gap:8px}
+  .dash-3col{grid-template-columns:1fr;gap:10px}
+  .dash-clock{font-size:36px}
   .stat{padding:12px 14px}
   .stat-val{font-size:22px}
   .dash-smart-grid{grid-template-columns:1fr;padding:0 14px;gap:10px}
@@ -1439,21 +1473,72 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
             </button>
           </div>
         </div>
-        <!-- Stats rápidos -->
-        <div class="stats-row">
-          <div class="stat red" onclick="go('tasks')" style="cursor:pointer"><div class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div class="stat-lbl">Tarefas Vencidas</div><div class="stat-val" id="s-late">0</div></div>
-          <div class="stat blue" onclick="go('mywork')" style="cursor:pointer"><div class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div><div class="stat-lbl">Meu Trabalho Hoje</div><div class="stat-val" id="s-my">0</div></div>
-          <div class="stat amber" onclick="go('tasks')" style="cursor:pointer"><div class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div><div class="stat-lbl">Tarefas Abertas</div><div class="stat-val" id="s-tasks">0</div></div>
-          <div class="stat green" onclick="go('meetings')" style="cursor:pointer"><div class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div class="stat-lbl">Reuniões Hoje</div><div class="stat-val" id="s-meets">0</div></div>
+        <!-- HERO: relógio + saudação -->
+        <div class="dash-hero">
+          <div class="dash-hero-top">
+            <div>
+              <div class="dash-clock" id="dash-clock">--:--</div>
+              <div class="dash-clock-sub" id="dash-clock-date">—</div>
+            </div>
+            <div class="dash-hero-right">
+              <div class="dash-greeting" id="dash-greet">—</div>
+              <div class="dash-group-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                <span id="dash-sub">—</span>
+              </div>
+            </div>
+          </div>
+          <!-- Barra progresso do dia -->
+          <div class="dash-day-bar"><div class="dash-day-fill" id="dash-day-fill" style="width:0%"></div></div>
+          <div class="dash-day-label"><span>00:00</span><span id="dash-day-pct">0% do dia</span><span>23:59</span></div>
         </div>
-        <!-- Insights inteligentes -->
-        <div class="dash-smart-grid" id="dash-insights"></div>
-        <!-- Grid principal -->
-        <div class="dash-grid">
-          <div class="card"><div class="card-ttl">Meu Trabalho — Hoje</div><div id="d-my"></div></div>
-          <div class="card"><div class="card-ttl">Tarefas Vencidas</div><div id="d-late"></div></div>
-          <div class="card"><div class="card-ttl">Reuniões Hoje</div><div id="d-meets"></div></div>
 
+        <!-- Métricas pill -->
+        <div class="stat-row-new">
+          <div class="stat-pill red" onclick="go('tasks')" style="cursor:pointer">
+            <div class="stat-pill-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+            <div class="stat-pill-body"><div class="stat-pill-val" id="s-late">0</div><div class="stat-pill-lbl">Vencidas</div></div>
+          </div>
+          <div class="stat-pill blue" onclick="go('mywork')" style="cursor:pointer">
+            <div class="stat-pill-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
+            <div class="stat-pill-body"><div class="stat-pill-val" id="s-my">0</div><div class="stat-pill-lbl">Meu trabalho hoje</div></div>
+          </div>
+          <div class="stat-pill amber" onclick="go('tasks')" style="cursor:pointer">
+            <div class="stat-pill-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div>
+            <div class="stat-pill-body"><div class="stat-pill-val" id="s-tasks">0</div><div class="stat-pill-lbl">Tarefas abertas</div></div>
+          </div>
+          <div class="stat-pill green" onclick="go('meetings')" style="cursor:pointer">
+            <div class="stat-pill-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+            <div class="stat-pill-body"><div class="stat-pill-val" id="s-meets">0</div><div class="stat-pill-lbl">Reuniões hoje</div></div>
+          </div>
+        </div>
+
+        <!-- 3 colunas: Meu Dia | Equipe | Agenda -->
+        <div class="dash-3col">
+          <!-- Coluna 1: Meu Dia -->
+          <div class="dash-col-card">
+            <div class="dash-col-hd">
+              <div class="dash-col-hd-ico" style="background:rgba(217,119,6,.1);color:var(--accent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
+              <span class="dash-col-hd-ttl">Meu dia</span>
+            </div>
+            <div class="dash-col-body" id="d-my"></div>
+          </div>
+          <!-- Coluna 2: Equipe -->
+          <div class="dash-col-card">
+            <div class="dash-col-hd">
+              <div class="dash-col-hd-ico" style="background:rgba(239,68,68,.1);color:var(--red)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div>
+              <span class="dash-col-hd-ttl">Equipe</span>
+            </div>
+            <div class="dash-col-body" id="d-late"></div>
+          </div>
+          <!-- Coluna 3: Agenda -->
+          <div class="dash-col-card">
+            <div class="dash-col-hd">
+              <div class="dash-col-hd-ico" style="background:var(--green-s);color:var(--green)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+              <span class="dash-col-hd-ttl">Agenda de hoje</span>
+            </div>
+            <div class="dash-col-body" id="d-meets"></div>
+          </div>
         </div>
       </section>
 
@@ -1632,6 +1717,13 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
       <section id="page-inbox" class="page">
         <div class="ph">
           <div><h1>Caixa de Entrada</h1><div class="ph-sub">Notificações de tarefas, conclusões e atualizações</div></div>
+          <div class="ph-acts">
+            <button id="inbox-notif-toggle" onclick="quickToggleNotif()" style="display:flex;align-items:center;gap:7px;padding:7px 13px;border-radius:var(--r);border:1.5px solid var(--border);background:var(--surface);font-size:12px;font-weight:600;color:var(--tx2);cursor:pointer">
+              <svg id="inbox-bell-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+              <svg id="inbox-bell-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;display:none;color:var(--tx3)"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              <span id="inbox-notif-label">Notificações ativas</span>
+            </button>
+          </div>
           <div class="ph-acts" style="gap:8px">
             <button class="btn-sec" onclick="clearOldNotifications()" style="gap:5px;color:var(--red);border-color:rgba(184,60,43,.3)">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
@@ -2699,7 +2791,20 @@ function renderDash(){
   _dashTimer = requestAnimationFrame(_doRenderDash);
 }
 function _doRenderDash(){
-  const h=new Date().getHours();
+  // Relógio e barra do dia
+  const now=new Date();
+  const hh=String(now.getHours()).padStart(2,'0');
+  const mm=String(now.getMinutes()).padStart(2,'0');
+  const clockEl=$('#dash-clock');if(clockEl)clockEl.textContent=`${hh}:${mm}`;
+  const days=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+  const months=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  const dateEl=$('#dash-clock-date');
+  if(dateEl)dateEl.textContent=`${days[now.getDay()]}, ${now.getDate()} de ${months[now.getMonth()]}`;
+  const pct=Math.round((now.getHours()*60+now.getMinutes())/(24*60)*100);
+  const fill=$('#dash-day-fill');if(fill)fill.style.width=pct+'%';
+  const pctEl=$('#dash-day-pct');if(pctEl)pctEl.textContent=`${pct}% do dia`;
+
+  const h=now.getHours();
   const g=h<12?'Bom dia ☀️':h<18?'Boa tarde 👋':'Boa noite 🌙';
   const displayName=CUR.user.nickname||CUR.user.name.split(' ')[0];
   const gn=$('#dash-greet');if(gn)gn.textContent=`${g}, ${displayName}`;
@@ -2800,33 +2905,47 @@ function _doRenderDash(){
     `;
   }
 
-  // My work today
+  // My work today — novo formato
   const dm=$('#d-my');
-  dm.innerHTML=myT.length?myT.slice(0,6).map(t=>{
-    const st=getMWState(t);
-    return`<div class="ti">
-      <button class="tck ${t.status==='done'?'done':''}" onclick="toggleMT('${t.id}')">${t.status==='done'?ICK:''}</button>
-      <div class="ti-info"><div class="ti-nm ${t.status==='done'?'s':''}">${t.title}</div>
-      <div class="ti-meta">${fbadge(t.frequency,t.weekdays)}${t.limitTime?` ⏱ ${t.limitTime}`:''}</div></div>
-      <div class="ti-right">${st.badge}</div>
-    </div>`;
-  }).join(''):empty('Sem tarefas pessoais hoje');
+  dm.innerHTML=myT.length?myT.slice(0,8).map(t=>`
+    <div class="dash-task-row">
+      <div class="dash-task-tck ${t.status==='done'?'done':''}" onclick="toggleMT('${t.id}')"></div>
+      <span class="dash-task-nm ${t.status==='done'?'done':''}">${t.title}</span>
+      ${t.limitTime?`<span class="dash-task-time">⏱ ${t.limitTime}</span>`:''}
+    </div>`).join(''):`<div style="padding:20px;text-align:center;color:var(--tx3);font-size:12.5px">Sem tarefas pessoais hoje ✓</div>`;
 
-  // Late tasks
+  // Equipe — membros com vencidas
   const dl=$('#d-late');
-  dl.innerHTML=lateTasks.length?lateTasks.slice(0,6).map(t=>`<div class="ti">
-    <button class="tck ${!canToggleTask(t)?'tck-locked':''}" onclick="toggleTask('${t.id}')" title="${!canToggleTask(t)?'Somente integrados podem alterar':''}"></button>
-    <div class="ti-info"><div class="ti-nm">${t.title}</div>
-    <div class="ti-meta">${(t.integrateFor||[]).slice(0,2).join(', ')||'—'} ${pbadge(t.priority)}</div></div>
-    <div class="ti-right">${sbadge('late')}</div>
-  </div>`).join(''):empty('Nenhuma vencida ✓');
+  const lateByMbr={};
+  lateTasks.forEach(t=>{
+    (t.integrateFor||[]).forEach(n=>{lateByMbr[n]=(lateByMbr[n]||0)+1;});
+    if(!(t.integrateFor||[]).length){const cr=members.find(m=>m.id===t.createdBy);if(cr)lateByMbr[cr.name]=(lateByMbr[cr.name]||0)+1;}
+  });
+  const lateEntries=Object.entries(lateByMbr).sort((a,b)=>b[1]-a[1]);
+  if(lateEntries.length){
+    dl.innerHTML=lateEntries.slice(0,6).map(([name,count])=>{
+      const m=members.find(x=>x.name===name);
+      return`<div class="dash-member-row2">
+        ${m?.avatar?`<img src="${m.avatar}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;flex-shrink:0"/>`:`<div style="width:26px;height:26px;border-radius:50%;background:var(--accent-s);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--accent);flex-shrink:0">${ini(name)}</div>`}
+        <span style="font-size:12.5px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</span>
+        <span class="dash-late-pill">${count} venc.</span>
+      </div>`;
+    }).join('');
+  } else {
+    dl.innerHTML=`<div style="padding:20px;text-align:center;color:var(--green);font-size:12.5px;font-weight:600">✅ Nenhuma tarefa vencida!</div>`;
+  }
 
-  // Meetings today
+  // Reuniões de hoje + próximas
   const dme=$('#d-meets');
-  dme.innerHTML=todayM.length?todayM.map(m=>`<div class="ti">
-    <div class="ti-info"><div class="ti-nm">${m.title}</div>
-    <div class="ti-meta">🕐 ${m.time} &nbsp;👥 ${m.participants||'—'}</div></div>
-  </div>`).join(''):empty('Sem reuniões hoje');
+  const allMeets=(_cache.meetings||[]).filter(m=>m.date>=td).sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time)).slice(0,5);
+  dme.innerHTML=allMeets.length?allMeets.map(m=>{
+    const isToday=m.date===td;
+    return`<div class="dash-meet-row">
+      <span class="dash-meet-time">${m.time||'--'}</span>
+      <span class="dash-meet-nm">${m.title}</span>
+      ${isToday?`<span class="dash-meet-today">Hoje</span>`:''}
+    </div>`;
+  }).join(''):`<div style="padding:20px;text-align:center;color:var(--tx3);font-size:12.5px">Nenhuma reunião agendada</div>`;
 
   // Onboarding checklist — só para usuários novos
   const dashContent = document.getElementById('page-dashboard');
@@ -3944,6 +4063,8 @@ async function initApp(){
   setInterval(()=>{checkMyLate();checkMeetSoon();updateBadges();if(page==='mywork')renderMyWork();},120000);
   setInterval(()=>{purgeTasks();},300000); // purge a cada 5min
   purgeTasks();checkMyLate();checkMeetSoon();updateBadges();updateNotifBell();
+  // Relógio do dashboard — atualizar a cada minuto
+  setInterval(()=>{if(page==='dashboard')renderDash();},60000);
   setupRealtime();
   initSidebarState();
   initCompactMode();
@@ -5232,14 +5353,24 @@ function renderProfile(){
 
 // Toggle rápido pelo sino no header
 function updateNotifBell(){
+  const disabled = CUR.user?.notifDisabled;
+  // Header
   const on = document.getElementById('notif-bell-on');
   const off = document.getElementById('notif-bell-off');
-  if(!on||!off) return;
-  const disabled = CUR.user?.notifDisabled;
-  on.style.display = disabled ? 'none' : '';
-  off.style.display = disabled ? '' : 'none';
+  if(on) on.style.display = disabled ? 'none' : '';
+  if(off) off.style.display = disabled ? '' : 'none';
   const btn = document.getElementById('notif-toggle-btn');
   if(btn) btn.title = disabled ? 'Notificações desativadas — clique para ativar' : 'Notificações ativas — clique para desativar';
+  // Inbox page
+  const ibn = document.getElementById('inbox-bell-on');
+  const ibf = document.getElementById('inbox-bell-off');
+  const ibl = document.getElementById('inbox-notif-label');
+  const itb = document.getElementById('inbox-notif-toggle');
+  if(ibn) ibn.style.display = disabled ? 'none' : '';
+  if(ibf) ibf.style.display = disabled ? '' : 'none';
+  if(ibl) ibl.textContent = disabled ? 'Notificações desativadas' : 'Notificações ativas';
+  if(itb) itb.style.borderColor = disabled ? 'var(--red)' : 'var(--border)';
+  if(itb) itb.style.color = disabled ? 'var(--red)' : 'var(--tx2)';
 }
 
 async function quickToggleNotif(){
