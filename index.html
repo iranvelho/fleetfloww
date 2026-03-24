@@ -276,10 +276,10 @@ input,textarea,select{font-family:inherit;font-size:inherit;outline:none;color:v
 /* ── NOVO DASHBOARD ── */
 .dash-hero{padding:0 0 18px}
 .dash-hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:14px}
-.dash-clock{font-size:48px;font-weight:900;letter-spacing:-3px;color:var(--tx);line-height:1;font-variant-numeric:tabular-nums}
-.dash-clock-sub{font-size:13px;color:var(--tx3);margin-top:4px;font-weight:500}
+.dash-clock{font-size:28px;font-weight:700;letter-spacing:-1px;color:var(--tx3);line-height:1;font-variant-numeric:tabular-nums}
+.dash-clock-sub{font-size:12px;color:var(--tx3);margin-top:2px;font-weight:500}
 .dash-hero-right{text-align:right}
-.dash-greeting{font-size:20px;font-weight:800;color:var(--tx)}
+.dash-greeting{font-size:22px;font-weight:900;color:var(--tx)}
 .dash-group-badge{display:inline-flex;align-items:center;gap:5px;background:var(--accent-s);color:var(--accent);border:1px solid rgba(217,119,6,.18);border-radius:20px;padding:3px 10px;font-size:11.5px;font-weight:700;margin-top:5px}
 .dash-day-bar{height:6px;background:var(--border);border-radius:3px;margin-bottom:6px;position:relative}
 .dash-day-fill{height:100%;background:linear-gradient(90deg,var(--accent),#f59e0b);border-radius:3px;pointer-events:none}
@@ -294,9 +294,13 @@ input,textarea,select{font-family:inherit;font-size:inherit;outline:none;color:v
 .stat-pill{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer}
 .stat-pill-ico{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .stat-pill-ico svg{width:16px;height:16px}
-.stat-pill-val{font-size:22px;font-weight:900;letter-spacing:-1px;line-height:1;color:var(--tx)}
+.stat-pill-val{font-size:32px;font-weight:900;letter-spacing:-1.5px;line-height:1;color:var(--tx)}
 .stat-pill-lbl{font-size:11px;color:var(--tx3);font-weight:500;margin-top:2px}
 .stat-pill.red .stat-pill-ico{background:var(--red-s);color:var(--red)}
+.stat-pill.red .stat-pill-val{color:var(--red)}
+@keyframes urgentPulse{0%,100%{opacity:1}50%{opacity:.55}}
+.stat-pill.red.has-late .stat-pill-val{animation:urgentPulse 1.8s ease infinite}
+.stat-pill.red.has-late{border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.03)}
 .stat-pill.amber .stat-pill-ico{background:var(--amber-s);color:var(--amber)}
 .stat-pill.blue .stat-pill-ico{background:rgba(217,119,6,.1);color:var(--accent)}
 .stat-pill.green .stat-pill-ico{background:var(--green-s);color:var(--green)}
@@ -798,10 +802,21 @@ select.fi{appearance:none;cursor:pointer;padding-right:28px;background-image:url
   position:fixed;bottom:86px;right:24px;z-index:8999;
   width:330px;height:440px;background:var(--surface);border:1px solid var(--border);
   border-radius:var(--rx);box-shadow:var(--shl);display:flex;flex-direction:column;overflow:hidden;
-  transform:scale(.9) translateY(12px);opacity:0;pointer-events:none;
-   ease,opacity .2s ease;transform-origin:bottom right;
+  transform:scale(.9) translateY(12px);opacity:0;pointer-events:none;transform-origin:bottom right;
 }
 #chat-window.open{transform:scale(1) translateY(0);opacity:1;pointer-events:all}
+/* Chat fixado na lateral */
+#chat-window.docked{
+  position:fixed;top:0;bottom:0;right:0;height:100vh;border-radius:0;
+  border-left:1px solid var(--border);border-top:none;border-bottom:none;border-right:none;
+  box-shadow:-4px 0 20px rgba(0,0,0,.08);transform:none;opacity:1;pointer-events:all;
+  width:300px;z-index:100;
+}
+body.chat-docked #main{margin-right:300px}
+.chat-pin-btn{width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.18);border:none;color:rgba(255,255,255,.8);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.chat-pin-btn:hover{background:rgba(255,255,255,.3);color:#fff}
+.chat-pin-btn.active{background:rgba(255,255,255,.35);color:#fff}
+.chat-pin-btn svg{width:13px;height:13px}
 .chat-hd{padding:12px 14px;background:var(--accent);color:#fff;display:flex;align-items:center;gap:9px;flex-shrink:0}
 .chat-hd-ico{width:30px;height:30px;background:rgba(255,255,255,.18);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .chat-hd-ico svg{width:15px;height:15px}
@@ -1162,7 +1177,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
   /* ── DASHBOARD ── */
   .stat-row-new{grid-template-columns:repeat(2,1fr);gap:8px}
   .dash-3col{grid-template-columns:1fr;gap:10px}
-  .dash-clock{font-size:36px}
+  .dash-clock{font-size:22px}
   .stat{padding:12px 14px}
   .stat-val{font-size:22px}
   .dash-smart-grid{grid-template-columns:1fr;padding:0 14px;gap:10px}
@@ -1574,7 +1589,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
       <!-- MEU TRABALHO -->
       <section id="page-mywork" class="page">
         <div class="ph">
-          <div><h1>Meu Trabalho</h1><div class="ph-sub">Suas tarefas pessoais com horário limite e recorrência</div></div>
+          <div><h1>Meu Dia</h1><div class="ph-sub">Suas tarefas pessoais e recebidas — tudo o que precisa fazer hoje</div></div>
           <div class="ph-acts">
             <button class="btn-main" onclick="openM('m-new-my')">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="width:14px;height:14px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -1946,7 +1961,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
         <div class="wl-feat">
           <div class="wl-feat-ico" style="background:rgba(217,119,6,.08)">👤</div>
           <div class="wl-feat-body">
-            <div class="wl-feat-title">Meu Trabalho</div>
+            <div class="wl-feat-title">Meu Dia</div>
             <div class="wl-feat-desc">Gerencie suas tarefas pessoais com horário limite, recorrência diária, semanal ou mensal.</div>
           </div>
         </div>
@@ -2079,7 +2094,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
 <!-- NEW MY TASK -->
 <div class="overlay" id="m-new-my">
   <div class="modal">
-    <div class="modal-hd"><h2>Nova Tarefa Pessoal</h2><button class="modal-x" onclick="closeM('m-new-my')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div class="modal-hd"><h2>Nova Tarefa — Meu Dia</h2><button class="modal-x" onclick="closeM('m-new-my')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
     <div class="modal-body">
       <div class="fg"><label>Título *</label><input type="text" id="nm-title" class="fi" placeholder="Ex: Conferir fretes, Verificar abastecimento..."/></div>
       <div class="fr">
@@ -2651,7 +2666,7 @@ function launchApp(){
 // ═══════════════════════════════════════════════════════════
 
 let page='dashboard';
-const PAGE_TITLES={dashboard:'Dashboard',mywork:'Meu Trabalho',tasks:'Tarefas',meetings:'Agendamento',inbox:'Caixa de Entrada',profile:'Perfil',groupinfo:'Meu Grupo',projects:'Projetos',help:'Ajuda'};
+const PAGE_TITLES={dashboard:'Dashboard',mywork:'Meu Dia',tasks:'Tarefas da Equipe',meetings:'Agendamento',inbox:'Caixa de Entrada',profile:'Perfil',groupinfo:'Meu Grupo',projects:'Projetos',help:'Ajuda'};
 const NEW_LABELS={dashboard:'Nova Tarefa',mywork:'',tasks:'Nova Tarefa',meetings:'Nova Reunião',inbox:'',profile:'',groupinfo:'',projects:'Novo Projeto',help:''};
 
 function go(p){
@@ -2807,7 +2822,7 @@ function renderInbox(){
   const items=g.inbox||[];
   const el=$('#inbox-list');
   if(!items.length){
-    el.innerHTML=`<div class="inbox-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg><p>Nenhuma notificação.</p></div>`;
+    el.innerHTML=`<div class="inbox-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg><p style="font-weight:700;color:var(--tx2)">Tudo em dia!</p><p style="font-size:12px;margin-top:2px">Nenhuma notificação no momento.</p></div>`;
     return;
   }
   el.innerHTML=`<div class="inbox-list">${items.map(n=>{
@@ -2969,6 +2984,8 @@ function _doRenderDash(){
   const doneToday=tasks.filter(t=>t.status==='done'&&t.statusAt&&t.statusAt.slice(0,10)===td).length;
 
   $('#s-late').textContent=lateTasks.length;
+  const latePill=document.querySelector('.stat-pill.red');
+  if(latePill) latePill.classList.toggle('has-late', lateTasks.length>0);
   $('#s-my').textContent=myT.length;
   $('#s-tasks').textContent=tasks.filter(t=>t.status!=='done'&&t.status!=='late'&&canSeeTask(t)).length;
   $('#s-meets').textContent=todayM.length;
@@ -3051,14 +3068,27 @@ function _doRenderDash(){
     `;
   }
 
-  // My work today — novo formato
+  // My work today — pessoal + integradas
   const dm=$('#d-my');
-  dm.innerHTML=myT.length?myT.slice(0,8).map(t=>`
+  // Tarefas integradas a mim pendentes
+  const myInteg=(tasks||[]).filter(t=>
+    t.status!=='done' && (t.integrateFor||[]).includes(CUR.user.name)
+  ).slice(0,4);
+  const personalRows=myT.slice(0,5).map(t=>`
     <div class="dash-task-row">
       <div class="dash-task-tck ${t.status==='done'?'done':''}" onclick="toggleMT('${t.id}')"></div>
       <span class="dash-task-nm ${t.status==='done'?'done':''}">${t.title}</span>
       ${t.limitTime?`<span class="dash-task-time">⏱ ${t.limitTime}</span>`:''}
-    </div>`).join(''):`<div style="padding:20px;text-align:center;color:var(--tx3);font-size:12.5px">Sem tarefas pessoais hoje ✓</div>`;
+    </div>`).join('');
+  const integRows=myInteg.map(t=>`
+    <div class="dash-task-row" style="opacity:.85">
+      <div class="dash-task-tck" style="border-color:var(--accent)"></div>
+      <span class="dash-task-nm" style="font-size:12px">${t.title}</span>
+      <span class="dash-task-time" style="color:var(--accent);font-size:10px">equipe</span>
+    </div>`).join('');
+  dm.innerHTML=(personalRows||integRows)
+    ? (personalRows + (integRows?`<div style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--tx3);padding:8px 0 4px">Da equipe</div>`+integRows:''))
+    : `<div style="padding:20px;text-align:center;color:var(--tx3);font-size:12.5px">Tudo em dia ✓</div>`;
 
   // Equipe — membros com vencidas
   const dl=$('#d-late');
@@ -3538,7 +3568,11 @@ function renderTasksList(c,arr){
 
   if(tTab==='received'){
     if(!recebidas.length){
-      c.innerHTML=empty('Nenhuma tarefa foi integrada a você ainda.');
+      c.innerHTML=`<div style="text-align:center;padding:40px 20px;color:var(--tx3)">
+  <div style="font-size:32px;margin-bottom:12px">📭</div>
+  <div style="font-size:14px;font-weight:700;color:var(--tx2);margin-bottom:6px">Nenhuma tarefa integrada a você</div>
+  <div style="font-size:12.5px;line-height:1.6">Quando alguém da equipe te integrar em uma tarefa, ela aparecerá aqui.</div>
+</div>`;
       return;
     }
     // Agrupar por criador
@@ -4184,7 +4218,7 @@ function initSearch(){
     const meets=(g.meetings||[]).filter(m=>m.title.toLowerCase().includes(q)).slice(0,2);
     if(!tm.length&&!mm.length&&!im.length&&!meets.length){res.classList.remove('open');return;}
     res.innerHTML=[
-      ...mm.map(t=>`<div class="sr-item" onclick="go('mywork');res.classList.remove('open')">👤 <span>${t.title}</span><span class="sr-lbl">Meu Trabalho</span></div>`),
+      ...mm.map(t=>`<div class="sr-item" onclick="go('mywork');res.classList.remove('open')">👤 <span>${t.title}</span><span class="sr-lbl">Meu Dia</span></div>`),
       ...tm.map(t=>`<div class="sr-item" onclick="go('tasks');res.classList.remove('open')">✓ <span>${t.title}</span><span class="sr-lbl">Tarefa</span></div>`),
       ...meets.map(m=>`<div class="sr-item" onclick="go('meetings');res.classList.remove('open')">📅 <span>${m.title}</span><span class="sr-lbl">Reunião</span></div>`),
       ...im.map(i=>`<div class="sr-item" onclick="go('ideas');res.classList.remove('open')">💡 <span>${i.title}</span><span class="sr-lbl">Ideia</span></div>`),
@@ -4604,6 +4638,27 @@ function toggleChat(){
   }
 }
 // Chat NÃO fecha ao navegar — persiste entre páginas
+let chatDocked = false;
+function toggleChatDock(){
+  const win=document.getElementById('chat-window');
+  const pinBtn=document.getElementById('chat-pin-btn');
+  if(!win) return;
+  chatDocked=!chatDocked;
+  if(chatDocked){
+    win.classList.add('docked');
+    document.body.classList.add('chat-docked');
+    // Garantir que está aberto
+    if(!chatOpen){ chatOpen=true; renderChat(); updateChatPip(); }
+    if(pinBtn){ pinBtn.classList.add('active'); pinBtn.title='Desafixar chat'; }
+    // Mudar ícone do botão para "docked"
+    if(pinBtn) pinBtn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>';
+  } else {
+    win.classList.remove('docked');
+    document.body.classList.remove('chat-docked');
+    if(pinBtn){ pinBtn.classList.remove('active'); pinBtn.title='Fixar na lateral'; }
+    if(pinBtn) pinBtn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>';
+  }
+}
 
 function getChatMessages(){ return _cache.chat||[]; }
 function saveChatMessages(msgs){ _cache.chat=msgs; }
@@ -5030,7 +5085,15 @@ function renderProjects(){
   if(chip){ chip.textContent=inProgress; chip.style.display=inProgress?'inline-flex':'none'; }
   const el = document.getElementById('projects-grid');
   if(!projs.length){
-    el.innerHTML = '<div class="proj-empty"><div class="proj-empty-ico">\ud83d\udcc1</div><div class="proj-empty-txt">Nenhum projeto encontrado</div><div class="proj-empty-sub">Crie o primeiro projeto clicando em "Novo Projeto"</div></div>';
+    el.innerHTML = `<div class="proj-empty">
+      <div class="proj-empty-ico">📁</div>
+      <div class="proj-empty-txt">Nenhum projeto ainda</div>
+      <div class="proj-empty-sub" style="margin-bottom:16px">Crie o primeiro projeto da equipe para organizar tarefas em etapas</div>
+      <button class="btn-main" onclick="openM('m-new-proj')" style="gap:8px;padding:10px 20px;font-size:13px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:15px;height:15px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Criar primeiro projeto
+      </button>
+    </div>`;
     return;
   }
   el.innerHTML = '<div class="proj-grid">' + projs.map(function(p){
@@ -6097,7 +6160,7 @@ const HELP_TOPICS = [
     items:[
       'G → Dashboard',
       'T → Tarefas',
-      'W → Meu Trabalho',
+      'W → Meu Dia',
       'A → Agendamento',
       'P → Projetos',
       'N → Nova tarefa (na página atual)',
@@ -6665,7 +6728,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
         <div class="welcome-feat">
           <div class="welcome-feat-ico" style="background:rgba(217,119,6,.10)">👤</div>
           <div class="welcome-feat-body">
-            <div class="welcome-feat-title">Meu Trabalho</div>
+            <div class="welcome-feat-title">Meu Dia</div>
             <div class="welcome-feat-desc">Gerencie suas tarefas pessoais com horário limite e recorrência diária, semanal ou mensal.</div>
           </div>
         </div>
@@ -6706,7 +6769,10 @@ document.addEventListener('DOMContentLoaded',async()=>{
   <div class="chat-hd">
     <div class="chat-hd-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
     <div><div class="chat-hd-name">Chat do Grupo</div><div class="chat-hd-sub" id="chat-group-sub">—</div></div>
-    <button class="chat-close" onclick="toggleChat()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    <button class="chat-pin-btn" id="chat-pin-btn" onclick="toggleChatDock()" title="Fixar na lateral">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+  </button>
+  <button class="chat-close" onclick="toggleChat()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
   </div>
   <div class="chat-msgs" id="chat-msgs"></div>
   <div class="chat-foot" style="position:relative">
