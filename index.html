@@ -410,7 +410,7 @@ input,textarea,select{font-family:inherit;font-size:inherit;outline:none;color:v
 .kc-ft{display:flex;align-items:center;gap:5px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:10.5px;color:var(--tx3)}
 
 /* ── MY WORK ── */
-/* ── MEU TRABALHO — layout lista completa ── */
+/* ── MINHAS TAREFAS — layout lista completa ── */
 .mw-section{margin-bottom:18px}
 .mw-section-hd{display:flex;align-items:center;gap:10px;padding:0 2px;margin-bottom:8px;cursor:pointer;user-select:none}
 .mw-section-hd svg.arr{;flex-shrink:0}
@@ -1196,7 +1196,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
   .task-group table tbody td:nth-child(3),
   .task-group table tbody td:nth-child(4){display:none}
 
-  /* ── MEU TRABALHO ── */
+  /* ── MINHAS TAREFAS ── */
   .mw-toolbar{flex-direction:column;gap:8px;padding:10px 14px 0}
   .mw-search{width:100%!important}
   #mw-content{padding:0 14px}
@@ -1393,7 +1393,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
     </button>
     <button class="mobile-nav-btn" id="mnav-mywork" onclick="go('mywork');setMobileNav('mywork')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-      Meu Trabalho
+      Minhas Tarefas
     </button>
     <button class="mobile-nav-btn" id="mnav-inbox" onclick="go('inbox');setMobileNav('inbox')" style="position:relative">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
@@ -1417,7 +1417,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
       </button>
       <button class="nav-btn" data-page="mywork" onclick="go('mywork')">
         <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></span>
-        Meu Trabalho
+        Minhas Tarefas
         <span class="nav-chip soft" id="mw-chip" style="display:none">0</span>
       </button>
       <button class="nav-btn" data-page="tasks" onclick="go('tasks')">
@@ -1545,7 +1545,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
           </div>
           <div class="stat-pill blue" onclick="go('mywork')" style="cursor:pointer">
             <div class="stat-pill-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
-            <div class="stat-pill-body"><div class="stat-pill-val" id="s-my">0</div><div class="stat-pill-lbl">Meu trabalho hoje</div></div>
+            <div class="stat-pill-body"><div class="stat-pill-val" id="s-my">0</div><div class="stat-pill-lbl">Minhas Tarefas hoje</div></div>
           </div>
           <div class="stat-pill amber" onclick="go('tasks')" style="cursor:pointer">
             <div class="stat-pill-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div>
@@ -1586,7 +1586,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
         </div>
       </section>
 
-      <!-- MEU TRABALHO -->
+      <!-- MINHAS TAREFAS -->
       <section id="page-mywork" class="page">
         <div class="ph">
           <div><h1>Meu Dia</h1><div class="ph-sub">Suas tarefas pessoais e recebidas — tudo o que precisa fazer hoje</div></div>
@@ -3056,7 +3056,7 @@ function _doRenderDash(){
         </div>
         <div class="dash-member-row">
           <div class="dash-member-av" style="background:var(--amber-s);color:var(--amber)">📋</div>
-          <div class="dash-member-info"><div class="dash-member-name">Meu trabalho pendente</div></div>
+          <div class="dash-member-info"><div class="dash-member-name">Minhas Tarefas pendente</div></div>
           <span class="dash-member-badge" style="background:var(--amber-s);color:var(--amber)">${myT.length}</span>
         </div>
         <div class="dash-member-row">
@@ -3135,7 +3135,7 @@ function _doRenderDash(){
 }
 
 // ═══════════════════════════════════════════════════════════
-//  MEU TRABALHO
+//  MINHAS TAREFAS
 // ═══════════════════════════════════════════════════════════
 function getMyTasks(){
   return(_cache.myTasksByUser||{})[CUR.user.id]||[];
@@ -6048,7 +6048,7 @@ const HELP_TOPICS = [
     items:[
       'Relógio grande com data atual e barra de progresso do dia (0% às 00:00 → 100% às 23:59)',
       'Pontos coloridos na barra do dia indicam tarefas com horário definido — some quando concluída',
-      '4 métricas rápidas: Vencidas, Meu trabalho hoje, Tarefas abertas e Reuniões',
+      '4 métricas rápidas: Vencidas, Minhas Tarefas hoje, Tarefas abertas e Reuniões',
       'Painel "Meu Dia": suas tarefas pessoais com checkbox direto no dashboard',
       'Painel "Equipe": membros com mais tarefas vencidas e quantidade',
       'Painel "Agenda de hoje": próximas reuniões com horário',
@@ -6056,7 +6056,7 @@ const HELP_TOPICS = [
     ]
   },
   {
-    icon:'👤', title:'Meu Trabalho',
+    icon:'👤', title:'Minhas Tarefas',
     desc:'Suas tarefas pessoais — visíveis só para você.',
     items:[
       'Crie tarefas com recorrência: Única, Diária, Semanal, Mensal ou Personalizada (dias específicos)',
@@ -6067,7 +6067,7 @@ const HELP_TOPICS = [
     ]
   },
   {
-    icon:'✅', title:'Tarefas',
+    icon:'✅', title:'Tarefas da Equipe',
     desc:'Tarefas da equipe — sempre integradas a um responsável.',
     items:[
       'Toda tarefa DEVE ser integrada a ao menos um membro — ele é o único responsável',
@@ -6680,7 +6680,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
         <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)"><span class="shortcut-badge">N</span><span style="font-size:12.5px;color:var(--tx2)">Nova tarefa / item da página atual</span></div>
         <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)"><span class="shortcut-badge">G</span><span style="font-size:12.5px;color:var(--tx2)">Ir para o Dashboard</span></div>
         <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)"><span class="shortcut-badge">T</span><span style="font-size:12.5px;color:var(--tx2)">Ir para Tarefas</span></div>
-        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)"><span class="shortcut-badge">W</span><span style="font-size:12.5px;color:var(--tx2)">Ir para Meu Trabalho</span></div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)"><span class="shortcut-badge">W</span><span style="font-size:12.5px;color:var(--tx2)">Ir para Minhas Tarefas</span></div>
         <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)"><span class="shortcut-badge">A</span><span style="font-size:12.5px;color:var(--tx2)">Ir para Agendamento</span></div>
         <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)"><span class="shortcut-badge">P</span><span style="font-size:12.5px;color:var(--tx2)">Ir para Projetos</span></div>
         <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)"><span class="shortcut-badge">/</span><span style="font-size:12.5px;color:var(--tx2)">Focar na busca</span></div>
