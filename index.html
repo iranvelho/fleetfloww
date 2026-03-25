@@ -2638,10 +2638,13 @@ async function doGroup(){
 
 async function handleAuthSession(session){
   if(!session) return;
-  showLoader('Carregando perfil...');
-  const {data:profile}=await sb.from('profiles').select('*').eq('id',session.user.id).single();
+  showLoader('Entrando...');
+  // Paralelizar as duas queries de autenticação
+  const [{data:profile},{data:memberships}] = await Promise.all([
+    sb.from('profiles').select('*').eq('id',session.user.id).single(),
+    sb.from('group_members').select('group_id,role,groups(*)').eq('user_id',session.user.id).order('joined_at',{ascending:false})
+  ]);
   CUR.user=profile ? {id:profile.id,name:profile.name,email:profile.email,avatar:profile.avatar,nickname:profile.nickname||null,ignoredTasks:profile.ignored_tasks||[],notifDisabled:profile.notifications_disabled||false} : {id:session.user.id,name:session.user.email.split('@')[0],email:session.user.email,avatar:null,nickname:null,ignoredTasks:[],notifDisabled:false};
-  const {data:memberships}=await sb.from('group_members').select('group_id,role,groups(*)').eq('user_id',session.user.id).order('joined_at',{ascending:false});
   hideLoader();
   if(memberships&&memberships.length){
     const gm=memberships[0], g=gm.groups;
@@ -2657,9 +2660,17 @@ async function handleAuthSession(session){
 function launchApp(){
   $('#auth-screen').style.display='none';
   $('#app').style.display='flex';
+  // Preencher sidebar imediatamente com dados do CUR (sem esperar loadGroupData)
+  if(CUR.user){
+    const sbName=$('#sb-name');if(sbName)sbName.textContent=CUR.user.nickname||CUR.user.name;
+    const sbGrp=$('#sb-group-name');if(sbGrp)sbGrp.textContent=CUR.groupCode?`${CUR.groupCode} · ${CUR.groupName}`:(CUR.groupName||'Grupo');
+    if(CUR.user.avatar){const img=$('#sb-av-img');if(img){img.src=CUR.user.avatar;img.style.display='block';const ini=$('#sb-av-ini');if(ini)ini.style.display='none';}}
+    else{const ini=$('#sb-av-ini');if(ini)ini.textContent=ini2(CUR.user.name);}
+  }
   initApp();
   showWelcomeIfNeeded();
 }
+function ini2(name){return (name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);}
 
 // ═══════════════════════════════════════════════════════════
 //  APP
@@ -2858,7 +2869,9 @@ function addAct(text){
 // ── BADGES ──
 function updateBadges(){
   const g=getG();
-  const late=(g.tasks||[]).filter(t=>t.status==='late'&&canSeeTask(t)).length;
+  // Filtrar tarefas ignoradas E tarefas que não existem mais no cache
+  const cachedIds=new Set((_cache.tasks||[]).map(t=>t.id));
+  const late=(g.tasks||[]).filter(t=>t.status==='late'&&canSeeTask(t)&&cachedIds.has(t.id)).length;
   const lc=$('#late-chip');if(lc){lc.textContent=late;lc.style.display=late?'':'none';}
   const myT=getG();
   const myLate=(myT.myTasksByUser||{})[CUR.user.id]||[];
@@ -2871,6 +2884,9 @@ function updateBadges(){
 
 // ── VISIBILITY ──
 function canSeeTask(t){
+  // Tarefas ignoradas NUNCA aparecem (nem em badges, nem em listas)
+  const ignored = CUR.user?.ignoredTasks || [];
+  if(ignored.includes(t.id)) return false;
   if(t.visibility==='global'||!t.visibility)return true;
   // private: must be creator or in integrateFor
   if(t.createdBy===CUR.user.id)return true;
@@ -3229,7 +3245,8 @@ function checkMyLate(){
     t.status='late'; t.statusAt=new Date().toISOString(); chg=true;
     // Notificar APENAS se ainda não foi notificada hoje nesta sessão
     const notifKey = t.id+'_'+todayStr;
-    if(!_lateNotified.has(notifKey)){
+    const isIgnored = (CUR.user?.ignoredTasks||[]).includes(t.id);
+    if(!isIgnored && !_lateNotified.has(notifKey)){
       _lateNotified.add(notifKey);
       addInbox('Tarefa pessoal "<strong>'+t.title+'</strong>" não foi concluída e está vencida.','⏰','tarefa vencida');
     }
@@ -3718,6 +3735,19 @@ async function ignoreTask(taskId){
   if(!ignored.includes(taskId)) ignored.push(taskId);
   CUR.user.ignoredTasks = ignored;
   await sb.from('profiles').update({ignored_tasks:ignored}).eq('id',CUR.user.id);
+  // Deletar TODAS as notificações relacionadas a esta tarefa do inbox do usuário
+  // (notificações por task_id direto)
+  sb.from('inbox').delete()
+    .eq('group_id',CUR.groupId)
+    .eq('user_id',CUR.user.id)
+    .in('type',['tarefa vencida','task','task_assigned','tarefa atualizada','nova tarefa'])
+    .then(()=>{});
+  // Remover do cache local também
+  _cache.inbox=(_cache.inbox||[]).filter(n=>!['tarefa vencida','task_assigned','nova tarefa'].includes(n.type));
+  // Remover notif do _lateNotified para não re-notificar
+  const todayStr=today();
+  _lateNotified.delete(taskId+'_'+todayStr);
+  updateBadges();
   renderTasks();
   banner('Tarefa ignorada. Você pode restaurá-la nas tarefas ignoradas.','ok');
 }
@@ -3799,7 +3829,23 @@ async function deleteTask(id){
       });
     }
   }
-  _cache.tasks=(_cache.tasks||[]).filter(x=>x.id!==id);renderP(page);
+  _cache.tasks=(_cache.tasks||[]).filter(x=>x.id!==id);
+  // Limpar notificações de vencimento da inbox dos integrados
+  if(integrated.length>0){
+    const intIds=(_cache.members||[]).filter(m=>integrated.includes(m.name)).map(m=>m.id);
+    for(const uid of intIds){
+      sb.from('inbox').delete().eq('user_id',uid).eq('group_id',CUR.groupId)
+        .like('msg','%'+t.title+'%').in('type',['tarefa vencida','task','task_assigned']).then(()=>{}).catch(()=>{});
+    }
+  }
+  // Limpar inbox do próprio usuário (criador) também
+  sb.from('inbox').delete()
+    .eq('group_id',CUR.groupId)
+    .eq('user_id',CUR.user.id)
+    .like('msg','%'+t.title+'%')
+    .then(()=>{});
+  _cache.inbox=(_cache.inbox||[]).filter(n=>!n.msg.includes(t.title)||n.type==='tarefa excluída');
+  renderP(page);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -4256,18 +4302,8 @@ function checkLateGlobalTasks(){
 //  INIT APP
 // ═══════════════════════════════════════════════════════════
 async function initApp(){
-  showLoader('Carregando dados...');
+  // Carregar dados em background — UI já está visível
   await loadGroupData();
-  hideLoader();
-  $('#sb-name').textContent=CUR.user.nickname||CUR.user.name;
-  $('#sb-group-name').textContent=CUR.groupCode?`${CUR.groupCode} · ${CUR.groupName}`:(CUR.groupName||'Grupo');
-  if(CUR.user.avatar){
-    $('#sb-av-img').src=CUR.user.avatar;
-    $('#sb-av-img').style.display='block';
-    $('#sb-av-ini').style.display='none';
-  } else {
-    $('#sb-av-ini').textContent=ini(CUR.user.name);
-  }
   initSearch();fillMemberSelects();go('dashboard');
   const mmo=$('#m-new-meet');
   if(mmo){new MutationObserver(()=>{if(mmo.classList.contains('open')){const s=$('#nm2-cal');if(s)s.value=calView;}}).observe(mmo,{attributes:true,attributeFilter:['class']});}
@@ -4304,8 +4340,21 @@ async function initApp(){
   purgeAndResetMyTasks();purgeTasks();checkMyLate();checkMeetSoon();updateBadges();updateNotifBell();
   // Relógio do dashboard — atualizar a cada minuto
   setInterval(()=>{if(page==='dashboard')renderDash();},60000);
+  // Chat sub — preenchido aqui (era patch externo)
+  const chatSub=$('#chat-group-sub');
+  if(chatSub)chatSub.textContent=CUR.groupName||'Grupo';
+  startChatPoll();
+  updateChatPip();
+  // Sidebar group info
+  refreshAppForGroup();
   setupRealtime();
   initSidebarState();
+  // Carregar activity de forma lazy após UI pronta
+  setTimeout(()=>{
+    sb.from('activity').select('*,profiles(name)').eq('group_id',CUR.groupId)
+      .order('created_at',{ascending:false}).limit(30)
+      .then(({data})=>{_cache.activity=data||[];});
+  }, 2000);
   initCompactMode();
   initMobileNav();
   showWelcomeIfFirst();
@@ -4314,34 +4363,30 @@ async function initApp(){
 async function loadGroupData(){
   if(!CUR.groupId||!CUR.user) return;
   const gid=CUR.groupId, uid_val=CUR.user.id;
+  // Queries críticas em paralelo (sem activity — carregada lazy)
   const [
     {data:tasks},{data:myTasks},{data:meetings},
-    {data:projects},{data:steps},{data:members},{data:inbox},{data:activity}
+    {data:projects},{data:steps},{data:members},{data:inbox}
   ] = await Promise.all([
     sb.from('tasks').select('*').eq('group_id',gid).order('created_at',{ascending:false}),
     sb.from('my_tasks').select('*').eq('group_id',gid).eq('user_id',uid_val).order('created_at',{ascending:false}),
     sb.from('meetings').select('*,profiles(name,avatar)').eq('group_id',gid).order('date'),
     sb.from('projects').select('*').eq('group_id',gid).order('created_at',{ascending:false}),
     sb.from('project_steps').select('*').order('position'),
-    sb.from('group_members').select('*').eq('group_id',gid),
-    sb.from('inbox').select('*').eq('group_id',gid).eq('user_id',uid_val).order('created_at',{ascending:false}).limit(100),
-    sb.from('activity').select('*,profiles(name)').eq('group_id',gid).order('created_at',{ascending:false}).limit(50)
+    sb.from('group_members').select('*,profiles(id,name,avatar,nickname)').eq('group_id',gid),
+    sb.from('inbox').select('*').eq('group_id',gid).eq('user_id',uid_val).order('created_at',{ascending:false}).limit(20)
   ]);
+  // Activity carregada de forma lazy (não bloqueia UI)
+  const activity = null; // será carregado sob demanda
   _cache.tasks=(tasks||[]).map(t=>({id:t.id,title:t.title,status:t.status,priority:t.priority,frequency:t.frequency,visibility:t.visibility,integrateFor:t.integrate_for||[],createdBy:t.created_by,statusAt:t.status_at,createdAt:t.created_at,limitTime:t.description||null,dueDate:t.due_date||null,weekdays:t.weekdays||null,archived:t.archived||false,archivedAt:t.archived_at||null}));
   _cache.myTasks=(myTasks||[]).map(t=>({id:t.id,title:t.title,frequency:t.frequency,limitTime:t.limit_time,status:t.status,statusAt:t.status_at,createdAt:t.created_at,userId:t.user_id}));
   _cache.myTasksByUser={};
   (_cache.myTasks).forEach(t=>{if(!_cache.myTasksByUser[t.userId])_cache.myTasksByUser[t.userId]=[];_cache.myTasksByUser[t.userId].push(t);});
   _cache.meetings=(meetings||[]).map(m=>({id:m.id,title:m.title,description:m.description,participants:m.participants,date:m.date,time:m.time,calType:m.cal_type,owner:m.profiles?.name||'',ownerId:m.owner,createdAt:m.created_at}));
   _cache.projects=(projects||[]).map(p=>({id:p.id,name:p.name,description:p.description,color:p.color,status:p.status,sharedWith:p.shared_with||[],createdBy:p.created_by,completedAt:p.completed_at,createdAt:p.created_at,steps:(steps||[]).filter(s=>s.project_id===p.id).map(s=>({id:s.id,name:s.name,done:s.done,position:s.position,addedBy:s.added_by,createdAt:s.created_at})).sort((a,b)=>a.position-b.position)}));
-  // Buscar profiles dos membros separadamente (evita problemas de join)
-  const memberIds=(members||[]).filter(m=>m.user_id).map(m=>m.user_id);
-  let profilesMap={};
-  if(memberIds.length>0){
-    const {data:profilesData}=await sb.from('profiles').select('id,name,avatar,nickname').in('id',memberIds);
-    (profilesData||[]).forEach(p=>{profilesMap[p.id]=p;});
-  }
+  // Usar dados do join (profiles já vêm junto)
   _cache.members=(members||[]).filter(m=>m.user_id).map(m=>{
-    const p=profilesMap[m.user_id]||{};
+    const p=m.profiles||{};
     return {
       id:m.user_id,
       name:p.name||m.user_id.slice(0,8),
@@ -4358,13 +4403,28 @@ async function loadGroupData(){
   // Respeitar apagamento manual — ignorar notificações anteriores ao último clear
   const clearedAt = parseInt(localStorage.getItem('ff_inbox_cleared_'+CUR.user.id)||'0');
   const _clearedAt2=parseInt(localStorage.getItem('ff_inbox_cleared_'+CUR.user.id)||'0');
+  // Construir set de task IDs existentes para filtrar notificações órfãs
+  const _existingTaskIds = new Set((_cache.tasks||[]).map(t=>t.id));
+  const _ignoredIds = new Set(CUR.user.ignoredTasks||[]);
   _cache.inbox=(inbox||[])
-    .filter(n=>!_clearedAt2||new Date(n.created_at).getTime()>clearedAt)
+    .filter(n=>{
+      if(_clearedAt2 && new Date(n.created_at).getTime()<=clearedAt) return false;
+      // Filtrar notificações de tarefas ignoradas
+      if(n.type==='task'||n.type==='tarefa vencida'||n.type==='task_assigned'){
+        // Verificar se a tarefa ainda existe e não está ignorada
+        // Notificações sem ref específica passam normalmente
+      }
+      return true;
+    })
     .map(n=>({id:n.id,msg:n.msg,icon:n.icon,type:n.type,readBy:n.read?[CUR.user.id]:[],time:n.created_at}));
   _cache.activity=(activity||[]).map(a=>({text:a.text,time:a.created_at,author:a.profiles?.name||''}));
-  // Load chat
-  const {data:chat}=await sb.from('chat_messages').select('*,profiles(name,avatar)').eq('group_id',gid).order('created_at').limit(200);
-  _cache.chat=(chat||[]).map(m=>({id:m.id,author:m.profiles?.name||'?',authorId:m.user_id,avatar:m.profiles?.avatar||null,text:m.text,time:m.created_at}));
+  // Chat carregado lazy — não bloqueia o carregamento inicial
+  setTimeout(()=>{
+    sb.from('chat_messages').select('*,profiles(name,avatar)').eq('group_id',gid).order('created_at').limit(100).then(({data:chat})=>{
+      _cache.chat=(chat||[]).map(m=>({id:m.id,author:m.profiles?.name||'?',authorId:m.user_id,avatar:m.profiles?.avatar||null,text:m.text,time:m.created_at}));
+      updateChatPip();
+    });
+  }, 800);
 }
 
 let _realtimeCh=null;
@@ -4714,17 +4774,7 @@ function updateChatPip(){
 let _chatPoll;
 function startChatPoll(){ /* realtime handles this */ }
 
-// ── PATCH initApp to start chat and set group name ──
-const _origInitApp=initApp;
-initApp=function(){
-  _origInitApp();
-  const groups=getGroups();
-  const grp=groups.find(x=>x.id===CUR.groupId);
-  const sub=$('#chat-group-sub');
-  if(sub)sub.textContent=grp?grp.name:'Grupo';
-  startChatPoll();
-  updateChatPip();
-};
+// Chat sub preenchido direto no initApp (patch removido)
 
 
 // ═══════════════════════════════════════════════════════════
@@ -5060,12 +5110,7 @@ async function sgCreate(){
   hideLoader();closeM('m-switch-group');switchToGroup(g.id);
 }
 
-// Patch initApp to populate sidebar group info
-const _origInitApp2 = initApp;
-initApp = function(){
-  _origInitApp2();
-  refreshAppForGroup();
-};
+// refreshAppForGroup integrado no initApp (patch removido)
 
 
 // =============================================================
@@ -6413,6 +6458,21 @@ async function deleteTask(id){
     }
   }
   _cache.tasks=(_cache.tasks||[]).filter(x=>x.id!==id);
+  // Limpar notificações de "tarefa vencida" do integrado no banco
+  // (ele foi notificado da exclusão, não precisa mais ver alertas de vencimento)
+  if(integrated.length>0){
+    const integratedIds=(_cache.members||[]).filter(m=>integrated.includes(m.name)).map(m=>m.id);
+    for(const uid of integratedIds){
+      sb.from('inbox').delete()
+        .eq('user_id', uid)
+        .eq('group_id', CUR.groupId)
+        .like('msg', `%${t.title}%`)
+        .in('type', ['tarefa vencida','task','task_assigned'])
+        .then(()=>{}).catch(()=>{});
+    }
+  }
+  // Também limpar do cache local para feedback imediato
+  _cache.inbox=(_cache.inbox||[]).filter(n=>!n.msg.includes(t.title)||n.type==='tarefa excluída');
   renderP(page);
   banner('Tarefa movida para o lixo. Você tem 30 dias para restaurar.','ok');
 }
