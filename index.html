@@ -99,6 +99,8 @@ input,textarea,select{font-family:inherit;font-size:inherit;outline:none;color:v
   background:#ede8f5;
   display:flex;align-items:stretch;justify-content:center;
 }
+#auth-snow-canvas{position:fixed;inset:0;pointer-events:none;z-index:9998;}
+#app-snow-canvas{position:fixed;inset:0;pointer-events:none;z-index:1;}
 .auth-split{display:flex;width:100%;max-width:1000px;margin:auto;box-shadow:var(--shl);border-radius:20px;overflow:hidden;min-height:560px;}
 .auth-panel-left{
   width:340px;flex-shrink:0;background:var(--accent);
@@ -1474,6 +1476,8 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
 <body>
 
 <!-- ==================== AUTH ==================== -->
+<canvas id="auth-snow-canvas"></canvas>
+<canvas id="app-snow-canvas"></canvas>
 <div id="auth-screen">
   <div class="auth-split">
     <!-- LEFT PANEL -->
@@ -1639,10 +1643,6 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
         <span class="nav-chip inbox" id="chat-nav-pip" style="display:none">0</span>
       </button>
       <div class="sb-sec" style="margin-top:6px">Configurações</div>
-      <button class="nav-btn" data-page="email-summary" onclick="go('email-summary')">
-        <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>
-        Resumo Email
-      </button>
       <button class="nav-btn" data-page="groupinfo" onclick="go('groupinfo')">
         <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></span>
         Meu Grupo
@@ -1780,9 +1780,9 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
       <!-- MEU TRABALHO -->
       <section id="page-mywork" class="page">
         <div class="ph">
-          <div><h1>Meu Dia</h1><div class="ph-sub">Suas tarefas pessoais e recebidas — tudo o que precisa fazer hoje</div></div>
+          <div><h1>Minhas Tarefas</h1><div class="ph-sub">Suas tarefas pessoais e recebidas — tudo o que precisa fazer hoje</div></div>
           <div class="ph-acts">
-            <button class="btn-main" onclick="openM('m-new-my')">
+            <button class="btn-main" id="mw-new-task-btn" onclick="openM('m-new-my')" style="display:none">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="width:14px;height:14px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               Nova Tarefa
             </button>
@@ -1830,7 +1830,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
       <!-- TAREFAS -->
       <section id="page-tasks" class="page">
         <div class="ph">
-          <div><h1>Tarefas</h1><div class="ph-sub">Gestão de tarefas da equipe</div></div>
+          <div><h1>Tarefas da Equipe</h1><div class="ph-sub">Gestão de tarefas da equipe</div></div>
           <div class="ph-acts">
             <button class="btn-main" onclick="openM('m-new-task')" style="flex-shrink:0">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="width:14px;height:14px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -2164,7 +2164,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
         <div class="wl-feat">
           <div class="wl-feat-ico" style="background:rgba(15,122,80,.10)">📅</div>
           <div class="wl-feat-body">
-            <div class="wl-feat-title">Agendamento</div>
+            <div class="wl-feat-title">Reuniões</div>
             <div class="wl-feat-desc">Agende reuniões para a equipe com visão de calendário e lista. Receba notificações antes de cada reunião.</div>
           </div>
         </div>
@@ -2873,7 +2873,7 @@ function ini2(name){return (name||'?').split(' ').map(w=>w[0]).join('').toUpperC
 // ═══════════════════════════════════════════════════════════
 
 let page='dashboard';
-const PAGE_TITLES={dashboard:'Dashboard',mywork:'Meu Dia',tasks:'Tarefas da Equipe',meetings:'Agendamento',inbox:'Caixa de Entrada',profile:'Perfil',groupinfo:'Meu Grupo',projects:'Projetos',help:'Ajuda'};
+const PAGE_TITLES={dashboard:'Dashboard',mywork:'Minhas Tarefas',tasks:'Tarefas da Equipe',meetings:'Reuniões',inbox:'Caixa de Entrada',profile:'Perfil',groupinfo:'Meu Grupo',projects:'Projetos',help:'Ajuda'};
 const NEW_LABELS={dashboard:'Nova Tarefa',mywork:'',tasks:'Nova Tarefa',meetings:'Nova Reunião',inbox:'',profile:'',groupinfo:'',projects:'Novo Projeto',help:''};
 
 function go(p){
@@ -2983,6 +2983,8 @@ function banner(msg,type='info'){
 // ── INBOX ──
 function addInbox(msg,icon='📋',type='task'){
   if(!CUR.groupId||!CUR.user) return;
+  // Respeitar preferência de notificações do usuário
+  if(CUR.user.notifDisabled) return;
   // Evitar duplicata: mesma mensagem nas últimas 24h
   const recent=(_cache.inbox||[]).find(n=>{
     if(n.msg!==msg) return false;
@@ -2994,8 +2996,8 @@ function addInbox(msg,icon='📋',type='task'){
   _cache.inbox=_cache.inbox||[];
   _cache.inbox.unshift({id:uid(),msg,icon,type,readBy:[],time:new Date().toISOString()});
   updateBadges();
-  // Persistir no banco de forma assíncrona (não bloqueia a UI)
-  const members=_cache.members||[];
+  // Persistir no banco — só para membros com notificações ativas
+  const members=(_cache.members||[]).filter(m=>!m.notifDisabled);
   const inserts=members.length
     ? members.map(m=>({group_id:CUR.groupId,user_id:m.id,msg,icon,type,read:false}))
     : [{group_id:CUR.groupId,user_id:CUR.user.id,msg,icon,type,read:false}];
@@ -3523,13 +3525,15 @@ function mwCardHTML(t){
 // ══════════════════════════════════════════════════════════
 //  MODO CUBO — Meu Dia
 // ══════════════════════════════════════════════════════════
-let cubeMode = false;
+let cubeMode = true;
 let _cubePositions = {}; // salva posições dos cubos por task id
 
 function toggleCubeMode(){
   cubeMode = !cubeMode;
   const btn = document.getElementById('mw-cube-toggle');
   if(btn) btn.classList.toggle('active', cubeMode);
+  const newBtn = document.getElementById('mw-new-task-btn');
+  if(newBtn) newBtn.style.display = cubeMode ? 'none' : '';
   renderMyWork();
 }
 
@@ -3602,6 +3606,24 @@ function renderCubes(tasks){
     }
     spawnCube(arena, t);
   });
+
+  // Cubo especial de criar tarefa
+  const addCube = document.createElement('div');
+  addCube.className = 'task-cube';
+  const totalItems = tasks.length;
+  const addCol = totalItems % cols;
+  const addRow = Math.floor(totalItems / cols);
+  addCube.style.left = (24 + addCol * 185) + 'px';
+  addCube.style.top  = (24 + addRow * 200) + 'px';
+  addCube.style.zIndex = 4;
+  addCube.innerHTML = `
+    <div class="cube-body cube-add-body" onclick="openM('m-new-my')" style="cursor:pointer;border:2px dashed rgba(217,119,6,.35);background:#fffdf8;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:110px;gap:8px;box-shadow:none;">
+      <div style="width:32px;height:32px;border-radius:50%;background:rgba(217,119,6,.1);border:1.5px solid rgba(217,119,6,.3);display:flex;align-items:center;justify-content:center;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.5" stroke-linecap="round" style="width:16px;height:16px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </div>
+      <span style="font-size:11.5px;font-weight:700;color:rgba(217,119,6,.7);letter-spacing:.2px">Nova Tarefa</span>
+    </div>`;
+  arena.appendChild(addCube);
 }
 
 function getCubeColor(t){
@@ -5853,7 +5875,7 @@ function renderGroupInfo(){
   const stats=$('#gi-stats');
   const activeMembers = (_cache.members||[]).filter(m=>m.status!=='inactive');
   if(stats){stats.innerHTML=`
-    <div class="gi-stat"><span class="gi-stat-val">${(_cache.tasks||[]).length}</span><span class="gi-stat-lbl">Tarefas</span></div>
+    <div class="gi-stat"><span class="gi-stat-val">${(_cache.tasks||[]).length}</span><span class="gi-stat-lbl">Tarefas da Equipe</span></div>
     <div class="gi-stat"><span class="gi-stat-val">${(_cache.tasks||[]).filter(t=>t.status==='done').length}</span><span class="gi-stat-lbl">Concluídas</span></div>
     <div class="gi-stat"><span class="gi-stat-val">${(_cache.meetings||[]).length}</span><span class="gi-stat-lbl">Reuniões</span></div>
     <div class="gi-stat"><span class="gi-stat-val">${(_cache.projects||[]).length}</span><span class="gi-stat-lbl">Projetos</span></div>
@@ -7129,6 +7151,50 @@ document.addEventListener('DOMContentLoaded',async()=>{
     if(event==='SIGNED_OUT'){CUR={user:null,groupId:null};document.getElementById('app').style.display='none';document.getElementById('auth-screen').style.display='flex';}
   });
   selectGopt('join');
+
+  // Inicializar botão cubo como ativo (cubeMode=true por padrão)
+  const cubeBtn = document.getElementById('mw-cube-toggle');
+  if(cubeBtn) cubeBtn.classList.add('active');
+  const newBtn = document.getElementById('mw-new-task-btn');
+  if(newBtn) newBtn.style.display = 'none';
+
+  // ── NEVE GLOBAL (login + app) ──
+  function makeSnow(canvasId, color, count, minR, maxR, minSpeed, maxSpeed, minOpacity, maxOpacity){
+    const canvas = document.getElementById(canvasId);
+    if(!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let flakes = [];
+    function resize(){ canvas.width=window.innerWidth; canvas.height=window.innerHeight; }
+    resize();
+    window.addEventListener('resize', resize);
+    for(let i=0;i<count;i++) flakes.push({
+      x: Math.random()*canvas.width,
+      y: Math.random()*canvas.height,
+      r: Math.random()*(maxR-minR)+minR,
+      speed: Math.random()*(maxSpeed-minSpeed)+minSpeed,
+      drift: Math.random()*.4-.2,
+      opacity: Math.random()*(maxOpacity-minOpacity)+minOpacity
+    });
+    function draw(){
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      flakes.forEach(f=>{
+        ctx.beginPath();
+        ctx.arc(f.x,f.y,f.r,0,Math.PI*2);
+        ctx.fillStyle=color.replace('{o}',f.opacity);
+        ctx.fill();
+        f.y+=f.speed; f.x+=f.drift;
+        if(f.y>canvas.height+4){f.y=-4;f.x=Math.random()*canvas.width;}
+        if(f.x>canvas.width+4) f.x=-4;
+        if(f.x<-4) f.x=canvas.width+4;
+      });
+      requestAnimationFrame(draw);
+    }
+    draw();
+  }
+  // Neve na tela de login — partículas claras/brancas sutis
+  makeSnow('auth-snow-canvas','rgba(255,255,255,{o})',45,1,2.5,.3,.7,.06,.18);
+  // Neve no app — partículas âmbar ultrasubtis
+  makeSnow('app-snow-canvas','rgba(217,119,6,{o})',35,1,2,.2,.5,.03,.10);
 });
 </script>
 <div id="ff-loader"><div class="spin"></div><div class="lbl" id="ff-lbl">Carregando...</div></div>
@@ -7206,7 +7272,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
         <div class="welcome-feat">
           <div class="welcome-feat-ico" style="background:rgba(15,122,80,.12)">📅</div>
           <div class="welcome-feat-body">
-            <div class="welcome-feat-title">Agendamento</div>
+            <div class="welcome-feat-title">Reuniões</div>
             <div class="welcome-feat-desc">Organize reuniões no calendário da equipe com visão mensal e lista de eventos futuros.</div>
           </div>
         </div>
