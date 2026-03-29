@@ -3539,72 +3539,73 @@ function toggleCubeMode(){
 
 function renderCubes(tasks){
   const cont = $('#mw-content');
+  if(!tasks.length){
+    cont.innerHTML = `<div id="mw-cube-arena">
+      <div class="cube-empty">
+        <div class="cube-empty-icon">⬡</div>
+        <div class="cube-empty-txt">Nenhuma tarefa</div>
+      </div>
+    </div>`;
+    return;
+  }
 
-  // Criar arena sempre (mesmo vazia)
+  // Criar arena
   cont.innerHTML = `<div id="mw-cube-arena">
     <canvas id="cube-snow-canvas"></canvas>
     <div class="cube-arena-hud" id="cube-hud">${tasks.length} TAREFA${tasks.length!==1?'S':''}</div>
   </div>`;
   const arena = document.getElementById('mw-cube-arena');
 
-  // Partículas de neve discreta no arena
+  // Partículas de neve discreta
   (function initSnow(){
     const canvas = document.getElementById('cube-snow-canvas');
     const ctx = canvas.getContext('2d');
-    let flakes = [], running = true;
-    function resize(){ canvas.width=arena.offsetWidth; canvas.height=arena.offsetHeight; }
+    let flakes = [];
+    function resize(){
+      canvas.width  = arena.offsetWidth;
+      canvas.height = arena.offsetHeight;
+    }
     resize();
     new ResizeObserver(resize).observe(arena);
     for(let i=0;i<38;i++) flakes.push({
-      x:Math.random()*canvas.width, y:Math.random()*canvas.height,
-      r:Math.random()*2+1, speed:Math.random()*.4+.15,
-      drift:Math.random()*.3-.15, opacity:Math.random()*.18+.06
+      x: Math.random()*canvas.width,
+      y: Math.random()*canvas.height,
+      r: Math.random()*2+1,
+      speed: Math.random()*.4+.15,
+      drift: Math.random()*.3-.15,
+      opacity: Math.random()*.18+.06
     });
     function draw(){
-      if(!document.getElementById('cube-snow-canvas')){ running=false; return; }
       ctx.clearRect(0,0,canvas.width,canvas.height);
       flakes.forEach(f=>{
-        ctx.beginPath(); ctx.arc(f.x,f.y,f.r,0,Math.PI*2);
-        ctx.fillStyle=`rgba(180,120,30,${f.opacity})`; ctx.fill();
-        f.y+=f.speed; f.x+=f.drift;
-        if(f.y>canvas.height+4){f.y=-4;f.x=Math.random()*canvas.width;}
-        if(f.x>canvas.width+4) f.x=-4;
-        if(f.x<-4) f.x=canvas.width+4;
+        ctx.beginPath();
+        ctx.arc(f.x,f.y,f.r,0,Math.PI*2);
+        ctx.fillStyle=`rgba(180,120,30,${f.opacity})`;
+        ctx.fill();
+        f.y += f.speed;
+        f.x += f.drift;
+        if(f.y > canvas.height+4) { f.y=-4; f.x=Math.random()*canvas.width; }
+        if(f.x > canvas.width+4)  f.x=-4;
+        if(f.x < -4) f.x=canvas.width+4;
       });
-      if(running) requestAnimationFrame(draw);
+      requestAnimationFrame(draw);
     }
     draw();
   })();
 
-  // Calcular posições iniciais em grid
-  const cols = Math.max(3, Math.floor((arena.clientWidth||600) / 190));
+  // Calcular posições iniciais em grid se não tiver salvo
+  const cols = Math.max(3, Math.floor(arena.clientWidth / 190));
   tasks.forEach((t, i) => {
     if(!_cubePositions[t.id]){
-      const col = i % cols, row = Math.floor(i / cols);
-      _cubePositions[t.id] = { x: 24 + col*185, y: 24 + row*200 };
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      _cubePositions[t.id] = {
+        x: 24 + col * 185,
+        y: 24 + row * 200
+      };
     }
     spawnCube(arena, t);
   });
-
-  // Cubo de criar tarefa — sempre no final da grade
-  const addIdx = tasks.length;
-  const addCol = addIdx % cols, addRow = Math.floor(addIdx / cols);
-  const addCube = document.createElement('div');
-  addCube.className = 'task-cube';
-  addCube.id = 'cube-add-btn';
-  addCube.style.left = (24 + addCol*185) + 'px';
-  addCube.style.top  = (24 + addRow*200) + 'px';
-  addCube.style.zIndex = 4;
-  addCube.innerHTML = `
-    <div class="cube-body" onclick="openM('m-new-my')" style="cursor:pointer;border:2px dashed rgba(217,119,6,.35);background:#fffdf8;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:110px;gap:8px;box-shadow:none;transition:border-color .15s,background .15s;">
-      <div style="width:32px;height:32px;border-radius:50%;background:rgba(217,119,6,.10);border:1.5px solid rgba(217,119,6,.30);display:flex;align-items:center;justify-content:center;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.5" stroke-linecap="round" style="width:16px;height:16px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      </div>
-      <span style="font-size:11.5px;font-weight:700;color:rgba(217,119,6,.7);letter-spacing:.2px">Nova Tarefa</span>
-    </div>`;
-  addCube.querySelector('.cube-body').addEventListener('mouseover', function(){ this.style.borderColor='rgba(217,119,6,.6)'; this.style.background='#fff9f0'; });
-  addCube.querySelector('.cube-body').addEventListener('mouseout',  function(){ this.style.borderColor='rgba(217,119,6,.35)'; this.style.background='#fffdf8'; });
-  arena.appendChild(addCube);
 }
 
 function getCubeColor(t){
@@ -3809,11 +3810,20 @@ async function toggleMT(id){
   saveMyTasks(arr);renderP(page);
   sb.from('my_tasks').update({status:ns,status_at:sa}).eq('id',id).then(()=>{});
 }
-async function deleteMT(id){
-  const arr=getMyTasks();const t=arr.find(x=>x.id===id);if(!t)return;
-  await sb.from('my_tasks').delete().eq('id',id);
+function deleteMT(id){
+  const arr=getMyTasks();
+  const t=arr.find(x=>x.id===id);
+  if(!t) return;
+  // Atualizar UI imediatamente (sem await)
+  const newArr=arr.filter(x=>x.id!==id);
+  saveMyTasks(newArr);
+  // Remover também do cache global
+  if(_cache.myTasks) _cache.myTasks=_cache.myTasks.filter(x=>x.id!==id);
+  // Renderizar diretamente sem purge
+  if(cubeMode){ renderCubes(getMyTasks()); } else { renderMyWork(); }
   addAct('Tarefa pessoal <strong>'+t.title+'</strong> excluída');
-  saveMyTasks(arr.filter(x=>x.id!==id));renderP(page);
+  // Persistir no banco em background
+  sb.from('my_tasks').delete().eq('id',id).then(()=>{}).catch(()=>{});
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -4594,13 +4604,29 @@ async function submitMyTask(){
   const title=$('#nm-title').value.trim();
   if(!title){banner('Informe o título','warn');return;}
   showLoader('Salvando...');
-  const nmDays=getSelectedDays('nm');const {data:t,error}=await sb.from('my_tasks').insert({group_id:CUR.groupId,user_id:CUR.user.id,title,frequency:$('#nm-freq').value,limit_time:$('#nm-time').value||null,status:'pending',weekdays:nmDays.length?nmDays:null}).select().single();
-  if(error){hideLoader();banner('Erro','err');return;}
+  const nmDays=getSelectedDays('nm');
+  const {data:t,error}=await sb.from('my_tasks').insert({
+    group_id:CUR.groupId,user_id:CUR.user.id,title,
+    frequency:$('#nm-freq').value,
+    limit_time:$('#nm-time').value||null,
+    status:'pending',
+    weekdays:nmDays.length?nmDays:null
+  }).select().single();
+  if(error){hideLoader();banner('Erro ao criar tarefa','err');return;}
   const task={id:t.id,title,frequency:t.frequency,limitTime:t.limit_time,status:'pending',createdAt:t.created_at,userId:CUR.user.id};
-  _cache.myTasks=_cache.myTasks||[];_cache.myTasks.unshift(task);
-  _cache.myTasksByUser=_cache.myTasksByUser||{};_cache.myTasksByUser[CUR.user.id]=_cache.myTasksByUser[CUR.user.id]||[];_cache.myTasksByUser[CUR.user.id].unshift(task);
+  // Atualizar cache imediatamente
+  _cache.myTasks=_cache.myTasks||[];
+  _cache.myTasks.unshift(task);
+  _cache.myTasksByUser=_cache.myTasksByUser||{};
+  _cache.myTasksByUser[CUR.user.id]=_cache.myTasksByUser[CUR.user.id]||[];
+  _cache.myTasksByUser[CUR.user.id].unshift(task);
   addAct('Nova tarefa pessoal: <strong>'+title+'</strong>');
-  hideLoader();closeM('m-new-my');clearF('m-new-my');renderP(page);banner('Tarefa criada!','ok');
+  hideLoader();
+  closeM('m-new-my');
+  clearF('m-new-my');
+  banner('Tarefa criada!','ok');
+  // Renderizar diretamente sem purge para não sumir a nova tarefa
+  if(cubeMode){ renderCubes(getMyTasks()); } else { renderMyWork(); }
 }
 
 async function submitMeet(){
@@ -4780,18 +4806,18 @@ async function initApp(){
 async function loadGroupData(){
   if(!CUR.groupId||!CUR.user) return;
   const gid=CUR.groupId, uid_val=CUR.user.id;
-  // Queries críticas em paralelo (sem activity — carregada lazy)
+  // Todas as queries críticas em paralelo
   const [
     {data:tasks},{data:myTasks},{data:meetings},
     {data:projects},{data:steps},{data:members},{data:inbox}
   ] = await Promise.all([
-    sb.from('tasks').select('*').eq('group_id',gid).order('created_at',{ascending:false}),
-    sb.from('my_tasks').select('*').eq('group_id',gid).eq('user_id',uid_val).order('created_at',{ascending:false}),
-    sb.from('meetings').select('*,profiles(name,avatar)').eq('group_id',gid).order('date'),
-    sb.from('projects').select('*').eq('group_id',gid).order('created_at',{ascending:false}),
-    sb.from('project_steps').select('*').order('position'),
-    sb.from('group_members').select('*,profiles(id,name,avatar,nickname)').eq('group_id',gid),
-    sb.from('inbox').select('*').eq('group_id',gid).eq('user_id',uid_val).order('created_at',{ascending:false}).limit(20)
+    sb.from('tasks').select('id,title,status,priority,frequency,visibility,integrate_for,created_by,status_at,created_at,description,due_date,weekdays,archived,archived_at').eq('group_id',gid).order('created_at',{ascending:false}),
+    sb.from('my_tasks').select('id,title,frequency,limit_time,status,status_at,created_at,user_id,weekdays').eq('group_id',gid).eq('user_id',uid_val).order('created_at',{ascending:false}),
+    sb.from('meetings').select('id,title,description,participants,date,time,cal_type,owner,created_at,profiles(name,avatar)').eq('group_id',gid).order('date'),
+    sb.from('projects').select('id,name,description,color,status,shared_with,created_by,completed_at,created_at').eq('group_id',gid).order('created_at',{ascending:false}),
+    sb.from('project_steps').select('id,project_id,name,done,position,added_by,created_at').eq('group_id',gid).order('position'),
+    sb.from('group_members').select('user_id,role,status,profiles(id,name,avatar,nickname)').eq('group_id',gid),
+    sb.from('inbox').select('id,msg,icon,type,read,created_at').eq('group_id',gid).eq('user_id',uid_val).order('created_at',{ascending:false}).limit(30)
   ]);
   // Activity carregada de forma lazy (não bloqueia UI)
   const activity = null; // será carregado sob demanda
@@ -7134,44 +7160,39 @@ document.addEventListener('DOMContentLoaded',async()=>{
   selectGopt('join');
 
   // ── NEVE GLOBAL ──
-  function startSnow(canvasId, r, g, b, count, minR, maxR, minV, maxV, minO, maxO){
-    const canvas = document.getElementById(canvasId);
-    if(!canvas) return;
-    const ctx = canvas.getContext('2d');
-    let flakes = [], alive = true;
-    function resize(){ canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+  function startSnow(canvasId,r,g,b,count,minR,maxR,minV,maxV,minO,maxO){
+    const canvas=document.getElementById(canvasId);
+    if(!canvas)return;
+    const ctx=canvas.getContext('2d');
+    let flakes=[];
+    function resize(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;}
     resize();
-    window.addEventListener('resize', resize);
+    window.addEventListener('resize',resize);
     for(let i=0;i<count;i++) flakes.push({
-      x: Math.random()*canvas.width,
-      y: Math.random()*canvas.height,
-      radius: Math.random()*(maxR-minR)+minR,
-      speed:  Math.random()*(maxV-minV)+minV,
-      drift:  Math.random()*.5-.25,
-      opacity: Math.random()*(maxO-minO)+minO
+      x:Math.random()*canvas.width, y:Math.random()*canvas.height,
+      radius:Math.random()*(maxR-minR)+minR,
+      speed:Math.random()*(maxV-minV)+minV,
+      drift:Math.random()*.5-.25,
+      opacity:Math.random()*(maxO-minO)+minO
     });
     (function draw(){
-      if(!alive) return;
       ctx.clearRect(0,0,canvas.width,canvas.height);
       flakes.forEach(f=>{
-        ctx.beginPath();
-        ctx.arc(f.x, f.y, f.radius, 0, Math.PI*2);
-        ctx.fillStyle = `rgba(${r},${g},${b},${f.opacity.toFixed(2)})`;
+        ctx.beginPath();ctx.arc(f.x,f.y,f.radius,0,Math.PI*2);
+        ctx.fillStyle=`rgba(${r},${g},${b},${f.opacity.toFixed(2)})`;
         ctx.fill();
-        f.y += f.speed;
-        f.x += f.drift;
-        if(f.y > canvas.height+4){ f.y=-4; f.x=Math.random()*canvas.width; }
-        if(f.x > canvas.width+4)  f.x=-4;
-        if(f.x < -4) f.x=canvas.width+4;
+        f.y+=f.speed; f.x+=f.drift;
+        if(f.y>canvas.height+4){f.y=-4;f.x=Math.random()*canvas.width;}
+        if(f.x>canvas.width+4) f.x=-4;
+        if(f.x<-4) f.x=canvas.width+4;
       });
       requestAnimationFrame(draw);
     })();
   }
-
-  // Neve na tela de login: partículas brancas suaves
-  startSnow('auth-snow-canvas', 255,255,255, 55, 1, 3, .25, .7, .06, .20);
-  // Neve no app: partículas âmbar ultrasubtis
-  startSnow('app-snow-canvas',  217,119,6,  40, 1, 2.5, .15, .45, .03, .09);
+  // Login: partículas brancas suaves
+  startSnow('auth-snow-canvas',255,255,255,55,1,3,.25,.7,.05,.18);
+  // App: partículas âmbar ultrasubtis
+  startSnow('app-snow-canvas',217,119,6,40,1,2.5,.15,.45,.02,.08);
 });
 </script>
 <div id="ff-loader"><div class="spin"></div><div class="lbl" id="ff-lbl">Carregando...</div></div>
