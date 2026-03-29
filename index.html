@@ -443,6 +443,200 @@ input,textarea,select{font-family:inherit;font-size:inherit;outline:none;color:v
 .mw-section-hd[data-section="done"] .mw-section-label{color:var(--green)}
 .mw-empty{padding:20px;text-align:center;color:var(--tx3);font-size:13px;border:1.5px dashed var(--border);border-radius:12px}
 .mw-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+
+/* ── MODO CUBO ── */
+#mw-cube-arena{
+  position:relative;
+  width:100%;
+  min-height:calc(100vh - 220px);
+  background:#0d0d0d;
+  border-radius:16px;
+  overflow:hidden;
+  /* Grid de pontos */
+  background-image:radial-gradient(circle,rgba(217,119,6,.18) 1px,transparent 1px);
+  background-size:32px 32px;
+  border:1px solid rgba(217,119,6,.12);
+  user-select:none;
+}
+/* Brilho de canto no arena */
+#mw-cube-arena::before{
+  content:'';position:absolute;
+  top:0;left:0;right:0;height:120px;
+  background:linear-gradient(180deg,rgba(217,119,6,.04) 0%,transparent 100%);
+  pointer-events:none;z-index:0;
+}
+
+/* Contador de cubos */
+.cube-arena-hud{
+  position:absolute;top:14px;right:18px;z-index:10;
+  font-size:10px;font-weight:700;letter-spacing:1.5px;
+  color:rgba(217,119,6,.4);text-transform:uppercase;
+  pointer-events:none;
+}
+
+/* Cubo individual */
+.task-cube{
+  position:absolute;
+  width:160px;
+  cursor:grab;
+  z-index:5;
+  /* Perspectiva 3D */
+  perspective:600px;
+  touch-action:none;
+}
+.task-cube:active{cursor:grabbing;z-index:100;}
+
+.cube-body{
+  width:100%;
+  background:rgba(15,10,2,.92);
+  border:1px solid rgba(217,119,6,.35);
+  border-radius:14px;
+  padding:14px 14px 12px;
+  position:relative;
+  overflow:hidden;
+  /* Sombra com glow âmbar */
+  box-shadow:
+    0 0 0 0px rgba(217,119,6,0),
+    0 8px 32px rgba(0,0,0,.6),
+    inset 0 1px 0 rgba(255,255,255,.05);
+  transform:translateZ(0);
+  will-change:transform;
+}
+.task-cube:hover .cube-body{
+  border-color:rgba(217,119,6,.7);
+  box-shadow:
+    0 0 20px rgba(217,119,6,.2),
+    0 12px 40px rgba(0,0,0,.7),
+    inset 0 1px 0 rgba(255,255,255,.07);
+}
+
+/* Reflexo / shimmer no topo do cubo */
+.cube-body::before{
+  content:'';position:absolute;
+  top:0;left:0;right:0;height:50%;
+  background:linear-gradient(180deg,rgba(255,255,255,.04) 0%,transparent 100%);
+  border-radius:14px 14px 0 0;
+  pointer-events:none;
+}
+
+/* Linha de acento no topo */
+.cube-accent{
+  position:absolute;top:0;left:12px;right:12px;height:2px;
+  border-radius:0 0 2px 2px;
+  background:linear-gradient(90deg,transparent,var(--cube-color,#d97706),transparent);
+}
+
+/* Ícone de status no canto */
+.cube-status-ico{
+  position:absolute;top:10px;right:10px;
+  width:20px;height:20px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:9px;
+  background:rgba(217,119,6,.1);
+  border:1px solid rgba(217,119,6,.2);
+}
+
+/* Conteúdo do cubo */
+.cube-title{
+  font-size:12.5px;font-weight:700;
+  color:#fff;line-height:1.35;
+  margin-bottom:10px;
+  margin-right:24px;
+  min-height:32px;
+  /* truncar com 2 linhas */
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.cube-title.done-txt{
+  text-decoration:line-through;
+  color:rgba(255,255,255,.35);
+}
+.cube-meta{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:6px;
+}
+.cube-time{
+  display:flex;align-items:center;gap:3px;
+  font-size:10px;font-weight:700;
+  color:rgba(217,119,6,.7);
+  font-variant-numeric:tabular-nums;
+}
+.cube-freq{
+  font-size:9.5px;font-weight:600;letter-spacing:.3px;
+  color:rgba(255,255,255,.2);text-transform:uppercase;
+}
+.cube-bottom{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-top:10px;padding-top:8px;
+  border-top:1px solid rgba(255,255,255,.05);
+}
+
+/* Botão de concluir */
+.cube-check{
+  width:22px;height:22px;border-radius:50%;
+  border:1.5px solid rgba(217,119,6,.4);
+  background:transparent;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;flex-shrink:0;
+}
+.cube-check:hover{border-color:#d97706;background:rgba(217,119,6,.1);}
+.cube-check.done{background:#22c55e;border-color:#22c55e;}
+.cube-check svg{width:10px;height:10px;color:#fff;}
+
+/* Botão deletar */
+.cube-del{
+  width:20px;height:20px;border-radius:6px;
+  background:transparent;border:none;
+  color:rgba(255,255,255,.15);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+}
+.cube-del:hover{color:var(--red);background:rgba(239,68,68,.1);}
+.cube-del svg{width:11px;height:11px;}
+
+/* Badge de status */
+.cube-badge{
+  font-size:9px;font-weight:700;letter-spacing:.5px;
+  text-transform:uppercase;
+  padding:2px 6px;border-radius:4px;
+}
+.cube-badge.late{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.2)}
+.cube-badge.done{background:rgba(34,197,94,.12);color:#4ade80;border:1px solid rgba(34,197,94,.2)}
+.cube-badge.pending{background:rgba(217,119,6,.1);color:#d97706;border:1px solid rgba(217,119,6,.2)}
+.cube-badge.grace{background:rgba(251,191,36,.1);color:#fbbf24;border:1px solid rgba(251,191,36,.2)}
+
+/* Botão de toggle de modo no toolbar */
+.mw-mode-btn{
+  display:flex;align-items:center;gap:5px;
+  padding:5px 11px;border-radius:var(--r);
+  border:1.5px solid var(--border);
+  background:var(--surface);
+  color:var(--tx2);font-size:12px;font-weight:600;
+  cursor:pointer;margin-left:auto;
+}
+.mw-mode-btn.active{
+  border-color:rgba(217,119,6,.5);
+  background:rgba(217,119,6,.08);
+  color:var(--accent);
+}
+.mw-mode-btn svg{width:13px;height:13px;}
+
+/* Animação de soltar */
+@keyframes cubeDrop{
+  0%{transform:scale(1.04) translateY(-4px)}
+  60%{transform:scale(.98) translateY(2px)}
+  100%{transform:scale(1) translateY(0)}
+}
+.cube-drop-anim .cube-body{animation:cubeDrop .2s ease forwards}
+
+/* Vazio no modo cubo */
+.cube-empty{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  text-align:center;color:rgba(217,119,6,.3);pointer-events:none;
+}
+.cube-empty-icon{font-size:40px;margin-bottom:12px;opacity:.5}
+.cube-empty-txt{font-size:13px;font-weight:600;letter-spacing:.5px}
 .mw-search{flex:1;min-width:160px;padding:7px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:13px;background:var(--surface);color:var(--tx);outline:none}
 .mw-search:focus{border-color:var(--accent)}
 .mw-filter{padding:6px 10px;border:1.5px solid var(--border);border-radius:10px;font-size:12px;background:var(--surface);color:var(--tx);cursor:pointer}
@@ -1613,6 +1807,11 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
             <option value="done">Concluída</option>
             <option value="late">Vencida</option>
           </select>
+          <!-- Botão de modo cubo -->
+          <button class="mw-mode-btn" id="mw-cube-toggle" onclick="toggleCubeMode()" title="Alternar modo cubo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+            Cubos
+          </button>
         </div>
         <div id="mw-content"></div>
       </section>
@@ -3324,6 +3523,183 @@ function mwCardHTML(t){
   </div>`;
 }
 
+// ══════════════════════════════════════════════════════════
+//  MODO CUBO — Meu Dia
+// ══════════════════════════════════════════════════════════
+let cubeMode = false;
+let _cubePositions = {}; // salva posições dos cubos por task id
+
+function toggleCubeMode(){
+  cubeMode = !cubeMode;
+  const btn = document.getElementById('mw-cube-toggle');
+  if(btn) btn.classList.toggle('active', cubeMode);
+  renderMyWork();
+}
+
+function renderCubes(tasks){
+  const cont = $('#mw-content');
+  if(!tasks.length){
+    cont.innerHTML = `<div id="mw-cube-arena">
+      <div class="cube-empty">
+        <div class="cube-empty-icon">⬡</div>
+        <div class="cube-empty-txt">Nenhuma tarefa</div>
+      </div>
+    </div>`;
+    return;
+  }
+
+  // Criar arena
+  cont.innerHTML = `<div id="mw-cube-arena">
+    <div class="cube-arena-hud" id="cube-hud">${tasks.length} TAREFA${tasks.length!==1?'S':''}</div>
+  </div>`;
+  const arena = document.getElementById('mw-cube-arena');
+
+  // Calcular posições iniciais em grid se não tiver salvo
+  const cols = Math.max(3, Math.floor(arena.clientWidth / 190));
+  tasks.forEach((t, i) => {
+    if(!_cubePositions[t.id]){
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      _cubePositions[t.id] = {
+        x: 24 + col * 185,
+        y: 24 + row * 200
+      };
+    }
+    spawnCube(arena, t);
+  });
+}
+
+function getCubeColor(t){
+  if(t.status === 'late') return '#ef4444';
+  if(t.status === 'done') return '#22c55e';
+  const nowM = new Date().getHours()*60+new Date().getMinutes();
+  if(t.limitTime){
+    const lm = tMin(t.limitTime);
+    if(nowM > lm && nowM <= lm+60) return '#fbbf24'; // grace
+  }
+  return '#d97706'; // amber padrão
+}
+
+function getCubeBadge(t){
+  if(t.status==='late') return '<span class="cube-badge late">VENCIDA</span>';
+  if(t.status==='done') return '<span class="cube-badge done">FEITA</span>';
+  const nowM = new Date().getHours()*60+new Date().getMinutes();
+  if(t.limitTime){
+    const lm = tMin(t.limitTime);
+    if(nowM > lm && nowM <= lm+60) return '<span class="cube-badge grace">ATENÇÃO</span>';
+  }
+  return '<span class="cube-badge pending">PENDENTE</span>';
+}
+
+function spawnCube(arena, t){
+  const pos = _cubePositions[t.id] || {x:20, y:20};
+  const color = getCubeColor(t);
+  const isDone = t.status === 'done';
+  const freqMap = {once:'Única',daily:'Diária',weekly:'Semanal',monthly:'Mensal',custom:'Custom'};
+  const freq = freqMap[t.frequency] || t.frequency || '';
+
+  const el = document.createElement('div');
+  el.className = 'task-cube';
+  el.id = 'cube-' + t.id;
+  el.style.left = pos.x + 'px';
+  el.style.top  = pos.y + 'px';
+  el.style.setProperty('--cube-color', color);
+
+  el.innerHTML = `
+    <div class="cube-body">
+      <div class="cube-accent"></div>
+      <div class="cube-status-ico">${t.status==='done'?'✓':t.status==='late'?'!':'◉'}</div>
+      <div class="cube-title ${isDone?'done-txt':''}">${t.title}</div>
+      <div class="cube-meta">
+        ${t.limitTime
+          ? `<span class="cube-time"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${t.limitTime}</span>`
+          : `<span class="cube-time" style="color:rgba(255,255,255,.15)">Sem horário</span>`
+        }
+        <span class="cube-freq">${freq}</span>
+      </div>
+      <div class="cube-bottom">
+        <button class="cube-check ${isDone?'done':''}" onclick="event.stopPropagation();cubeDone('${t.id}')" title="${isDone?'Desmarcar':'Concluir'}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+        </button>
+        ${getCubeBadge(t)}
+        <button class="cube-del" onclick="event.stopPropagation();deleteMT('${t.id}')" title="Apagar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+        </button>
+      </div>
+    </div>`;
+
+  // Abrir tarefa ao clicar no body (não nos botões)
+  el.querySelector('.cube-body').addEventListener('click', (e)=>{
+    if(e.target.closest('button')) return;
+    openEditMy(t.id);
+  });
+
+  arena.appendChild(el);
+  makeCubeDraggable(el, t.id);
+}
+
+async function cubeDone(id){
+  await toggleMT(id);
+  // Re-render mantendo posições
+  if(cubeMode) renderMyWork();
+}
+
+function makeCubeDraggable(el, taskId){
+  let startX, startY, startLeft, startTop, dragging=false, moved=false;
+  const arena = document.getElementById('mw-cube-arena');
+
+  const onDown = (e) => {
+    if(e.target.closest('button')) return;
+    dragging = true; moved = false;
+    el.style.zIndex = 200;
+    const pt = e.touches ? e.touches[0] : e;
+    startX = pt.clientX;
+    startY = pt.clientY;
+    startLeft = parseInt(el.style.left)||0;
+    startTop  = parseInt(el.style.top)||0;
+    el.style.cursor = 'grabbing';
+    e.preventDefault();
+  };
+
+  const onMove = (e) => {
+    if(!dragging) return;
+    const pt = e.touches ? e.touches[0] : e;
+    const dx = pt.clientX - startX;
+    const dy = pt.clientY - startY;
+    if(Math.abs(dx)+Math.abs(dy)>3) moved = true;
+
+    const arenaRect = arena.getBoundingClientRect();
+    const newLeft = Math.max(0, Math.min(arenaRect.width - 165, startLeft + dx));
+    const newTop  = Math.max(0, Math.min(arena.scrollHeight - 60, startTop + dy));
+
+    el.style.left = newLeft + 'px';
+    el.style.top  = newTop  + 'px';
+    e.preventDefault();
+  };
+
+  const onUp = () => {
+    if(!dragging) return;
+    dragging = false;
+    el.style.zIndex = 5;
+    el.style.cursor = 'grab';
+    // Salvar posição
+    _cubePositions[taskId] = {
+      x: parseInt(el.style.left)||0,
+      y: parseInt(el.style.top)||0
+    };
+    // Animação de snap
+    el.classList.add('cube-drop-anim');
+    setTimeout(()=>el.classList.remove('cube-drop-anim'), 250);
+  };
+
+  el.addEventListener('mousedown',  onDown,  {passive:false});
+  el.addEventListener('touchstart', onDown,  {passive:false});
+  window.addEventListener('mousemove', onMove,  {passive:false});
+  window.addEventListener('touchmove', onMove,  {passive:false});
+  window.addEventListener('mouseup',  onUp);
+  window.addEventListener('touchend', onUp);
+}
+
 function renderMyWork(){
   purgeAndResetMyTasks();  // garante reset do ciclo antes de renderizar
   checkMyLate();
@@ -3339,6 +3715,9 @@ function renderMyWork(){
     if(fStatusMW&&t.status!==fStatusMW)return false;
     return true;
   });
+
+  // MODO CUBO — renderizar como cubos flutuantes
+  if(cubeMode){ renderCubes(filtered); return; }
 
   // Separar em grupos — cada tarefa vai para exatamente UM grupo
   const lateT    = filtered.filter(t=>t.status==='late');
