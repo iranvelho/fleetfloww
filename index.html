@@ -449,20 +449,22 @@ input,textarea,select{font-family:inherit;font-size:inherit;outline:none;color:v
   position:relative;
   width:100%;
   min-height:calc(100vh - 220px);
-  background:#0d0d0d;
+  background:#fdfcfb;
   border-radius:16px;
   overflow:hidden;
-  /* Grid de pontos */
-  background-image:radial-gradient(circle,rgba(217,119,6,.18) 1px,transparent 1px);
-  background-size:32px 32px;
-  border:1px solid rgba(217,119,6,.12);
+  border:1px solid var(--border);
   user-select:none;
+  box-shadow:inset 0 0 0 1px rgba(217,119,6,.06);
+}
+#cube-snow-canvas{
+  position:absolute;inset:0;width:100%;height:100%;
+  pointer-events:none;z-index:0;
 }
 /* Brilho de canto no arena */
 #mw-cube-arena::before{
   content:'';position:absolute;
-  top:0;left:0;right:0;height:120px;
-  background:linear-gradient(180deg,rgba(217,119,6,.04) 0%,transparent 100%);
+  top:0;left:0;right:0;height:100px;
+  background:linear-gradient(180deg,rgba(217,119,6,.03) 0%,transparent 100%);
   pointer-events:none;z-index:0;
 }
 
@@ -470,7 +472,7 @@ input,textarea,select{font-family:inherit;font-size:inherit;outline:none;color:v
 .cube-arena-hud{
   position:absolute;top:14px;right:18px;z-index:10;
   font-size:10px;font-weight:700;letter-spacing:1.5px;
-  color:rgba(217,119,6,.4);text-transform:uppercase;
+  color:rgba(217,119,6,.5);text-transform:uppercase;
   pointer-events:none;
 }
 
@@ -480,7 +482,6 @@ input,textarea,select{font-family:inherit;font-size:inherit;outline:none;color:v
   width:160px;
   cursor:grab;
   z-index:5;
-  /* Perspectiva 3D */
   perspective:600px;
   touch-action:none;
 }
@@ -488,34 +489,30 @@ input,textarea,select{font-family:inherit;font-size:inherit;outline:none;color:v
 
 .cube-body{
   width:100%;
-  background:rgba(15,10,2,.92);
-  border:1px solid rgba(217,119,6,.35);
-  border-radius:14px;
+  background:#ffffff;
+  border:1px solid rgba(217,119,6,.22);
+  border-radius:10px;
   padding:14px 14px 12px;
   position:relative;
   overflow:hidden;
-  /* Sombra com glow âmbar */
   box-shadow:
-    0 0 0 0px rgba(217,119,6,0),
-    0 8px 32px rgba(0,0,0,.6),
-    inset 0 1px 0 rgba(255,255,255,.05);
+    0 2px 8px rgba(0,0,0,.06),
+    0 1px 2px rgba(0,0,0,.04);
   transform:translateZ(0);
   will-change:transform;
 }
 .task-cube:hover .cube-body{
-  border-color:rgba(217,119,6,.7);
+  border-color:rgba(217,119,6,.5);
   box-shadow:
-    0 0 20px rgba(217,119,6,.2),
-    0 12px 40px rgba(0,0,0,.7),
-    inset 0 1px 0 rgba(255,255,255,.07);
+    0 4px 16px rgba(217,119,6,.12),
+    0 2px 6px rgba(0,0,0,.06);
 }
 
 /* Reflexo / shimmer no topo do cubo */
 .cube-body::before{
   content:'';position:absolute;
-  top:0;left:0;right:0;height:50%;
-  background:linear-gradient(180deg,rgba(255,255,255,.04) 0%,transparent 100%);
-  border-radius:14px 14px 0 0;
+  top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,transparent,rgba(217,119,6,.35),transparent);
   pointer-events:none;
 }
 
@@ -532,18 +529,18 @@ input,textarea,select{font-family:inherit;font-size:inherit;outline:none;color:v
   width:20px;height:20px;border-radius:50%;
   display:flex;align-items:center;justify-content:center;
   font-size:9px;
-  background:rgba(217,119,6,.1);
-  border:1px solid rgba(217,119,6,.2);
+  background:rgba(217,119,6,.08);
+  border:1px solid rgba(217,119,6,.18);
+  color:#d97706;
 }
 
 /* Conteúdo do cubo */
 .cube-title{
   font-size:12.5px;font-weight:700;
-  color:#fff;line-height:1.35;
+  color:#1e1a17;line-height:1.35;
   margin-bottom:10px;
   margin-right:24px;
   min-height:32px;
-  /* truncar com 2 linhas */
   display:-webkit-box;
   -webkit-line-clamp:2;
   -webkit-box-orient:vertical;
@@ -551,7 +548,7 @@ input,textarea,select{font-family:inherit;font-size:inherit;outline:none;color:v
 }
 .cube-title.done-txt{
   text-decoration:line-through;
-  color:rgba(255,255,255,.35);
+  color:rgba(30,26,23,.35);
 }
 .cube-meta{
   display:flex;align-items:center;justify-content:space-between;
@@ -560,28 +557,28 @@ input,textarea,select{font-family:inherit;font-size:inherit;outline:none;color:v
 .cube-time{
   display:flex;align-items:center;gap:3px;
   font-size:10px;font-weight:700;
-  color:rgba(217,119,6,.7);
+  color:#b45309;
   font-variant-numeric:tabular-nums;
 }
 .cube-freq{
   font-size:9.5px;font-weight:600;letter-spacing:.3px;
-  color:rgba(255,255,255,.2);text-transform:uppercase;
+  color:rgba(30,26,23,.3);text-transform:uppercase;
 }
 .cube-bottom{
   display:flex;align-items:center;justify-content:space-between;
   margin-top:10px;padding-top:8px;
-  border-top:1px solid rgba(255,255,255,.05);
+  border-top:1px solid rgba(0,0,0,.06);
 }
 
 /* Botão de concluir */
 .cube-check{
   width:22px;height:22px;border-radius:50%;
-  border:1.5px solid rgba(217,119,6,.4);
+  border:1.5px solid rgba(217,119,6,.35);
   background:transparent;
   display:flex;align-items:center;justify-content:center;
   cursor:pointer;flex-shrink:0;
 }
-.cube-check:hover{border-color:#d97706;background:rgba(217,119,6,.1);}
+.cube-check:hover{border-color:#d97706;background:rgba(217,119,6,.08);}
 .cube-check.done{background:#22c55e;border-color:#22c55e;}
 .cube-check svg{width:10px;height:10px;color:#fff;}
 
@@ -589,10 +586,10 @@ input,textarea,select{font-family:inherit;font-size:inherit;outline:none;color:v
 .cube-del{
   width:20px;height:20px;border-radius:6px;
   background:transparent;border:none;
-  color:rgba(255,255,255,.15);cursor:pointer;
+  color:rgba(30,26,23,.2);cursor:pointer;
   display:flex;align-items:center;justify-content:center;
 }
-.cube-del:hover{color:var(--red);background:rgba(239,68,68,.1);}
+.cube-del:hover{color:var(--red);background:rgba(239,68,68,.08);}
 .cube-del svg{width:11px;height:11px;}
 
 /* Badge de status */
@@ -601,10 +598,10 @@ input,textarea,select{font-family:inherit;font-size:inherit;outline:none;color:v
   text-transform:uppercase;
   padding:2px 6px;border-radius:4px;
 }
-.cube-badge.late{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.2)}
-.cube-badge.done{background:rgba(34,197,94,.12);color:#4ade80;border:1px solid rgba(34,197,94,.2)}
-.cube-badge.pending{background:rgba(217,119,6,.1);color:#d97706;border:1px solid rgba(217,119,6,.2)}
-.cube-badge.grace{background:rgba(251,191,36,.1);color:#fbbf24;border:1px solid rgba(251,191,36,.2)}
+.cube-badge.late{background:rgba(239,68,68,.08);color:#dc2626;border:1px solid rgba(239,68,68,.15)}
+.cube-badge.done{background:rgba(34,197,94,.08);color:#16a34a;border:1px solid rgba(34,197,94,.15)}
+.cube-badge.pending{background:rgba(217,119,6,.08);color:#b45309;border:1px solid rgba(217,119,6,.15)}
+.cube-badge.grace{background:rgba(251,191,36,.08);color:#d97706;border:1px solid rgba(251,191,36,.15)}
 
 /* Botão de toggle de modo no toolbar */
 .mw-mode-btn{
@@ -3550,9 +3547,47 @@ function renderCubes(tasks){
 
   // Criar arena
   cont.innerHTML = `<div id="mw-cube-arena">
+    <canvas id="cube-snow-canvas"></canvas>
     <div class="cube-arena-hud" id="cube-hud">${tasks.length} TAREFA${tasks.length!==1?'S':''}</div>
   </div>`;
   const arena = document.getElementById('mw-cube-arena');
+
+  // Partículas de neve discreta
+  (function initSnow(){
+    const canvas = document.getElementById('cube-snow-canvas');
+    const ctx = canvas.getContext('2d');
+    let flakes = [];
+    function resize(){
+      canvas.width  = arena.offsetWidth;
+      canvas.height = arena.offsetHeight;
+    }
+    resize();
+    new ResizeObserver(resize).observe(arena);
+    for(let i=0;i<38;i++) flakes.push({
+      x: Math.random()*canvas.width,
+      y: Math.random()*canvas.height,
+      r: Math.random()*2+1,
+      speed: Math.random()*.4+.15,
+      drift: Math.random()*.3-.15,
+      opacity: Math.random()*.18+.06
+    });
+    function draw(){
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      flakes.forEach(f=>{
+        ctx.beginPath();
+        ctx.arc(f.x,f.y,f.r,0,Math.PI*2);
+        ctx.fillStyle=`rgba(180,120,30,${f.opacity})`;
+        ctx.fill();
+        f.y += f.speed;
+        f.x += f.drift;
+        if(f.y > canvas.height+4) { f.y=-4; f.x=Math.random()*canvas.width; }
+        if(f.x > canvas.width+4)  f.x=-4;
+        if(f.x < -4) f.x=canvas.width+4;
+      });
+      requestAnimationFrame(draw);
+    }
+    draw();
+  })();
 
   // Calcular posições iniciais em grid se não tiver salvo
   const cols = Math.max(3, Math.floor(arena.clientWidth / 190));
@@ -3628,8 +3663,8 @@ function spawnCube(arena, t){
       </div>
     </div>`;
 
-  // Abrir tarefa ao clicar no body (não nos botões)
-  el.querySelector('.cube-body').addEventListener('click', (e)=>{
+  // Abrir tarefa apenas com DUPLO CLIQUE (arrastar não abre)
+  el.querySelector('.cube-body').addEventListener('dblclick', (e)=>{
     if(e.target.closest('button')) return;
     openEditMy(t.id);
   });
