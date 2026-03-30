@@ -2893,7 +2893,21 @@ function renderP(p){
   if(p==='tasks')   renderTasks();
   if(p==='meetings')renderMeetings();
   if(p==='inbox')   renderInbox();
-  if(p==='groupinfo')renderGroupInfo();
+  if(p==='groupinfo'){
+    // Forçar refresh de membros ao entrar em Meu Grupo
+    sb.from('group_members').select('*,profiles(id,name,avatar,nickname,notifications_disabled)').eq('group_id',CUR.groupId).then(({data:members})=>{
+      if(!members) return;
+      _cache.members=members.filter(m=>m.user_id).map(m=>{
+        const p=m.profiles||{};
+        return{id:p.id||m.user_id,name:p.name||m.user_id.slice(0,8),avatar:p.avatar||null,role:m.role||'member',nickname:p.nickname||null,status:m.status||'active',notifDisabled:p.notifications_disabled||false};
+      });
+      if(CUR.user&&!_cache.members.find(m=>m.id===CUR.user.id)){
+        _cache.members.push({id:CUR.user.id,name:CUR.user.name,avatar:CUR.user.avatar||null,nickname:CUR.user.nickname||null,role:'member',status:'active',notifDisabled:CUR.user.notifDisabled||false});
+      }
+      fillMemberSelects();
+      renderGroupInfo();
+    });
+  }
   if(p==='profile')renderProfile();
   if(p==='help')renderHelp();
   if(p==='projects') renderProjects();
@@ -4596,7 +4610,19 @@ async function submitMyTask(){
   _cache.myTasksByUser=_cache.myTasksByUser||{};_cache.myTasksByUser[CUR.user.id]=_cache.myTasksByUser[CUR.user.id]||[];_cache.myTasksByUser[CUR.user.id].unshift(task);
   addAct('Nova tarefa pessoal: <strong>'+title+'</strong>');
   hideLoader();closeM('m-new-my');clearF('m-new-my');banner('Tarefa criada!','ok');
-  renderMyWork();
+  if(cubeMode){
+    // Adicionar cubo direto no arena existente (sem reconstruir tudo)
+    const arena=document.getElementById('mw-cube-arena');
+    if(arena){
+      spawnCube(arena, task);
+      const hud=document.getElementById('cube-hud');
+      if(hud) hud.textContent=getMyTasks().length+' TAREFA'+(getMyTasks().length!==1?'S':'');
+    } else {
+      renderMyWork(); // arena não existe, reconstruir
+    }
+  } else {
+    renderMyWork();
+  }
 }
 
 async function submitMeet(){
@@ -4749,7 +4775,7 @@ async function initApp(){
         if(statEl) statEl.textContent=mapped.filter(m=>m.status!=='inactive').length;
       }
     });
-  }, 30000);
+  }, 10000); // Sync de membros a cada 10s (era 30s)
   purgeAndResetMyTasks();purgeTasks();checkMyLate();checkMeetSoon();updateBadges();updateNotifBell();
   // Relógio do dashboard — atualizar a cada minuto
   setInterval(()=>{if(page==='dashboard')renderDash();},60000);
@@ -4846,6 +4872,27 @@ let _realtimeCh=null;
 const _rtTimer={task:null,meet:null,proj:null};
 function _debRT(key,fn,ms=500){clearTimeout(_rtTimer[key]);_rtTimer[key]=setTimeout(fn,ms);}
 
+// Atualiza a lista de membros em qualquer contexto
+function _refreshMemberListIfOpen(){
+  const mg=document.getElementById('gi-members-grid');
+  if(!mg) return; // elemento não existe ainda
+  const members2=(_cache.members||[]);
+  const isAdmin2=CUR.groupCreatedBy===CUR.user.id;
+  mg.innerHTML='<div class="gi-members-grid">'+members2.map(m=>{
+    const isMe=m.id===CUR.user.id;
+    const av=m.avatar?`<img src="${m.avatar}" style="width:100%;height:100%;object-fit:cover"/>`:(m.nickname||m.name||'?')[0].toUpperCase();
+    return`<div class="gi-member-card">
+      <div class="gi-member-av">${av}</div>
+      <div style="flex:1;min-width:0">
+        <div class="gi-member-name">${m.nickname||m.name||'—'}</div>
+        <div class="gi-member-role">${m.role==='admin'?'Administrador':'Membro'}</div>
+        ${isMe?'<span class="gi-member-me">Você</span>':''}
+        ${m.status==='inactive'?'<span class="gi-member-me" style="background:rgba(239,68,68,.08);color:var(--red)">Desativado</span>':''}
+      </div>
+    </div>`;
+  }).join('')+'</div>';
+}
+
 function setupRealtime(){
   if(_realtimeCh) sb.removeChannel(_realtimeCh);
   _realtimeCh=sb.channel('group-'+CUR.groupId)
@@ -4884,31 +4931,50 @@ function setupRealtime(){
     .on('postgres_changes',{event:'*',schema:'public',table:'ideas',filter:'group_id=eq.'+CUR.groupId},()=>{})
     .on('postgres_changes',{event:'*',schema:'public',table:'chat_messages',filter:'group_id=eq.'+CUR.groupId},()=>{sb.from('chat_messages').select('*,profiles(name,avatar)').eq('group_id',CUR.groupId).order('created_at').limit(200).then(({data})=>{_cache.chat=(data||[]).map(m=>({id:m.id,author:m.profiles?.name||'?',authorId:m.user_id,avatar:m.profiles?.avatar||null,text:m.text,time:m.created_at}));if(chatOpen)renderChat();updateChatPip();});})
     .on('postgres_changes',{event:'*',schema:'public',table:'inbox',filter:'group_id=eq.'+CUR.groupId},()=>{sb.from('inbox').select('*').eq('group_id',CUR.groupId).eq('user_id',CUR.user.id).order('created_at',{ascending:false}).limit(100).then(({data})=>{_cache.inbox=(data||[]).map(n=>({id:n.id,msg:n.msg,icon:n.icon,type:n.type,readBy:n.read?[CUR.user.id]:[],time:n.created_at}));updateBadges();if(page==='inbox')renderInbox();});})
+    // MY_TASKS — sincronizar tarefas pessoais em tempo real
+    .on('postgres_changes',{event:'*',schema:'public',table:'my_tasks',filter:'group_id=eq.'+CUR.groupId},(payload)=>{
+      // Só recarregar se for de outro device/aba (evitar loop com submits locais)
+      sb.from('my_tasks').select('*').eq('group_id',CUR.groupId).eq('user_id',CUR.user.id).order('created_at',{ascending:false}).then(({data:myTasks})=>{
+        const fresh=(myTasks||[]).map(t=>({id:t.id,title:t.title,frequency:t.frequency,limitTime:t.limit_time,status:t.status,statusAt:t.status_at,createdAt:t.created_at,userId:t.user_id,weekdays:t.weekdays||null}));
+        _cache.myTasks=fresh;
+        _cache.myTasksByUser=_cache.myTasksByUser||{};
+        _cache.myTasksByUser[CUR.user.id]=fresh;
+        if(page==='mywork') renderMyWork();
+        if(page==='dashboard') renderDash();
+        updateBadges();
+      });
+    })
     .on('postgres_changes',{event:'*',schema:'public',table:'group_members',filter:'group_id=eq.'+CUR.groupId},(payload)=>{
       // Recarregar membros em tempo real quando alguém entra, sai ou é desativado
       const rtEvent = payload.eventType; // INSERT | UPDATE | DELETE
       sb.from('group_members').select('*,profiles(id,name,avatar,nickname,notifications_disabled)').eq('group_id',CUR.groupId).then(({data:members})=>{
-        _cache.members=(members||[]).filter(m=>m.user_id).map(m=>({
-          id:m.profiles?.id||m.user_id,
-          name:m.profiles?.name||m.user_id.slice(0,8),
-          avatar:m.profiles?.avatar||null,
-          role:m.role||'member',
-          nickname:m.profiles?.nickname||null,
-          status:m.status||'active'
-        }));
+        _cache.members=(members||[]).filter(m=>m.user_id).map(m=>{
+          const p=m.profiles||{};
+          return {
+            id:p.id||m.user_id,
+            name:p.name||m.user_id.slice(0,8),
+            avatar:p.avatar||null,
+            role:m.role||'member',
+            nickname:p.nickname||null,
+            status:m.status||'active',
+            notifDisabled:p.notifications_disabled||false
+          };
+        });
         if(CUR.user&&!_cache.members.find(m=>m.id===CUR.user.id)){
           _cache.members.push({id:CUR.user.id,name:CUR.user.name,avatar:CUR.user.avatar||null,nickname:CUR.user.nickname||null,role:'member',status:'active',notifDisabled:CUR.user.notifDisabled||false});
         }
         updateBadges();
         fillMemberSelects();
-        // Atualizar contagem em tempo real em qualquer página
+        // Atualizar UI de membros em QUALQUER página
+        const activeM=_cache.members.filter(m=>m.status!=='inactive');
         const statEl=document.getElementById('gi-stat-members');
-        if(statEl) statEl.textContent=_cache.members.filter(m=>m.status!=='inactive').length;
+        if(statEl) statEl.textContent=activeM.length;
         const countEl2=document.getElementById('gi-member-count');
-        if(countEl2) countEl2.textContent='('+_cache.members.filter(m=>m.status!=='inactive').length+')';
+        if(countEl2) countEl2.textContent='('+activeM.length+')';
+        // Sempre re-renderizar Meu Grupo para mostrar novo membro
         if(page==='groupinfo') renderGroupInfo();
+        else _refreshMemberListIfOpen();
         if(page==='dashboard') renderDash();
-        // Banner contextual por tipo de evento
         if(rtEvent==='INSERT') banner('👋 Novo membro entrou no grupo!','ok');
         else if(rtEvent==='DELETE') banner('Membro saiu do grupo.','info');
       });
