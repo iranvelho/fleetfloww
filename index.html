@@ -2894,7 +2894,19 @@ function renderP(p){
   if(p==='meetings')renderMeetings();
   if(p==='inbox')   renderInbox();
   if(p==='groupinfo'){
-    renderGroupInfo(); // renderGroupInfo já faz fetch interno e re-renderiza
+    // Forçar refresh de membros ao entrar em Meu Grupo
+    sb.from('group_members').select('*,profiles(id,name,avatar,nickname,notifications_disabled)').eq('group_id',CUR.groupId).then(({data:members})=>{
+      if(!members) return;
+      _cache.members=members.filter(m=>m.user_id).map(m=>{
+        const p=m.profiles||{};
+        return{id:p.id||m.user_id,name:p.name||m.user_id.slice(0,8),avatar:p.avatar||null,role:m.role||'member',nickname:p.nickname||null,status:m.status||'active',notifDisabled:p.notifications_disabled||false};
+      });
+      if(CUR.user&&!_cache.members.find(m=>m.id===CUR.user.id)){
+        _cache.members.push({id:CUR.user.id,name:CUR.user.name,avatar:CUR.user.avatar||null,nickname:CUR.user.nickname||null,role:'member',status:'active',notifDisabled:CUR.user.notifDisabled||false});
+      }
+      fillMemberSelects();
+      renderGroupInfo();
+    });
   }
   if(p==='profile')renderProfile();
   if(p==='help')renderHelp();
@@ -4737,10 +4749,10 @@ async function initApp(){
   // Timer de 2min — funções leves. purgeTasks separado a cada 5min
   setInterval(()=>{purgeAndResetMyTasks();checkMyLate();checkMeetSoon();updateBadges();if(page==='mywork')renderMyWork();},120000);
   setInterval(()=>{purgeTasks();},300000); // purge a cada 5min
-  // Sync de membros a cada 10s como fallback do realtime
+  // Sync de membros a cada 30s como fallback do realtime
   setInterval(()=>{
     if(!CUR.groupId) return;
-    sb.from('group_members').select('user_id,role,status,profiles(id,name,avatar,nickname,notifications_disabled)').eq('group_id',CUR.groupId).then(({data:members})=>{
+    sb.from('group_members').select('*,profiles(id,name,avatar,nickname,notifications_disabled)').eq('group_id',CUR.groupId).then(({data:members})=>{
       if(!members) return;
       const mapped=(members||[]).filter(m=>m.user_id).map(m=>({
         id:m.profiles?.id||m.user_id,
@@ -4748,23 +4760,22 @@ async function initApp(){
         avatar:m.profiles?.avatar||null,
         role:m.role||'member',
         nickname:m.profiles?.nickname||null,
-        status:m.status||'active',
-        notifDisabled:m.profiles?.notifications_disabled||false
+        status:m.status||'active'
       }));
+      // Só atualiza se houver diferença
       const prevIds=(_cache.members||[]).map(m=>m.id).sort().join();
       const newIds=mapped.map(m=>m.id).sort().join();
       if(prevIds!==newIds){
         if(CUR.user&&!mapped.find(m=>m.id===CUR.user.id)){
-          mapped.push({id:CUR.user.id,name:CUR.user.name,avatar:CUR.user.avatar||null,nickname:CUR.user.nickname||null,role:'member',status:'active',notifDisabled:CUR.user.notifDisabled||false});
+          mapped.push({id:CUR.user.id,name:CUR.user.name,avatar:CUR.user.avatar||null,nickname:CUR.user.nickname||null,role:'member',status:'active'});
         }
         _cache.members=mapped;
         fillMemberSelects();
-        if(page==='groupinfo') renderGroupInfo();
         const statEl=document.getElementById('gi-stat-members');
         if(statEl) statEl.textContent=mapped.filter(m=>m.status!=='inactive').length;
       }
     });
-  }, 10000);
+  }, 10000); // Sync de membros a cada 10s (era 30s)
   purgeAndResetMyTasks();purgeTasks();checkMyLate();checkMeetSoon();updateBadges();updateNotifBell();
   // Relógio do dashboard — atualizar a cada minuto
   setInterval(()=>{if(page==='dashboard')renderDash();},60000);
@@ -5888,79 +5899,52 @@ openM = function(id){
 //  GROUP INFO PAGE
 // ═══════════════════════════════════════════════════════════
 function renderGroupInfo(){
-  // Buscar dados frescos de membros e renderizar a aba completa
-  const _doRender = () => {
-    const nameEl=$('#gi-name'); if(nameEl) nameEl.textContent=CUR.groupName||'—';
-    const descEl=$('#gi-desc'); if(descEl) descEl.textContent='';
-    const avImg=$('#gi-av-img'), avIni=$('#gi-av-ini');
-    if(CUR.groupAvatar){
-      if(avImg){avImg.src=CUR.groupAvatar;avImg.style.display='block';}
-      if(avIni) avIni.style.display='none';
-    } else {
-      if(avImg) avImg.style.display='none';
-      if(avIni){avIni.style.display='';avIni.textContent=ini(CUR.groupName||'G');}
-    }
-    const codeEl=$('#gi-code');
-    if(codeEl) codeEl.textContent=CUR.groupCode||'—';
-    const isAdmin=CUR.groupCreatedBy===CUR.user.id;
-    const adminActs=$('#gi-admin-acts');
-    if(adminActs) adminActs.style.display=isAdmin?'flex':'none';
-    const leaveBtn=$('#gi-leave-btn');
-    if(leaveBtn) leaveBtn.style.display=isAdmin?'none':'inline-flex';
-    const stats=$('#gi-stats');
-    if(stats){stats.innerHTML=`
-      <div class="gi-stat"><span class="gi-stat-val">${(_cache.tasks||[]).length}</span><span class="gi-stat-lbl">Tarefas</span></div>
-      <div class="gi-stat"><span class="gi-stat-val">${(_cache.tasks||[]).filter(t=>t.status==='done').length}</span><span class="gi-stat-lbl">Concluídas</span></div>
-      <div class="gi-stat"><span class="gi-stat-val">${(_cache.meetings||[]).length}</span><span class="gi-stat-lbl">Reuniões</span></div>
-      <div class="gi-stat"><span class="gi-stat-val">${(_cache.projects||[]).length}</span><span class="gi-stat-lbl">Projetos</span></div>
-      <div class="gi-stat"><span class="gi-stat-val" id="gi-stat-members">${(_cache.members||[]).filter(m=>m.status!=='inactive').length}</span><span class="gi-stat-lbl">Membros ativos</span></div>
-    `;}
-    const countEl=$('#gi-member-count');
-    if(countEl) countEl.textContent=`(${(_cache.members||[]).filter(m=>m.status!=='inactive').length})`;
-    const mg=$('#gi-members-grid');
-    if(!mg) return;
-    const members2=(_cache.members||[]);
-    const isAdmin2=CUR.groupCreatedBy===CUR.user.id;
-    mg.innerHTML=`<div class="gi-members-grid">${members2.map(m=>{
-      const isMe=m.id===CUR.user.id;
-      const isInactive=m.status==='inactive';
-      const avContent=m.avatar?`<img src="${m.avatar}"/>`:'';
-      const displayName=m.nickname||m.name;
-      return`<div class="gi-member-card" style="${isInactive?'opacity:.45;filter:grayscale(.5)':''}">
-        <div class="gi-member-av">${avContent||ini(m.name)}</div>
-        <div class="gi-member-name">${displayName}</div>
-        ${isInactive?'<span style="font-size:9px;font-weight:700;color:var(--red);background:var(--red-s);padding:1px 5px;border-radius:99px">Inativo</span>':''}
-        ${isMe?'<span class="gi-member-me">Você</span>':''}
-        ${isAdmin2&&!isMe?`<button onclick="event.stopPropagation();${isInactive?`reactivateMember('${m.id}','${displayName}')`:`deactivateMember('${m.id}','${displayName}')`}" style="font-size:9.5px;padding:2px 7px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;color:${isInactive?'var(--green)':'var(--tx3)'};">${isInactive?'Reativar':'Desativar'}</button>`:''}
-      </div>`;
-    }).join('')}</div>`;
-    loadGroupCover();
-  };
+  const g=getG();
+  $('#gi-name').textContent=CUR.groupName||'—';
+  $('#gi-desc').textContent='';
+  if(CUR.groupAvatar){$('#gi-av-img').src=CUR.groupAvatar;$('#gi-av-img').style.display='block';$('#gi-av-ini').style.display='none';}
+  else{$('#gi-av-img').style.display='none';$('#gi-av-ini').style.display='';$('#gi-av-ini').textContent=ini(CUR.groupName||'G');}
 
-  // Renderizar com dados do cache imediatamente
-  _doRender();
+  // Code
+  const codeEl=$('#gi-code');if(codeEl)codeEl.textContent=CUR.groupCode||'—';
 
-  // Buscar membros frescos do banco e re-renderizar
-  if(CUR.groupId){
-    sb.from('group_members')
-      .select('user_id,role,status,profiles(id,name,avatar,nickname,notifications_disabled)')
-      .eq('group_id',CUR.groupId)
-      .then(({data:members})=>{
-        if(!members) return;
-        _cache.members=members.filter(m=>m.user_id).map(m=>{
-          const p=m.profiles||{};
-          return{id:p.id||m.user_id,name:p.name||m.user_id.slice(0,8),avatar:p.avatar||null,
-            role:m.role||'member',nickname:p.nickname||null,status:m.status||'active',
-            notifDisabled:p.notifications_disabled||false};
-        });
-        if(CUR.user&&!_cache.members.find(m=>m.id===CUR.user.id)){
-          _cache.members.push({id:CUR.user.id,name:CUR.user.name,avatar:CUR.user.avatar||null,
-            nickname:CUR.user.nickname||null,role:'member',status:'active',notifDisabled:CUR.user.notifDisabled||false});
-        }
-        fillMemberSelects();
-        if(page==='groupinfo') _doRender(); // re-renderizar com dados frescos
-      });
-  }
+  // Botões: admin vê "Apagar" + "Editar", membro vê "Sair"
+  const isAdmin=CUR.groupCreatedBy===CUR.user.id;
+  const adminActs=$('#gi-admin-acts');
+  if(adminActs)adminActs.style.display=isAdmin?'flex':'none';
+  const leaveBtn=$('#gi-leave-btn');
+  if(leaveBtn)leaveBtn.style.display=isAdmin?'none':'inline-flex';
+
+  // Stats
+  const stats=$('#gi-stats');
+  const activeMembers = (_cache.members||[]).filter(m=>m.status!=='inactive');
+  if(stats){stats.innerHTML=`
+    <div class="gi-stat"><span class="gi-stat-val">${(_cache.tasks||[]).length}</span><span class="gi-stat-lbl">Tarefas</span></div>
+    <div class="gi-stat"><span class="gi-stat-val">${(_cache.tasks||[]).filter(t=>t.status==='done').length}</span><span class="gi-stat-lbl">Concluídas</span></div>
+    <div class="gi-stat"><span class="gi-stat-val">${(_cache.meetings||[]).length}</span><span class="gi-stat-lbl">Reuniões</span></div>
+    <div class="gi-stat"><span class="gi-stat-val">${(_cache.projects||[]).length}</span><span class="gi-stat-lbl">Projetos</span></div>
+    <div class="gi-stat"><span class="gi-stat-val" id="gi-stat-members">${(_cache.members||[]).filter(m=>m.status!=='inactive').length}</span><span class="gi-stat-lbl">Membros ativos</span></div>
+  `;}
+  // Members
+  const countEl=$('#gi-member-count');
+  const activeMembersCount=(_cache.members||[]).filter(m=>m.status!=='inactive').length;
+  if(countEl)countEl.textContent=`(${activeMembersCount})`;
+  const mg=$('#gi-members-grid');
+  const members2=(_cache.members||[]);
+  const isAdmin2=CUR.groupCreatedBy===CUR.user.id;
+  if(mg){mg.innerHTML=`<div class="gi-members-grid">${members2.map(m=>{
+    const isMe=m.id===CUR.user.id;
+    const isInactive=m.status==='inactive';
+    const avContent=m.avatar?`<img src="${m.avatar}"/>`:'';
+    const displayName=m.nickname||m.name;
+    return`<div class="gi-member-card" style="${isInactive?'opacity:.45;filter:grayscale(.5)':''}">
+      <div class="gi-member-av">${avContent||ini(m.name)}</div>
+      <div class="gi-member-name">${displayName}</div>
+      ${isInactive?'<span style="font-size:9px;font-weight:700;color:var(--red);background:var(--red-s);padding:1px 5px;border-radius:99px">Inativo</span>':''}
+      ${isMe?'<span class="gi-member-me">Você</span>':''}
+      ${isAdmin2&&!isMe?`<button onclick="event.stopPropagation();${isInactive?`reactivateMember('${m.id}','${displayName}')`:`deactivateMember('${m.id}','${displayName}')`}" style="font-size:9.5px;padding:2px 7px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;color:${isInactive?'var(--green)':'var(--tx3)'};">${isInactive?'Reativar':'Desativar'}</button>`:''}
+    </div>`;
+  }).join('')}</div>`;}
 }
 
 function copyGroupCode(){
