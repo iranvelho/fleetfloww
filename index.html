@@ -2003,7 +2003,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
               Sair do Grupo
             </button>
             <!-- Botões admin — visíveis apenas para o criador -->
-            <div id="gi-admin-acts" style="display:none;gap:8px;align-items:center;display:none">
+            <div id="gi-admin-acts" style="gap:8px;align-items:center;display:none">
               <button class="btn-sec" onclick="deleteGroup()" style="color:var(--red);border-color:rgba(184,60,43,.4);gap:5px">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
                 Apagar Grupo
@@ -2817,7 +2817,7 @@ async function doGroup(){
     showLoader('Entrando...');
     await sb.from('group_members').upsert({group_id:g.id,user_id:CUR.user.id,role:'member'},{onConflict:'group_id,user_id'});
     hideLoader();
-    CUR.groupId=g.id;CUR.groupName=g.name;CUR.groupCode=g.code;CUR.groupAvatar=g.avatar;CUR.groupCreatedBy=g.created_by;
+    CUR.groupId=g.id;CUR.groupName=g.name;CUR.groupCode=g.code;CUR.groupAvatar=g.avatar;CUR.groupCreatedBy=g.created_by;CUR.groupDesc=g.description||'';
     launchApp();
   } else {
     const gname=$('#g-create-name').value.trim();
@@ -2829,7 +2829,7 @@ async function doGroup(){
     if(error){hideLoader();gerr.textContent='Erro ao criar grupo.';gerr.classList.add('show');return;}
     await sb.from('group_members').insert({group_id:g.id,user_id:CUR.user.id,role:'admin'});
     hideLoader();
-    CUR.groupId=g.id;CUR.groupName=g.name;CUR.groupCode=g.code;CUR.groupAvatar=g.avatar;CUR.groupCreatedBy=g.created_by;
+    CUR.groupId=g.id;CUR.groupName=g.name;CUR.groupCode=g.code;CUR.groupAvatar=g.avatar;CUR.groupCreatedBy=g.created_by;CUR.groupDesc=g.description||'';
     launchApp();
   }
 }
@@ -2846,7 +2846,7 @@ async function handleAuthSession(session){
   hideLoader();
   if(memberships&&memberships.length){
     const gm=memberships[0], g=gm.groups;
-    CUR.groupId=g.id;CUR.groupName=g.name;CUR.groupCode=g.code;CUR.groupAvatar=g.avatar;CUR.groupCreatedBy=g.created_by;
+    CUR.groupId=g.id;CUR.groupName=g.name;CUR.groupCode=g.code;CUR.groupAvatar=g.avatar;CUR.groupCreatedBy=g.created_by;CUR.groupDesc=g.description||'';
     launchApp();
   } else {
     $$('.auth-step').forEach(el=>el.classList.remove('active'));
@@ -5496,7 +5496,7 @@ async function leaveGroup(groupId){
     if(rem.length){
       // Trocar para outro grupo
       const g=rem[0].groups;
-      CUR.groupId=g.id;CUR.groupName=g.name;CUR.groupCode=g.code;CUR.groupAvatar=g.avatar;CUR.groupCreatedBy=g.created_by;
+      CUR.groupId=g.id;CUR.groupName=g.name;CUR.groupCode=g.code;CUR.groupAvatar=g.avatar;CUR.groupCreatedBy=g.created_by;CUR.groupDesc=g.description||'';
       await loadGroupData();refreshAppForGroup();
       banner('Você saiu do grupo.','ok');
     } else {
@@ -5913,10 +5913,19 @@ openM = function(id){
 function renderGroupInfo(){
   const g=getG();
   $('#gi-name').textContent=CUR.groupName||'—';
-  $('#gi-desc').textContent='';
+  const gDesc = CUR.groupDesc||'';
+  $('#gi-desc').textContent = gDesc || 'Sem descrição';
   if(CUR.groupAvatar){$('#gi-av-img').src=CUR.groupAvatar;$('#gi-av-img').style.display='block';$('#gi-av-ini').style.display='none';}
   else{$('#gi-av-img').style.display='none';$('#gi-av-ini').style.display='';$('#gi-av-ini').textContent=ini(CUR.groupName||'G');}
 
+  // Cover image
+  const coverDiv=$('#gi-cover-div');
+  const coverImg=$('#gi-cover-img');
+  const removeBtn=$('#gi-cover-remove-btn');
+  if(coverImg){
+    if(CUR.groupCover){coverImg.src=CUR.groupCover;coverImg.style.display='';if(removeBtn)removeBtn.style.display='';}
+    else{coverImg.style.display='none';if(removeBtn)removeBtn.style.display='none';}
+  }
   // Code
   const codeEl=$('#gi-code');if(codeEl)codeEl.textContent=CUR.groupCode||'—';
 
@@ -5944,7 +5953,11 @@ function renderGroupInfo(){
   const mg=$('#gi-members-grid');
   const members2=(_cache.members||[]);
   const isAdmin2=CUR.groupCreatedBy===CUR.user.id;
-  if(mg){mg.innerHTML=`<div class="gi-members-grid">${members2.map(m=>{
+  if(mg){
+    if(!members2.length){
+      mg.innerHTML='<div style="padding:20px;text-align:center;color:var(--tx3);font-size:12.5px">Carregando membros...</div>';
+    } else {
+      mg.innerHTML=`<div class="gi-members-grid">${members2.map(m=>{
     const isMe=m.id===CUR.user.id;
     const isInactive=m.status==='inactive';
     const avContent=m.avatar?`<img src="${m.avatar}"/>`:'';
@@ -5956,7 +5969,9 @@ function renderGroupInfo(){
       ${isMe?'<span class="gi-member-me">Você</span>':''}
       ${isAdmin2&&!isMe?`<button onclick="event.stopPropagation();${isInactive?`reactivateMember('${m.id}','${displayName}')`:`deactivateMember('${m.id}','${displayName}')`}" style="font-size:9.5px;padding:2px 7px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;color:${isInactive?'var(--green)':'var(--tx3)'};">${isInactive?'Reativar':'Desativar'}</button>`:''}
     </div>`;
-  }).join('')}</div>`;}
+  }).join('')}</div>`;
+    }
+  }
 }
 
 function copyGroupCode(){
