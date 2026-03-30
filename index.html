@@ -4611,18 +4611,34 @@ async function submitMyTask(){
   addAct('Nova tarefa pessoal: <strong>'+title+'</strong>');
   hideLoader();closeM('m-new-my');clearF('m-new-my');banner('Tarefa criada!','ok');
   if(cubeMode){
-    // Adicionar cubo direto no arena existente (sem reconstruir tudo)
     const arena=document.getElementById('mw-cube-arena');
     if(arena){
-      spawnCube(arena, task);
+      // Calcular posição livre — próxima célula do grid sem cubo
+      const cols=Math.max(3,Math.floor((arena.clientWidth||600)/190));
+      const existingCount=Object.keys(_cubePositions).length;
+      const col=existingCount%cols, row=Math.floor(existingCount/cols);
+      _cubePositions[task.id]={x:24+col*185, y:24+row*200};
+      // Remover cubo "+" antigo e spawnar tarefa + novo "+"
+      const oldAdd=document.getElementById('cube-add-btn');
+      if(oldAdd) oldAdd.remove();
+      spawnCube(arena,task);
+      // Reposicionar cubo "+" para próxima célula livre
+      const newIdx=Object.keys(_cubePositions).length;
+      const nCol=newIdx%cols, nRow=Math.floor(newIdx/cols);
+      const addEl=document.createElement('div');
+      addEl.className='task-cube';addEl.id='cube-add-btn';
+      addEl.style.cssText=`left:${24+nCol*185}px;top:${24+nRow*200}px;z-index:4;`;
+      addEl.innerHTML=`<div class="cube-body" onclick="openM('m-new-my')" style="cursor:pointer;border:2px dashed rgba(217,119,6,.35);background:#fffdf8;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:110px;gap:8px;box-shadow:none;">
+        <div style="width:32px;height:32px;border-radius:50%;background:rgba(217,119,6,.10);border:1.5px solid rgba(217,119,6,.30);display:flex;align-items:center;justify-content:center;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.5" stroke-linecap="round" style="width:16px;height:16px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </div>
+        <span style="font-size:11.5px;font-weight:700;color:rgba(217,119,6,.7);letter-spacing:.2px">Nova Tarefa</span>
+      </div>`;
+      arena.appendChild(addEl);
       const hud=document.getElementById('cube-hud');
       if(hud) hud.textContent=getMyTasks().length+' TAREFA'+(getMyTasks().length!==1?'S':'');
-    } else {
-      renderMyWork(); // arena não existe, reconstruir
-    }
-  } else {
-    renderMyWork();
-  }
+    } else { renderMyWork(); }
+  } else { renderMyWork(); }
 }
 
 async function submitMeet(){
@@ -4802,69 +4818,73 @@ async function initApp(){
 async function loadGroupData(){
   if(!CUR.groupId||!CUR.user) return;
   const gid=CUR.groupId, uid_val=CUR.user.id;
-  // Queries críticas em paralelo (sem activity — carregada lazy)
+
+  // Fase 1 — dados críticos para renderizar a página imediatamente
   const [
-    {data:tasks},{data:myTasks},{data:meetings},
-    {data:projects},{data:steps},{data:members},{data:inbox}
+    {data:tasks},{data:myTasks},{data:members}
   ] = await Promise.all([
-    sb.from('tasks').select('*').eq('group_id',gid).order('created_at',{ascending:false}),
-    sb.from('my_tasks').select('*').eq('group_id',gid).eq('user_id',uid_val).order('created_at',{ascending:false}),
-    sb.from('meetings').select('*,profiles(name,avatar)').eq('group_id',gid).order('date'),
-    sb.from('projects').select('*').eq('group_id',gid).order('created_at',{ascending:false}),
-    sb.from('project_steps').select('*').order('position'),
-    sb.from('group_members').select('*,profiles(id,name,avatar,nickname,notifications_disabled)').eq('group_id',gid),
-    sb.from('inbox').select('*').eq('group_id',gid).eq('user_id',uid_val).order('created_at',{ascending:false}).limit(20)
+    sb.from('tasks')
+      .select('id,title,status,priority,frequency,visibility,integrate_for,created_by,status_at,created_at,description,due_date,weekdays,archived,archived_at')
+      .eq('group_id',gid).order('created_at',{ascending:false}),
+    sb.from('my_tasks')
+      .select('id,title,frequency,limit_time,status,status_at,created_at,user_id,weekdays')
+      .eq('group_id',gid).eq('user_id',uid_val).order('created_at',{ascending:false}),
+    sb.from('group_members')
+      .select('user_id,role,status,profiles(id,name,avatar,nickname,notifications_disabled)')
+      .eq('group_id',gid)
   ]);
-  // Activity carregada de forma lazy (não bloqueia UI)
-  const activity = null; // será carregado sob demanda
+
+  // Processar dados críticos imediatamente
   _cache.tasks=(tasks||[]).map(t=>({id:t.id,title:t.title,status:t.status,priority:t.priority,frequency:t.frequency,visibility:t.visibility,integrateFor:t.integrate_for||[],createdBy:t.created_by,statusAt:t.status_at,createdAt:t.created_at,limitTime:t.description||null,dueDate:t.due_date||null,weekdays:t.weekdays||null,archived:t.archived||false,archivedAt:t.archived_at||null}));
   _cache.myTasks=(myTasks||[]).map(t=>({id:t.id,title:t.title,frequency:t.frequency,limitTime:t.limit_time,status:t.status,statusAt:t.status_at,createdAt:t.created_at,userId:t.user_id}));
   _cache.myTasksByUser={};
   (_cache.myTasks).forEach(t=>{if(!_cache.myTasksByUser[t.userId])_cache.myTasksByUser[t.userId]=[];_cache.myTasksByUser[t.userId].push(t);});
-  _cache.meetings=(meetings||[]).map(m=>({id:m.id,title:m.title,description:m.description,participants:m.participants,date:m.date,time:m.time,calType:m.cal_type,owner:m.profiles?.name||'',ownerId:m.owner,createdAt:m.created_at}));
-  _cache.projects=(projects||[]).map(p=>({id:p.id,name:p.name,description:p.description,color:p.color,status:p.status,sharedWith:p.shared_with||[],createdBy:p.created_by,completedAt:p.completed_at,createdAt:p.created_at,steps:(steps||[]).filter(s=>s.project_id===p.id).map(s=>({id:s.id,name:s.name,done:s.done,position:s.position,addedBy:s.added_by,createdAt:s.created_at})).sort((a,b)=>a.position-b.position)}));
-  // Usar dados do join (profiles já vêm junto)
   _cache.members=(members||[]).filter(m=>m.user_id).map(m=>{
     const p=m.profiles||{};
-    return {
-      id:m.user_id,
-      name:p.name||m.user_id.slice(0,8),
-      avatar:p.avatar||null,
-      role:m.role||'member',
-      nickname:p.nickname||null,
-      status:m.status||'active',
-      notifDisabled:p.notifications_disabled||false
-    };
+    return {id:m.user_id,name:p.name||m.user_id.slice(0,8),avatar:p.avatar||null,role:m.role||'member',nickname:p.nickname||null,status:m.status||'active',notifDisabled:p.notifications_disabled||false};
   });
-  // Garantir que o próprio usuário está no cache
   if(CUR.user&&!_cache.members.find(m=>m.id===CUR.user.id)){
     _cache.members.push({id:CUR.user.id,name:CUR.user.name,avatar:CUR.user.avatar||null,nickname:CUR.user.nickname||null,role:'member',status:'active',notifDisabled:CUR.user.notifDisabled||false});
   }
-  // Respeitar apagamento manual — ignorar notificações anteriores ao último clear
-  const clearedAt = parseInt(localStorage.getItem('ff_inbox_cleared_'+CUR.user.id)||'0');
-  const _clearedAt2=parseInt(localStorage.getItem('ff_inbox_cleared_'+CUR.user.id)||'0');
-  // Construir set de task IDs existentes para filtrar notificações órfãs
-  const _existingTaskIds = new Set((_cache.tasks||[]).map(t=>t.id));
-  const _ignoredIds = new Set(CUR.user.ignoredTasks||[]);
-  _cache.inbox=(inbox||[])
-    .filter(n=>{
-      if(_clearedAt2 && new Date(n.created_at).getTime()<=clearedAt) return false;
-      // Filtrar notificações de tarefas ignoradas
-      if(n.type==='task'||n.type==='tarefa vencida'||n.type==='task_assigned'){
-        // Verificar se a tarefa ainda existe e não está ignorada
-        // Notificações sem ref específica passam normalmente
-      }
+
+  // Fase 2 — dados secundários em paralelo (não bloqueiam a UI)
+  Promise.all([
+    sb.from('meetings')
+      .select('id,title,description,participants,date,time,cal_type,owner,created_at,profiles(name,avatar)')
+      .eq('group_id',gid).order('date'),
+    sb.from('projects')
+      .select('id,name,description,color,status,shared_with,created_by,completed_at,created_at')
+      .eq('group_id',gid).order('created_at',{ascending:false}),
+    sb.from('project_steps')
+      .select('id,project_id,name,done,position,added_by,created_at')
+      .eq('group_id',gid).order('position'),
+    sb.from('inbox')
+      .select('id,msg,icon,type,read,created_at')
+      .eq('group_id',gid).eq('user_id',uid_val)
+      .order('created_at',{ascending:false}).limit(30)
+  ]).then(([{data:meetings},{data:projects},{data:steps},{data:inbox}])=>{
+    _cache.meetings=(meetings||[]).map(m=>({id:m.id,title:m.title,description:m.description,participants:m.participants,date:m.date,time:m.time,calType:m.cal_type,owner:m.profiles?.name||'',ownerId:m.owner,createdAt:m.created_at}));
+    _cache.projects=(projects||[]).map(p=>({id:p.id,name:p.name,description:p.description,color:p.color,status:p.status,sharedWith:p.shared_with||[],createdBy:p.created_by,completedAt:p.completed_at,createdAt:p.created_at,steps:(steps||[]).filter(s=>s.project_id===p.id).map(s=>({id:s.id,name:s.name,done:s.done,position:s.position,addedBy:s.added_by,createdAt:s.created_at})).sort((a,b)=>a.position-b.position)}));
+    const clearedAt=parseInt(localStorage.getItem('ff_inbox_cleared_'+CUR.user.id)||'0');
+    _cache.inbox=(inbox||[]).filter(n=>{
+      if(clearedAt && new Date(n.created_at).getTime()<=clearedAt) return false;
       return true;
-    })
-    .map(n=>({id:n.id,msg:n.msg,icon:n.icon,type:n.type,readBy:n.read?[CUR.user.id]:[],time:n.created_at}));
-  _cache.activity=(activity||[]).map(a=>({text:a.text,time:a.created_at,author:a.profiles?.name||''}));
-  // Chat carregado lazy — não bloqueia o carregamento inicial
+    }).map(n=>({id:n.id,msg:n.msg,icon:n.icon,type:n.type,readBy:n.read?[CUR.user.id]:[],time:n.created_at}));
+    updateBadges();
+    // Re-renderizar páginas secundárias se abertas
+    if(page==='meetings') renderMeetings();
+    if(page==='projects') renderProjects();
+    if(page==='inbox') renderInbox();
+  });
+
+  _cache.activity=[];
+  // Chat lazy
   setTimeout(()=>{
-    sb.from('chat_messages').select('*,profiles(name,avatar)').eq('group_id',gid).order('created_at').limit(100).then(({data:chat})=>{
+    sb.from('chat_messages').select('id,text,user_id,created_at,profiles(name,avatar)').eq('group_id',gid).order('created_at').limit(80).then(({data:chat})=>{
       _cache.chat=(chat||[]).map(m=>({id:m.id,author:m.profiles?.name||'?',authorId:m.user_id,avatar:m.profiles?.avatar||null,text:m.text,time:m.created_at}));
       updateChatPip();
     });
-  }, 800);
+  }, 1000);
 }
 
 let _realtimeCh=null;
