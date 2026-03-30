@@ -1617,9 +1617,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
       </button>
       <button class="nav-btn" data-page="tasks" onclick="go('tasks')">
         <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></span>
-        Tarefas
-        <span class="nav-chip" id="late-chip" style="display:none">0</span>
-        <span class="nav-chip soft" id="received-chip" style="display:none">0</span>
+        Tarefas da Equipe
       </button>
       <button class="nav-btn" data-page="meetings" onclick="go('meetings')">
         <span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
@@ -2912,7 +2910,7 @@ function openM(id){
   $('#'+id).classList.add('open');
   // Ao abrir modal de nova tarefa, garantir membros atualizados
   if(id==='m-new-task'||id==='m-edit-task'){
-    sb.from('group_members').select('*,profiles(id,name,avatar,nickname)').eq('group_id',CUR.groupId).then(({data:members})=>{
+    sb.from('group_members').select('*,profiles(id,name,avatar,nickname,notifications_disabled)').eq('group_id',CUR.groupId).then(({data:members})=>{
       if(!members) return;
       const mapped=(members||[]).filter(m=>m.user_id).map(m=>({
         id:m.profiles?.id||m.user_id,
@@ -3733,6 +3731,9 @@ function makeCubeDraggable(el, taskId){
 }
 
 function renderMyWork(){
+  // Sincronizar estado visual do botão cubo
+  const _cmBtn=document.getElementById('mw-cube-toggle');
+  if(_cmBtn) _cmBtn.classList.toggle('active', cubeMode);
   purgeAndResetMyTasks();  // garante reset do ciclo antes de renderizar
   checkMyLate();
   const all=getMyTasks();
@@ -4595,7 +4596,7 @@ async function submitMyTask(){
   _cache.myTasksByUser=_cache.myTasksByUser||{};_cache.myTasksByUser[CUR.user.id]=_cache.myTasksByUser[CUR.user.id]||[];_cache.myTasksByUser[CUR.user.id].unshift(task);
   addAct('Nova tarefa pessoal: <strong>'+title+'</strong>');
   hideLoader();closeM('m-new-my');clearF('m-new-my');banner('Tarefa criada!','ok');
-  if(cubeMode){ renderCubes(getMyTasks()); } else { renderMyWork(); }
+  renderMyWork();
 }
 
 async function submitMeet(){
@@ -4725,7 +4726,7 @@ async function initApp(){
   // Sync de membros a cada 30s como fallback do realtime
   setInterval(()=>{
     if(!CUR.groupId) return;
-    sb.from('group_members').select('*,profiles(id,name,avatar,nickname)').eq('group_id',CUR.groupId).then(({data:members})=>{
+    sb.from('group_members').select('*,profiles(id,name,avatar,nickname,notifications_disabled)').eq('group_id',CUR.groupId).then(({data:members})=>{
       if(!members) return;
       const mapped=(members||[]).filter(m=>m.user_id).map(m=>({
         id:m.profiles?.id||m.user_id,
@@ -4785,7 +4786,7 @@ async function loadGroupData(){
     sb.from('meetings').select('*,profiles(name,avatar)').eq('group_id',gid).order('date'),
     sb.from('projects').select('*').eq('group_id',gid).order('created_at',{ascending:false}),
     sb.from('project_steps').select('*').order('position'),
-    sb.from('group_members').select('*,profiles(id,name,avatar,nickname)').eq('group_id',gid),
+    sb.from('group_members').select('*,profiles(id,name,avatar,nickname,notifications_disabled)').eq('group_id',gid),
     sb.from('inbox').select('*').eq('group_id',gid).eq('user_id',uid_val).order('created_at',{ascending:false}).limit(20)
   ]);
   // Activity carregada de forma lazy (não bloqueia UI)
@@ -4805,12 +4806,13 @@ async function loadGroupData(){
       avatar:p.avatar||null,
       role:m.role||'member',
       nickname:p.nickname||null,
-      status:m.status||'active'
+      status:m.status||'active',
+      notifDisabled:p.notifications_disabled||false
     };
   });
   // Garantir que o próprio usuário está no cache
   if(CUR.user&&!_cache.members.find(m=>m.id===CUR.user.id)){
-    _cache.members.push({id:CUR.user.id,name:CUR.user.name,avatar:CUR.user.avatar||null,nickname:CUR.user.nickname||null,role:'member',status:'active'});
+    _cache.members.push({id:CUR.user.id,name:CUR.user.name,avatar:CUR.user.avatar||null,nickname:CUR.user.nickname||null,role:'member',status:'active',notifDisabled:CUR.user.notifDisabled||false});
   }
   // Respeitar apagamento manual — ignorar notificações anteriores ao último clear
   const clearedAt = parseInt(localStorage.getItem('ff_inbox_cleared_'+CUR.user.id)||'0');
@@ -4885,7 +4887,7 @@ function setupRealtime(){
     .on('postgres_changes',{event:'*',schema:'public',table:'group_members',filter:'group_id=eq.'+CUR.groupId},(payload)=>{
       // Recarregar membros em tempo real quando alguém entra, sai ou é desativado
       const rtEvent = payload.eventType; // INSERT | UPDATE | DELETE
-      sb.from('group_members').select('*,profiles(id,name,avatar,nickname)').eq('group_id',CUR.groupId).then(({data:members})=>{
+      sb.from('group_members').select('*,profiles(id,name,avatar,nickname,notifications_disabled)').eq('group_id',CUR.groupId).then(({data:members})=>{
         _cache.members=(members||[]).filter(m=>m.user_id).map(m=>({
           id:m.profiles?.id||m.user_id,
           name:m.profiles?.name||m.user_id.slice(0,8),
@@ -4895,7 +4897,7 @@ function setupRealtime(){
           status:m.status||'active'
         }));
         if(CUR.user&&!_cache.members.find(m=>m.id===CUR.user.id)){
-          _cache.members.push({id:CUR.user.id,name:CUR.user.name,avatar:CUR.user.avatar||null,nickname:CUR.user.nickname||null,role:'member',status:'active'});
+          _cache.members.push({id:CUR.user.id,name:CUR.user.name,avatar:CUR.user.avatar||null,nickname:CUR.user.nickname||null,role:'member',status:'active',notifDisabled:CUR.user.notifDisabled||false});
         }
         updateBadges();
         fillMemberSelects();
