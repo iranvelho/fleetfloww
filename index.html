@@ -3822,7 +3822,13 @@ async function deleteMT(id){
   const arr=getMyTasks();const t=arr.find(x=>x.id===id);if(!t)return;
   await sb.from('my_tasks').delete().eq('id',id);
   addAct('Tarefa pessoal <strong>'+t.title+'</strong> excluída');
-  saveMyTasks(arr.filter(x=>x.id!==id));renderP(page);
+  // Limpar posição do cubo deletado
+  delete _cubePositions[id];
+  // Remover cubo visualmente se modo cubo ativo
+  const cubeEl=document.getElementById('cube-'+id);
+  if(cubeEl){ cubeEl.style.opacity='0'; setTimeout(()=>cubeEl.remove(),150); }
+  saveMyTasks(arr.filter(x=>x.id!==id));
+  setTimeout(()=>renderP(page),200);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -4610,19 +4616,8 @@ async function submitMyTask(){
   _cache.myTasksByUser=_cache.myTasksByUser||{};_cache.myTasksByUser[CUR.user.id]=_cache.myTasksByUser[CUR.user.id]||[];_cache.myTasksByUser[CUR.user.id].unshift(task);
   addAct('Nova tarefa pessoal: <strong>'+title+'</strong>');
   hideLoader();closeM('m-new-my');clearF('m-new-my');banner('Tarefa criada!','ok');
-  if(cubeMode){
-    // Adicionar cubo direto no arena existente (sem reconstruir tudo)
-    const arena=document.getElementById('mw-cube-arena');
-    if(arena){
-      spawnCube(arena, task);
-      const hud=document.getElementById('cube-hud');
-      if(hud) hud.textContent=getMyTasks().length+' TAREFA'+(getMyTasks().length!==1?'S':'');
-    } else {
-      renderMyWork(); // arena não existe, reconstruir
-    }
-  } else {
-    renderMyWork();
-  }
+  // Sempre usar renderMyWork que já cuida do modo cubo
+  renderMyWork();
 }
 
 async function submitMeet(){
@@ -4762,20 +4757,31 @@ async function initApp(){
         nickname:m.profiles?.nickname||null,
         status:m.status||'active'
       }));
-      // Só atualiza se houver diferença
       const prevIds=(_cache.members||[]).map(m=>m.id).sort().join();
       const newIds=mapped.map(m=>m.id).sort().join();
-      if(prevIds!==newIds){
+      const prevCount=(_cache.members||[]).filter(m=>m.status!=='inactive').length;
+      const newCount=mapped.filter(m=>m.status!=='inactive').length;
+      const changed = prevIds !== newIds || prevCount !== newCount;
+      if(changed){
         if(CUR.user&&!mapped.find(m=>m.id===CUR.user.id)){
-          mapped.push({id:CUR.user.id,name:CUR.user.name,avatar:CUR.user.avatar||null,nickname:CUR.user.nickname||null,role:'member',status:'active'});
+          mapped.push({id:CUR.user.id,name:CUR.user.name,avatar:CUR.user.avatar||null,nickname:CUR.user.nickname||null,role:'member',status:'active',notifDisabled:CUR.user.notifDisabled||false});
         }
+        const hadFewerBefore = prevCount < newCount;
         _cache.members=mapped;
         fillMemberSelects();
+        // Atualizar contadores visíveis
         const statEl=document.getElementById('gi-stat-members');
-        if(statEl) statEl.textContent=mapped.filter(m=>m.status!=='inactive').length;
+        if(statEl) statEl.textContent=newCount;
+        const countEl=document.getElementById('gi-member-count');
+        if(countEl) countEl.textContent='('+newCount+')';
+        // Atualizar lista de membros se estiver na página Meu Grupo
+        if(page==='groupinfo') renderGroupInfo();
+        else _refreshMemberListIfOpen();
+        // Banner de novo membro
+        if(hadFewerBefore) banner('👋 Novo membro entrou no grupo!','ok');
       }
     });
-  }, 10000); // Sync de membros a cada 10s (era 30s)
+  }, 5000); // Sync a cada 5s para interações mais rápidas
   purgeAndResetMyTasks();purgeTasks();checkMyLate();checkMeetSoon();updateBadges();updateNotifBell();
   // Relógio do dashboard — atualizar a cada minuto
   setInterval(()=>{if(page==='dashboard')renderDash();},60000);
@@ -4874,6 +4880,12 @@ function _debRT(key,fn,ms=500){clearTimeout(_rtTimer[key]);_rtTimer[key]=setTime
 
 // Atualiza a lista de membros em qualquer contexto
 function _refreshMemberListIfOpen(){
+  // Sempre atualizar contadores visíveis, independente da página
+  const activeM=(_cache.members||[]).filter(m=>m.status!=='inactive').length;
+  const statEl=document.getElementById('gi-stat-members');
+  if(statEl) statEl.textContent=activeM;
+  const countEl=document.getElementById('gi-member-count');
+  if(countEl) countEl.textContent='('+activeM+')';
   const mg=document.getElementById('gi-members-grid');
   if(!mg) return; // elemento não existe ainda
   const members2=(_cache.members||[]);
