@@ -955,6 +955,26 @@ select.fi{appearance:none;cursor:pointer;padding-right:28px;background-image:url
 .comment-header{display:flex;align-items:center;gap:7px;margin-bottom:3px}
 .comment-author{font-size:12px;font-weight:700;color:var(--tx)}
 .comment-time{font-size:10.5px;color:var(--tx3)}
+
+/* ── TIME PICKER ── */
+.tp-wrap{position:relative;display:inline-block;width:100%}
+.tp-display{display:flex;align-items:center;gap:8px;padding:9px 14px;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--r);cursor:pointer;transition:border-color var(--t);user-select:none;width:100%}
+.tp-display:hover,.tp-display.open{border-color:var(--accent)}
+.tp-display svg{width:15px;height:15px;color:var(--tx3);flex-shrink:0}
+.tp-val{font-size:13px;color:var(--tx);flex:1}
+.tp-val.empty{color:var(--tx3)}
+.tp-clear{font-size:11px;color:var(--tx3);padding:2px 6px;border-radius:4px;background:var(--surface2);border:1px solid var(--border);cursor:pointer;display:none}
+.tp-display.has-val .tp-clear{display:inline-block}
+.tp-panel{position:absolute;top:calc(100% + 4px);left:0;z-index:9999;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--rl);box-shadow:var(--shm);display:none;overflow:hidden;min-width:200px}
+.tp-panel.open{display:block;animation:fadeUp .15s ease}
+.tp-head{display:grid;grid-template-columns:1fr 1fr;text-align:center;padding:8px 0 4px;border-bottom:1px solid var(--border)}
+.tp-head span{font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.07em}
+.tp-cols{display:grid;grid-template-columns:1fr 1fr;max-height:220px}
+.tp-col{overflow-y:auto;padding:4px 0}
+.tp-col::-webkit-scrollbar{width:0}
+.tp-opt{padding:8px 0;text-align:center;font-size:13px;font-weight:500;color:var(--tx2);cursor:pointer;transition:all .1s;border-radius:6px;margin:1px 6px}
+.tp-opt:hover{background:var(--accent-s);color:var(--accent)}
+.tp-opt.sel{background:var(--accent);color:#fff;font-weight:700}
 .comment-text{font-size:12.5px;color:var(--tx2);line-height:1.5;word-break:break-word}
 .comment-del{font-size:10.5px;color:var(--tx3);background:none;padding:0;margin-left:auto;opacity:0;}
 .comment-item:hover .comment-del{opacity:.7}
@@ -2231,7 +2251,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
         </div>
         <div style="font-size:11px;color:var(--tx3);margin-top:4px">💡 Se nenhum dia for selecionado, aparece todos os dias</div>
       </div>
-      <div class="fg" id="nt-time-wrap" style="display:none"><label>Horário limite <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">deve ser concluída até este horário</span></label><input type="time" id="nt-time" class="fi"/></div>
+      <div class="fg" id="nt-time-wrap" style="display:none"><label>Horário limite <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">deve ser concluída até este horário</span></label><div class="tp-wrap"><div class="tp-display" id="nt-time-disp" onclick="tpToggle('nt-time')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="tp-val empty" id="nt-time-val">--:--</span><button class="tp-clear" onclick="event.stopPropagation();tpClear('nt-time')">✕</button></div><div class="tp-panel" id="nt-time-panel"><div class="tp-head"><span>Hora</span><span>Min</span></div><div class="tp-cols"><div class="tp-col" id="nt-time-h"></div><div class="tp-col" id="nt-time-m"></div></div></div><input type="hidden" id="nt-time"/></div></div>
       <!-- Status sempre "pending" ao criar — integrado pode alterar depois -->
       <div class="info-note" id="nt-cycle-note" style="display:none">♻️ <strong>Tarefa recorrente:</strong> A tarefa some ao iniciar o próximo ciclo — diária some à meia-noite, semanal na segunda-feira, mensal no dia 1º.</div>
     </div>
@@ -2280,7 +2300,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
           <button type="button" class="wd-btn" data-day="0" onclick="toggleWD(this,'et')">Dom</button>
         </div>
       </div>
-      <div class="fg" id="et-time-wrap"><label>Horário limite <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">deve ser concluída até este horário</span></label><input type="time" id="et-time" class="fi"/></div>
+      <div class="fg" id="et-time-wrap"><label>Horário limite <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">deve ser concluída até este horário</span></label><div class="tp-wrap"><div class="tp-display" id="et-time-disp" onclick="tpToggle('et-time')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="tp-val empty" id="et-time-val">--:--</span><button class="tp-clear" onclick="event.stopPropagation();tpClear('et-time')">✕</button></div><div class="tp-panel" id="et-time-panel"><div class="tp-head"><span>Hora</span><span>Min</span></div><div class="tp-cols"><div class="tp-col" id="et-time-h"></div><div class="tp-col" id="et-time-m"></div></div></div><input type="hidden" id="et-time"/></div></div>
       <div class="fg"><label>Status</label><select id="et-status" class="fi"><option value="pending">Pendente</option><option value="progress">Em andamento</option><option value="done">Concluída</option><option value="late">Vencida</option></select></div>
     </div>
       <div id="et-cycle-history" style="display:none;margin-top:4px;padding:12px 14px;background:var(--surface2);border-radius:10px;border:1.5px solid var(--border)"></div>
@@ -2305,7 +2325,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
             <option value="custom">Personalizada (dias específicos)</option>
           </select>
         </div>
-        <div class="fg" id="nm-time-wrap"><label>Horário limite</label><input type="time" id="nm-time" class="fi"/></div>
+        <div class="fg" id="nm-time-wrap"><label>Horário limite</label><div class="tp-wrap"><div class="tp-display" id="nm-time-disp" onclick="tpToggle('nm-time')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="tp-val empty" id="nm-time-val">--:--</span><button class="tp-clear" onclick="event.stopPropagation();tpClear('nm-time')">✕</button></div><div class="tp-panel" id="nm-time-panel"><div class="tp-head"><span>Hora</span><span>Min</span></div><div class="tp-cols"><div class="tp-col" id="nm-time-h"></div><div class="tp-col" id="nm-time-m"></div></div></div><input type="hidden" id="nm-time"/></div></div>
       </div>
       <div class="fg" id="nm-days-wrap" style="display:none">
         <label>Dias da semana <span style="font-size:10px;color:var(--tx3);font-weight:400">em quais dias deve aparecer</span></label>
@@ -2335,7 +2355,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
       <div class="fg"><label>Título</label><input type="text" id="em-title" class="fi"/></div>
       <div class="fr">
         <div class="fg"><label>Recorrência</label><select id="em-freq" class="fi" onchange="toggleEmDays()"><option value="once">Apenas esta vez</option><option value="daily">Diária</option><option value="weekly">Semanal</option><option value="monthly">Mensal</option><option value="custom">Personalizada (dias específicos)</option></select></div>
-        <div class="fg"><label>Horário limite</label><input type="time" id="em-time" class="fi"/></div>
+        <div class="fg"><label>Horário limite</label><div class="tp-wrap"><div class="tp-display" id="em-time-disp" onclick="tpToggle('em-time')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="tp-val empty" id="em-time-val">--:--</span><button class="tp-clear" onclick="event.stopPropagation();tpClear('em-time')">✕</button></div><div class="tp-panel" id="em-time-panel"><div class="tp-head"><span>Hora</span><span>Min</span></div><div class="tp-cols"><div class="tp-col" id="em-time-h"></div><div class="tp-col" id="em-time-m"></div></div></div><input type="hidden" id="em-time"/></div></div>
       </div>
       <div class="fg"><label>Status</label><select id="em-status" class="fi"><option value="pending">Pendente</option><option value="done">Concluída</option><option value="late">Vencida</option></select></div>
     </div>
@@ -2912,8 +2932,17 @@ function doNewMain(){
 function openM(id){
   $('#'+id).classList.add('open');
   // Ao abrir modal de nova/editar tarefa, garantir membros atualizados
-  if(id==='m-new-task'||id==='m-edit-task'){
-    _fetchAndCacheMembers().then(()=>fillMemberSelects());
+  if(id==='m-new-task'){
+    _fetchAndCacheMembers().then(()=>{
+      renderMemberGrid('nt-members-grid',[]);
+    });
+  }
+  if(id==='m-edit-task'){
+    _fetchAndCacheMembers().then(()=>{
+      const taskId=$('#et-id')?.value;
+      const t=(_cache.tasks||[]).find(x=>x.id===taskId);
+      renderMemberGrid('et-members-grid', t?.integrateFor||[]);
+    });
   }
 }
 function closeM(id){$('#'+id).classList.remove('open');}
@@ -4460,7 +4489,7 @@ async function openEditTask(id){
   $('#et-status').value=t.status||'pending';
   $('#et-prio').value=t.priority||'medium';
   $('#et-vis').value=t.visibility||'global';
-  $('#et-time').value=t.limitTime||'';
+  tpSetValue('et-time', t.limitTime||'');
   $('#et-due').value=t.dueDate||'';
   setSelectedDays('et', t.weekdays||[]);
   toggleTaskTimeField('et');
@@ -4515,7 +4544,7 @@ async function saveTask(){
 function openEditMy(id){
   const arr=getMyTasks();const t=arr.find(x=>x.id===id);if(!t)return;
   $('#em-id').value=id;$('#em-title').value=t.title;
-  $('#em-freq').value=t.frequency||'daily';$('#em-time').value=t.limitTime||'';
+  $('#em-freq').value=t.frequency||'daily';tpSetValue('em-time', t.limitTime||'');
   $('#em-status').value=t.status||'pending';openM('m-edit-my');
 }
 async function saveMyTask(){
@@ -4576,7 +4605,7 @@ async function submitTask(){
   _cache.tasks.unshift({id:t.id,title,integrateFor:mnames,frequency:t.frequency,status:t.status,priority:t.priority,visibility:t.visibility,createdBy:t.created_by,createdAt:t.created_at,limitTime:t.description||null,dueDate:t.due_date||null,weekdays:t.weekdays||null});
   addAct('Nova tarefa: <strong>'+title+'</strong>');
   addInbox('Nova tarefa: "<strong>'+title+'</strong>" por '+CUR.user.name+'.','📋','nova tarefa');
-  hideLoader();closeM('m-new-task');clearF('m-new-task');renderP(page);banner('Tarefa criada!','ok');
+  hideLoader();closeM('m-new-task');clearF('m-new-task');tpClear('nt-time');renderP(page);banner('Tarefa criada!','ok');
 }
 
 async function submitMyTask(){
@@ -4589,7 +4618,7 @@ async function submitMyTask(){
   _cache.myTasks=_cache.myTasks||[];_cache.myTasks.unshift(task);
   _cache.myTasksByUser=_cache.myTasksByUser||{};_cache.myTasksByUser[CUR.user.id]=_cache.myTasksByUser[CUR.user.id]||[];_cache.myTasksByUser[CUR.user.id].unshift(task);
   addAct('Nova tarefa pessoal: <strong>'+title+'</strong>');
-  hideLoader();closeM('m-new-my');clearF('m-new-my');banner('Tarefa criada!','ok');
+  hideLoader();closeM('m-new-my');clearF('m-new-my');tpClear('nm-time');banner('Tarefa criada!','ok');
   // Sempre usar renderMyWork que já cuida do modo cubo
   renderMyWork();
 }
@@ -4661,43 +4690,27 @@ function fillMemberSelects(){
 // Função central única para buscar e cachear membros
 async function _fetchAndCacheMembers(){
   if(!CUR.groupId) return;
-
-  // Buscar membros do grupo
   const {data:members, error} = await sb.from('group_members')
-    .select('user_id,role,status')
+    .select('user_id,role,status,profiles(id,name,avatar,nickname,notifications_disabled)')
     .eq('group_id', CUR.groupId);
-
-  if(error || !members || !members.length) return;
-
-  // Buscar perfis separadamente (evita problema de RLS no join)
-  const userIds = members.map(m=>m.user_id).filter(Boolean);
-  const {data:profiles} = await sb.from('profiles')
-    .select('id,name,avatar,nickname,notifications_disabled')
-    .in('id', userIds);
-
-  // Mapear perfil para cada membro
-  const profileMap = {};
-  (profiles||[]).forEach(p=>{ profileMap[p.id]=p; });
-
+  if(error || !members) return;
   _cache.members = members.filter(m=>m.user_id).map(m=>{
-    const p = profileMap[m.user_id] || {};
+    const p = m.profiles||{};
     return {
-      id: m.user_id,
-      name: p.name || m.user_id.slice(0,8),
-      avatar: p.avatar || null,
-      role: m.role || 'member',
-      nickname: p.nickname || null,
-      status: m.status || 'active',
-      notifDisabled: p.notifications_disabled || false
+      id: p.id||m.user_id,
+      name: p.name||m.user_id.slice(0,8),
+      avatar: p.avatar||null,
+      role: m.role||'member',
+      nickname: p.nickname||null,
+      status: m.status||'active',
+      notifDisabled: p.notifications_disabled||false
     };
   });
-
   // Garantir que o próprio usuário está no cache
   if(CUR.user && !_cache.members.find(m=>m.id===CUR.user.id)){
-    _cache.members.push({id:CUR.user.id, name:CUR.user.name, avatar:CUR.user.avatar||null,
-      nickname:CUR.user.nickname||null, role:'member', status:'active', notifDisabled:CUR.user.notifDisabled||false});
+    _cache.members.push({id:CUR.user.id,name:CUR.user.name,avatar:CUR.user.avatar||null,
+      nickname:CUR.user.nickname||null,role:'member',status:'active',notifDisabled:CUR.user.notifDisabled||false});
   }
-
   fillMemberSelects();
   return _cache.members;
 }
@@ -4806,40 +4819,32 @@ async function initApp(){
 async function loadGroupData(){
   if(!CUR.groupId||!CUR.user) return;
   const gid=CUR.groupId, uid_val=CUR.user.id;
+  // Queries críticas em paralelo (sem activity — carregada lazy)
   const [
     {data:tasks},{data:myTasks},{data:meetings},
-    {data:projects},{data:steps},{data:memberRows},{data:inbox}
+    {data:projects},{data:steps},{data:members},{data:inbox}
   ] = await Promise.all([
     sb.from('tasks').select('*').eq('group_id',gid).order('created_at',{ascending:false}),
     sb.from('my_tasks').select('*').eq('group_id',gid).eq('user_id',uid_val).order('created_at',{ascending:false}),
     sb.from('meetings').select('*,profiles(name,avatar)').eq('group_id',gid).order('date'),
     sb.from('projects').select('*').eq('group_id',gid).order('created_at',{ascending:false}),
-    sb.from('project_steps').select('*').eq('group_id',gid).order('position'),
-    sb.from('group_members').select('user_id,role,status').eq('group_id',gid),
+    sb.from('project_steps').select('*').order('position'),
+    sb.from('group_members').select('*,profiles(id,name,avatar,nickname,notifications_disabled)').eq('group_id',gid),
     sb.from('inbox').select('*').eq('group_id',gid).eq('user_id',uid_val).order('created_at',{ascending:false}).limit(20)
   ]);
-
-  // Buscar perfis separadamente (evita RLS bloqueando join de outros usuários)
-  const memberUserIds=(memberRows||[]).map(m=>m.user_id).filter(Boolean);
-  const {data:profileRows} = memberUserIds.length
-    ? await sb.from('profiles').select('id,name,avatar,nickname,notifications_disabled').in('id',memberUserIds)
-    : {data:[]};
-  const profileMap={};
-  (profileRows||[]).forEach(p=>{profileMap[p.id]=p;});
-
-  const activity = null;
+  // Activity carregada de forma lazy (não bloqueia UI)
+  const activity = null; // será carregado sob demanda
   _cache.tasks=(tasks||[]).map(t=>({id:t.id,title:t.title,status:t.status,priority:t.priority,frequency:t.frequency,visibility:t.visibility,integrateFor:t.integrate_for||[],createdBy:t.created_by,statusAt:t.status_at,createdAt:t.created_at,limitTime:t.description||null,dueDate:t.due_date||null,weekdays:t.weekdays||null,archived:t.archived||false,archivedAt:t.archived_at||null}));
   _cache.myTasks=(myTasks||[]).map(t=>({id:t.id,title:t.title,frequency:t.frequency,limitTime:t.limit_time,status:t.status,statusAt:t.status_at,createdAt:t.created_at,userId:t.user_id}));
   _cache.myTasksByUser={};
   (_cache.myTasks).forEach(t=>{if(!_cache.myTasksByUser[t.userId])_cache.myTasksByUser[t.userId]=[];_cache.myTasksByUser[t.userId].push(t);});
   _cache.meetings=(meetings||[]).map(m=>({id:m.id,title:m.title,description:m.description,participants:m.participants,date:m.date,time:m.time,calType:m.cal_type,owner:m.profiles?.name||'',ownerId:m.owner,createdAt:m.created_at}));
   _cache.projects=(projects||[]).map(p=>({id:p.id,name:p.name,description:p.description,color:p.color,status:p.status,sharedWith:p.shared_with||[],createdBy:p.created_by,completedAt:p.completed_at,createdAt:p.created_at,steps:(steps||[]).filter(s=>s.project_id===p.id).map(s=>({id:s.id,name:s.name,done:s.done,position:s.position,addedBy:s.added_by,createdAt:s.created_at})).sort((a,b)=>a.position-b.position)}));
-
-  // Mapear membros com perfis buscados separadamente
-  _cache.members=(memberRows||[]).filter(m=>m.user_id).map(m=>{
-    const p=profileMap[m.user_id]||{};
+  // Mapear membros com id consistente (profiles.id tem prioridade)
+  _cache.members=(members||[]).filter(m=>m.user_id).map(m=>{
+    const p=m.profiles||{};
     return {
-      id:m.user_id,
+      id:p.id||m.user_id,
       name:p.name||m.user_id.slice(0,8),
       avatar:p.avatar||null,
       role:m.role||'member',
@@ -7230,6 +7235,101 @@ document.addEventListener('DOMContentLoaded',async()=>{
   }
   _snow('auth-snow-canvas',255,255,255,55,1,3,.25,.7,.05,.18);
   _snow('app-snow-canvas',217,119,6,40,1,2.5,.15,.45,.02,.08);
+});
+
+// ── TIME PICKER ──
+const _tpState={};
+function tpInit(id){
+  const hEl=document.getElementById(id+'-h');
+  const mEl=document.getElementById(id+'-m');
+  if(!hEl||!mEl) return;
+  if(hEl.children.length) return; // já iniciado
+  let hHtml='',mHtml='';
+  for(let h=0;h<24;h++){
+    const hh=String(h).padStart(2,'0');
+    hHtml+=`<div class="tp-opt" data-v="${hh}" onclick="tpSelect('${id}','h','${hh}')">${hh}</div>`;
+  }
+  for(let m=0;m<60;m+=5){
+    const mm=String(m).padStart(2,'0');
+    mHtml+=`<div class="tp-opt" data-v="${mm}" onclick="tpSelect('${id}','m','${mm}')">${mm}</div>`;
+  }
+  hEl.innerHTML=hHtml;
+  mEl.innerHTML=mHtml;
+}
+function tpToggle(id){
+  tpInit(id);
+  const panel=document.getElementById(id+'-panel');
+  const disp=document.getElementById(id+'-disp');
+  if(!panel) return;
+  const isOpen=panel.classList.contains('open');
+  // Fechar todos os outros
+  document.querySelectorAll('.tp-panel.open').forEach(p=>{ p.classList.remove('open'); document.getElementById(p.id.replace('-panel','-disp'))?.classList.remove('open'); });
+  if(!isOpen){
+    panel.classList.add('open');
+    disp.classList.add('open');
+    // Scroll para valor atual
+    const cur=document.getElementById(id).value;
+    if(cur){
+      const [h,m]=cur.split(':');
+      tpScrollTo(id,'h',h);
+      tpScrollTo(id,'m',m);
+    }
+  }
+}
+function tpScrollTo(id,col,val){
+  const el=document.querySelector(`#${id}-${col} .tp-opt[data-v="${val}"]`);
+  if(el) el.scrollIntoView({block:'center',behavior:'smooth'});
+}
+function tpSelect(id,col,val){
+  if(!_tpState[id]) _tpState[id]={h:'',m:''};
+  _tpState[id][col]=val;
+  // Highlight selecionado
+  document.querySelectorAll(`#${id}-${col} .tp-opt`).forEach(o=>o.classList.toggle('sel',o.dataset.v===val));
+  // Se ambos selecionados, fechar e confirmar
+  const s=_tpState[id];
+  if(s.h&&s.m){
+    const val2=s.h+':'+s.m;
+    document.getElementById(id).value=val2;
+    const valEl=document.getElementById(id+'-val');
+    if(valEl){ valEl.textContent=val2; valEl.classList.remove('empty'); }
+    const disp=document.getElementById(id+'-disp');
+    if(disp) disp.classList.add('has-val');
+    setTimeout(()=>{
+      const panel=document.getElementById(id+'-panel');
+      if(panel) panel.classList.remove('open');
+      if(disp) disp.classList.remove('open');
+    }, 300);
+  }
+}
+function tpClear(id){
+  _tpState[id]={h:'',m:''};
+  document.getElementById(id).value='';
+  const valEl=document.getElementById(id+'-val');
+  if(valEl){ valEl.textContent='--:--'; valEl.classList.add('empty'); }
+  const disp=document.getElementById(id+'-disp');
+  if(disp){ disp.classList.remove('has-val'); }
+  document.querySelectorAll(`#${id}-h .tp-opt,#${id}-m .tp-opt`).forEach(o=>o.classList.remove('sel'));
+}
+function tpSetValue(id, val){
+  if(!val){ tpClear(id); return; }
+  const [h,m]=val.split(':');
+  if(!h||!m) return;
+  _tpState[id]={h,m};
+  document.getElementById(id).value=val;
+  const valEl=document.getElementById(id+'-val');
+  if(valEl){ valEl.textContent=val; valEl.classList.remove('empty'); }
+  const disp=document.getElementById(id+'-disp');
+  if(disp) disp.classList.add('has-val');
+  // Highlight opções se o panel já foi iniciado
+  tpInit(id);
+  document.querySelectorAll(`#${id}-h .tp-opt`).forEach(o=>o.classList.toggle('sel',o.dataset.v===h));
+  document.querySelectorAll(`#${id}-m .tp-opt`).forEach(o=>o.classList.toggle('sel',o.dataset.v===m));
+}
+// Fechar picker ao clicar fora
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.tp-wrap')){
+    document.querySelectorAll('.tp-panel.open').forEach(p=>{ p.classList.remove('open'); document.getElementById(p.id.replace('-panel','-disp'))?.classList.remove('open'); });
+  }
 });
 </script>
 <div id="ff-loader"><div class="spin"></div><div class="lbl" id="ff-lbl">Carregando...</div></div>
