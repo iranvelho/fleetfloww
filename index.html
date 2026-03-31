@@ -2894,7 +2894,8 @@ function renderP(p){
   if(p==='meetings')renderMeetings();
   if(p==='inbox')   renderInbox();
   if(p==='groupinfo'){
-    renderGroupInfo(); // renderiza imediatamente + busca membros frescos internamente
+    renderGroupInfo(); // renderiza imediatamente com cache
+    _fetchAndCacheMembers().then(()=>{ if(page==='groupinfo') renderGroupInfo(); }); // atualiza com dados frescos
   }
   if(p==='profile')renderProfile();
   if(p==='help')renderHelp();
@@ -2910,24 +2911,9 @@ function doNewMain(){
 // ── MODALS ──
 function openM(id){
   $('#'+id).classList.add('open');
-  // Ao abrir modal de nova tarefa, garantir membros atualizados
+  // Ao abrir modal de nova/editar tarefa, garantir membros atualizados
   if(id==='m-new-task'||id==='m-edit-task'){
-    sb.from('group_members').select('*,profiles(id,name,avatar,nickname,notifications_disabled)').eq('group_id',CUR.groupId).then(({data:members})=>{
-      if(!members) return;
-      const mapped=(members||[]).filter(m=>m.user_id).map(m=>({
-        id:m.profiles?.id||m.user_id,
-        name:m.profiles?.name||m.user_id.slice(0,8),
-        avatar:m.profiles?.avatar||null,
-        role:m.role||'member',
-        nickname:m.profiles?.nickname||null,
-        status:m.status||'active'
-      }));
-      if(CUR.user&&!mapped.find(m=>m.id===CUR.user.id)){
-        mapped.push({id:CUR.user.id,name:CUR.user.name,avatar:CUR.user.avatar||null,nickname:CUR.user.nickname||null,role:'member',status:'active'});
-      }
-      _cache.members=mapped;
-      fillMemberSelects();
-    });
+    _fetchAndCacheMembers().then(()=>fillMemberSelects());
   }
 }
 function closeM(id){$('#'+id).classList.remove('open');}
@@ -4672,6 +4658,34 @@ function fillMemberSelects(){
   renderMemberGrid('et-members-grid',[]);
 }
 
+// Função central única para buscar e cachear membros
+async function _fetchAndCacheMembers(){
+  if(!CUR.groupId) return;
+  const {data:members, error} = await sb.from('group_members')
+    .select('user_id,role,status,profiles(id,name,avatar,nickname,notifications_disabled)')
+    .eq('group_id', CUR.groupId);
+  if(error || !members) return;
+  _cache.members = members.filter(m=>m.user_id).map(m=>{
+    const p = m.profiles||{};
+    return {
+      id: p.id||m.user_id,
+      name: p.name||m.user_id.slice(0,8),
+      avatar: p.avatar||null,
+      role: m.role||'member',
+      nickname: p.nickname||null,
+      status: m.status||'active',
+      notifDisabled: p.notifications_disabled||false
+    };
+  });
+  // Garantir que o próprio usuário está no cache
+  if(CUR.user && !_cache.members.find(m=>m.id===CUR.user.id)){
+    _cache.members.push({id:CUR.user.id,name:CUR.user.name,avatar:CUR.user.avatar||null,
+      nickname:CUR.user.nickname||null,role:'member',status:'active',notifDisabled:CUR.user.notifDisabled||false});
+  }
+  fillMemberSelects();
+  return _cache.members;
+}
+
 // ═══════════════════════════════════════════════════════════
 //  SEARCH
 // ═══════════════════════════════════════════════════════════
@@ -4732,42 +4746,24 @@ async function initApp(){
   // Timer de 2min — funções leves. purgeTasks separado a cada 5min
   setInterval(()=>{purgeAndResetMyTasks();checkMyLate();checkMeetSoon();updateBadges();if(page==='mywork')renderMyWork();},120000);
   setInterval(()=>{purgeTasks();},300000); // purge a cada 5min
-  // Sync de membros a cada 5s como fallback do realtime
-  setInterval(()=>{
+  // Sync de membros a cada 8s como fallback do realtime
+  setInterval(async()=>{
     if(!CUR.groupId) return;
-    sb.from('group_members').select('user_id,role,status,profiles(id,name,avatar,nickname,notifications_disabled)').eq('group_id',CUR.groupId).then(({data:members})=>{
-      if(!members) return;
-      const mapped=(members||[]).filter(m=>m.user_id).map(m=>({
-        id:m.profiles?.id||m.user_id,
-        name:m.profiles?.name||m.user_id.slice(0,8),
-        avatar:m.profiles?.avatar||null,
-        role:m.role||'member',
-        nickname:m.profiles?.nickname||null,
-        status:m.status||'active',
-        notifDisabled:m.profiles?.notifications_disabled||false
-      }));
-      const prevIds=(_cache.members||[]).map(m=>m.id).sort().join();
-      const newIds=mapped.map(m=>m.id).sort().join();
-      const prevCount=(_cache.members||[]).filter(m=>m.status!=='inactive').length;
-      const newCount=mapped.filter(m=>m.status!=='inactive').length;
-      const changed = prevIds !== newIds || prevCount !== newCount;
-      if(changed){
-        if(CUR.user&&!mapped.find(m=>m.id===CUR.user.id)){
-          mapped.push({id:CUR.user.id,name:CUR.user.name,avatar:CUR.user.avatar||null,nickname:CUR.user.nickname||null,role:'member',status:'active',notifDisabled:CUR.user.notifDisabled||false});
-        }
-        const hadFewerBefore = prevCount < newCount;
-        _cache.members=mapped;
-        fillMemberSelects();
-        const statEl=document.getElementById('gi-stat-members');
-        if(statEl) statEl.textContent=newCount;
-        const countEl=document.getElementById('gi-member-count');
-        if(countEl) countEl.textContent='('+newCount+')';
-        if(page==='groupinfo') renderGroupInfo();
-        else _refreshMemberListIfOpen();
-        if(hadFewerBefore) banner('👋 Novo membro entrou no grupo!','ok');
-      }
-    });
-  }, 5000);
+    const prevCount=(_cache.members||[]).filter(m=>m.status!=='inactive').length;
+    const prevIds=(_cache.members||[]).map(m=>m.id).sort().join();
+    await _fetchAndCacheMembers();
+    const newCount=(_cache.members||[]).filter(m=>m.status!=='inactive').length;
+    const newIds=(_cache.members||[]).map(m=>m.id).sort().join();
+    if(prevIds!==newIds || prevCount!==newCount){
+      const statEl=document.getElementById('gi-stat-members');
+      if(statEl) statEl.textContent=newCount;
+      const countEl=document.getElementById('gi-member-count');
+      if(countEl) countEl.textContent='('+newCount+')';
+      if(page==='groupinfo') renderGroupInfo();
+      else _refreshMemberListIfOpen();
+      if(prevCount<newCount) banner('👋 Novo membro entrou no grupo!','ok');
+    }
+  }, 8000);
   purgeAndResetMyTasks();purgeTasks();checkMyLate();checkMeetSoon();updateBadges();updateNotifBell();
   // Relógio do dashboard — atualizar a cada minuto
   setInterval(()=>{if(page==='dashboard')renderDash();},60000);
@@ -4815,7 +4811,7 @@ async function loadGroupData(){
   (_cache.myTasks).forEach(t=>{if(!_cache.myTasksByUser[t.userId])_cache.myTasksByUser[t.userId]=[];_cache.myTasksByUser[t.userId].push(t);});
   _cache.meetings=(meetings||[]).map(m=>({id:m.id,title:m.title,description:m.description,participants:m.participants,date:m.date,time:m.time,calType:m.cal_type,owner:m.profiles?.name||'',ownerId:m.owner,createdAt:m.created_at}));
   _cache.projects=(projects||[]).map(p=>({id:p.id,name:p.name,description:p.description,color:p.color,status:p.status,sharedWith:p.shared_with||[],createdBy:p.created_by,completedAt:p.completed_at,createdAt:p.created_at,steps:(steps||[]).filter(s=>s.project_id===p.id).map(s=>({id:s.id,name:s.name,done:s.done,position:s.position,addedBy:s.added_by,createdAt:s.created_at})).sort((a,b)=>a.position-b.position)}));
-  // Usar dados do join (profiles já vêm junto)
+  // Mapear membros com id consistente (profiles.id tem prioridade)
   _cache.members=(members||[]).filter(m=>m.user_id).map(m=>{
     const p=m.profiles||{};
     return {
@@ -4828,7 +4824,6 @@ async function loadGroupData(){
       notifDisabled:p.notifications_disabled||false
     };
   });
-  // Garantir que o próprio usuário está no cache
   if(CUR.user&&!_cache.members.find(m=>m.id===CUR.user.id)){
     _cache.members.push({id:CUR.user.id,name:CUR.user.name,avatar:CUR.user.avatar||null,nickname:CUR.user.nickname||null,role:'member',status:'active',notifDisabled:CUR.user.notifDisabled||false});
   }
@@ -4942,39 +4937,21 @@ function setupRealtime(){
         updateBadges();
       });
     })
-    .on('postgres_changes',{event:'*',schema:'public',table:'group_members',filter:'group_id=eq.'+CUR.groupId},(payload)=>{
-      const rtEvent = payload.eventType;
-      sb.from('group_members').select('user_id,role,status,profiles(id,name,avatar,nickname,notifications_disabled)').eq('group_id',CUR.groupId).then(({data:members})=>{
-        if(!members) return;
-        const prevCount=(_cache.members||[]).filter(m=>m.status!=='inactive').length;
-        _cache.members=members.filter(m=>m.user_id).map(m=>{
-          const p=m.profiles||{};
-          return {
-            id:p.id||m.user_id,
-            name:p.name||m.user_id.slice(0,8),
-            avatar:p.avatar||null,
-            role:m.role||'member',
-            nickname:p.nickname||null,
-            status:m.status||'active',
-            notifDisabled:p.notifications_disabled||false
-          };
-        });
-        if(CUR.user&&!_cache.members.find(m=>m.id===CUR.user.id)){
-          _cache.members.push({id:CUR.user.id,name:CUR.user.name,avatar:CUR.user.avatar||null,nickname:CUR.user.nickname||null,role:'member',status:'active',notifDisabled:CUR.user.notifDisabled||false});
-        }
-        const newCount=_cache.members.filter(m=>m.status!=='inactive').length;
-        updateBadges();
-        fillMemberSelects();
-        const statEl=document.getElementById('gi-stat-members');
-        if(statEl) statEl.textContent=newCount;
-        const countEl2=document.getElementById('gi-member-count');
-        if(countEl2) countEl2.textContent='('+newCount+')';
-        if(page==='groupinfo') renderGroupInfo();
-        else _refreshMemberListIfOpen();
-        if(page==='dashboard') renderDash();
-        if(rtEvent==='INSERT') banner('👋 Novo membro entrou no grupo!','ok');
-        else if(rtEvent==='DELETE') banner('Membro saiu do grupo.','info');
-      });
+    .on('postgres_changes',{event:'*',schema:'public',table:'group_members',filter:'group_id=eq.'+CUR.groupId},async(payload)=>{
+      const rtEvent=payload.eventType;
+      const prevCount=(_cache.members||[]).filter(m=>m.status!=='inactive').length;
+      await _fetchAndCacheMembers();
+      const newCount=(_cache.members||[]).filter(m=>m.status!=='inactive').length;
+      updateBadges();
+      const statEl=document.getElementById('gi-stat-members');
+      if(statEl) statEl.textContent=newCount;
+      const countEl2=document.getElementById('gi-member-count');
+      if(countEl2) countEl2.textContent='('+newCount+')';
+      if(page==='groupinfo') renderGroupInfo();
+      else _refreshMemberListIfOpen();
+      if(page==='dashboard') renderDash();
+      if(rtEvent==='INSERT'&&newCount>prevCount) banner('👋 Novo membro entrou no grupo!','ok');
+      else if(rtEvent==='DELETE') banner('Membro saiu do grupo.','info');
     })
     .subscribe();
 }
@@ -5896,94 +5873,63 @@ openM = function(id){
 //  GROUP INFO PAGE
 // ═══════════════════════════════════════════════════════════
 function renderGroupInfo(){
-  function _draw(){
-    const nameEl=$('#gi-name'); if(nameEl) nameEl.textContent=CUR.groupName||'—';
-    const descEl=$('#gi-desc'); if(descEl) descEl.textContent=CUR.groupDesc||'Sem descrição';
+  // Guards: se elementos não existem no DOM, sair sem erro
+  const nameEl=$('#gi-name'); if(nameEl) nameEl.textContent=CUR.groupName||'—';
+  const descEl=$('#gi-desc'); if(descEl) descEl.textContent=CUR.groupDesc||'Sem descrição';
 
-    const avImg=$('#gi-av-img'), avIni=$('#gi-av-ini');
-    if(CUR.groupAvatar){
-      if(avImg){avImg.src=CUR.groupAvatar;avImg.style.display='block';}
-      if(avIni) avIni.style.display='none';
-    } else {
-      if(avImg) avImg.style.display='none';
-      if(avIni){avIni.style.display='';avIni.textContent=ini(CUR.groupName||'G');}
-    }
-
-    // Cover image
-    const coverImg=$('#gi-cover-img'), removeBtn=$('#gi-cover-remove-btn');
-    if(coverImg){
-      if(CUR.groupCover){coverImg.src=CUR.groupCover;coverImg.style.display='';if(removeBtn)removeBtn.style.display='';}
-      else{coverImg.style.display='none';if(removeBtn)removeBtn.style.display='none';}
-    }
-
-    // Código de acesso
-    const codeEl=$('#gi-code'); if(codeEl) codeEl.textContent=CUR.groupCode||'—';
-
-    // Botões admin / membro
-    const isAdmin=CUR.groupCreatedBy===CUR.user.id;
-    const adminActs=$('#gi-admin-acts'); if(adminActs) adminActs.style.display=isAdmin?'flex':'none';
-    const leaveBtn=$('#gi-leave-btn'); if(leaveBtn) leaveBtn.style.display=isAdmin?'none':'inline-flex';
-
-    // Stats
-    const activeCount=(_cache.members||[]).filter(m=>m.status!=='inactive').length;
-    const stats=$('#gi-stats');
-    if(stats){stats.innerHTML=`
-      <div class="gi-stat"><span class="gi-stat-val">${(_cache.tasks||[]).length}</span><span class="gi-stat-lbl">Tarefas</span></div>
-      <div class="gi-stat"><span class="gi-stat-val">${(_cache.tasks||[]).filter(t=>t.status==='done').length}</span><span class="gi-stat-lbl">Concluídas</span></div>
-      <div class="gi-stat"><span class="gi-stat-val">${(_cache.meetings||[]).length}</span><span class="gi-stat-lbl">Reuniões</span></div>
-      <div class="gi-stat"><span class="gi-stat-val">${(_cache.projects||[]).length}</span><span class="gi-stat-lbl">Projetos</span></div>
-      <div class="gi-stat"><span class="gi-stat-val" id="gi-stat-members">${activeCount}</span><span class="gi-stat-lbl">Membros ativos</span></div>
-    `;}
-
-    // Contador de membros
-    const countEl=$('#gi-member-count'); if(countEl) countEl.textContent=`(${activeCount})`;
-
-    // Grid de membros
-    const mg=$('#gi-members-grid'); if(!mg) return;
-    const members2=(_cache.members||[]);
-    const isAdmin2=CUR.groupCreatedBy===CUR.user.id;
-    if(!members2.length){
-      mg.innerHTML='<div style="padding:24px;text-align:center;color:var(--tx3);font-size:12.5px">Carregando membros...</div>';
-    } else {
-      mg.innerHTML=`<div class="gi-members-grid">${members2.map(m=>{
-        const isMe=m.id===CUR.user.id;
-        const isInactive=m.status==='inactive';
-        const avContent=m.avatar?`<img src="${m.avatar}"/>`:'';
-        const displayName=m.nickname||m.name;
-        return`<div class="gi-member-card" style="${isInactive?'opacity:.45;filter:grayscale(.5)':''}">
-          <div class="gi-member-av">${avContent||ini(m.name)}</div>
-          <div class="gi-member-name">${displayName}</div>
-          ${isInactive?'<span style="font-size:9px;font-weight:700;color:var(--red);background:var(--red-s);padding:1px 5px;border-radius:99px">Inativo</span>':''}
-          ${isMe?'<span class="gi-member-me">Você</span>':''}
-          ${isAdmin2&&!isMe?`<button onclick="event.stopPropagation();${isInactive?`reactivateMember('${m.id}','${displayName}')`:`deactivateMember('${m.id}','${displayName}')`}" style="font-size:9.5px;padding:2px 7px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;color:${isInactive?'var(--green)':'var(--tx3)'};">${isInactive?'Reativar':'Desativar'}</button>`:''}
-        </div>`;
-      }).join('')}</div>`;
-    }
+  const avImg=$('#gi-av-img'), avIni=$('#gi-av-ini');
+  if(CUR.groupAvatar){
+    if(avImg){avImg.src=CUR.groupAvatar;avImg.style.display='block';}
+    if(avIni) avIni.style.display='none';
+  } else {
+    if(avImg) avImg.style.display='none';
+    if(avIni){avIni.style.display='';avIni.textContent=ini(CUR.groupName||'G');}
   }
 
-  // Renderizar imediatamente com cache atual
-  _draw();
+  const coverImg=$('#gi-cover-img'),removeBtn=$('#gi-cover-remove-btn');
+  if(coverImg){
+    if(CUR.groupCover){coverImg.src=CUR.groupCover;coverImg.style.display='';if(removeBtn)removeBtn.style.display='';}
+    else{coverImg.style.display='none';if(removeBtn)removeBtn.style.display='none';}
+  }
 
-  // Buscar membros frescos do banco e re-renderizar
-  if(!CUR.groupId) return;
-  sb.from('group_members')
-    .select('user_id,role,status,profiles(id,name,avatar,nickname,notifications_disabled)')
-    .eq('group_id',CUR.groupId)
-    .then(({data:members,error})=>{
-      if(error||!members) return;
-      _cache.members=members.filter(m=>m.user_id).map(m=>{
-        const p=m.profiles||{};
-        return{id:p.id||m.user_id,name:p.name||m.user_id.slice(0,8),avatar:p.avatar||null,
-          role:m.role||'member',nickname:p.nickname||null,status:m.status||'active',
-          notifDisabled:p.notifications_disabled||false};
-      });
-      if(CUR.user&&!_cache.members.find(m=>m.id===CUR.user.id)){
-        _cache.members.push({id:CUR.user.id,name:CUR.user.name,avatar:CUR.user.avatar||null,
-          nickname:CUR.user.nickname||null,role:'member',status:'active',notifDisabled:CUR.user.notifDisabled||false});
-      }
-      fillMemberSelects();
-      if(page==='groupinfo') _draw(); // re-renderizar com dados frescos
-    });
+  const codeEl=$('#gi-code'); if(codeEl) codeEl.textContent=CUR.groupCode||'—';
+
+  const isAdmin=CUR.groupCreatedBy===CUR.user.id;
+  const adminActs=$('#gi-admin-acts'); if(adminActs) adminActs.style.display=isAdmin?'flex':'none';
+  const leaveBtn=$('#gi-leave-btn'); if(leaveBtn) leaveBtn.style.display=isAdmin?'none':'inline-flex';
+
+  const activeCount=(_cache.members||[]).filter(m=>m.status!=='inactive').length;
+  const stats=$('#gi-stats');
+  if(stats){stats.innerHTML=`
+    <div class="gi-stat"><span class="gi-stat-val">${(_cache.tasks||[]).length}</span><span class="gi-stat-lbl">Tarefas</span></div>
+    <div class="gi-stat"><span class="gi-stat-val">${(_cache.tasks||[]).filter(t=>t.status==='done').length}</span><span class="gi-stat-lbl">Concluídas</span></div>
+    <div class="gi-stat"><span class="gi-stat-val">${(_cache.meetings||[]).length}</span><span class="gi-stat-lbl">Reuniões</span></div>
+    <div class="gi-stat"><span class="gi-stat-val">${(_cache.projects||[]).length}</span><span class="gi-stat-lbl">Projetos</span></div>
+    <div class="gi-stat"><span class="gi-stat-val" id="gi-stat-members">${activeCount}</span><span class="gi-stat-lbl">Membros ativos</span></div>
+  `;}
+
+  const countEl=$('#gi-member-count'); if(countEl) countEl.textContent=`(${activeCount})`;
+
+  const mg=$('#gi-members-grid'); if(!mg) return;
+  const members2=(_cache.members||[]);
+  const isAdmin2=CUR.groupCreatedBy===CUR.user.id;
+  if(!members2.length){
+    mg.innerHTML='<div style="padding:24px;text-align:center;color:var(--tx3);font-size:12.5px">Carregando membros...</div>';
+  } else {
+    mg.innerHTML=`<div class="gi-members-grid">${members2.map(m=>{
+      const isMe=m.id===CUR.user.id;
+      const isInactive=m.status==='inactive';
+      const avContent=m.avatar?`<img src="${m.avatar}"/>`:'';
+      const displayName=m.nickname||m.name;
+      return`<div class="gi-member-card" style="${isInactive?'opacity:.45;filter:grayscale(.5)':''}">
+        <div class="gi-member-av">${avContent||ini(m.name)}</div>
+        <div class="gi-member-name">${displayName}</div>
+        ${isInactive?'<span style="font-size:9px;font-weight:700;color:var(--red);background:var(--red-s);padding:1px 5px;border-radius:99px">Inativo</span>':''}
+        ${isMe?'<span class="gi-member-me">Você</span>':''}
+        ${isAdmin2&&!isMe?`<button onclick="event.stopPropagation();${isInactive?`reactivateMember('${m.id}','${displayName}')`:`deactivateMember('${m.id}','${displayName}')`}" style="font-size:9.5px;padding:2px 7px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;color:${isInactive?'var(--green)':'var(--tx3)'};">${isInactive?'Reativar':'Desativar'}</button>`:''}
+      </div>`;
+    }).join('')}</div>`;
+  }
 }
 
 function copyGroupCode(){
