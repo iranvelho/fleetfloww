@@ -4661,27 +4661,43 @@ function fillMemberSelects(){
 // Função central única para buscar e cachear membros
 async function _fetchAndCacheMembers(){
   if(!CUR.groupId) return;
+
+  // Buscar membros do grupo
   const {data:members, error} = await sb.from('group_members')
-    .select('user_id,role,status,profiles(id,name,avatar,nickname,notifications_disabled)')
+    .select('user_id,role,status')
     .eq('group_id', CUR.groupId);
-  if(error || !members) return;
+
+  if(error || !members || !members.length) return;
+
+  // Buscar perfis separadamente (evita problema de RLS no join)
+  const userIds = members.map(m=>m.user_id).filter(Boolean);
+  const {data:profiles} = await sb.from('profiles')
+    .select('id,name,avatar,nickname,notifications_disabled')
+    .in('id', userIds);
+
+  // Mapear perfil para cada membro
+  const profileMap = {};
+  (profiles||[]).forEach(p=>{ profileMap[p.id]=p; });
+
   _cache.members = members.filter(m=>m.user_id).map(m=>{
-    const p = m.profiles||{};
+    const p = profileMap[m.user_id] || {};
     return {
-      id: p.id||m.user_id,
-      name: p.name||m.user_id.slice(0,8),
-      avatar: p.avatar||null,
-      role: m.role||'member',
-      nickname: p.nickname||null,
-      status: m.status||'active',
-      notifDisabled: p.notifications_disabled||false
+      id: m.user_id,
+      name: p.name || m.user_id.slice(0,8),
+      avatar: p.avatar || null,
+      role: m.role || 'member',
+      nickname: p.nickname || null,
+      status: m.status || 'active',
+      notifDisabled: p.notifications_disabled || false
     };
   });
+
   // Garantir que o próprio usuário está no cache
   if(CUR.user && !_cache.members.find(m=>m.id===CUR.user.id)){
-    _cache.members.push({id:CUR.user.id,name:CUR.user.name,avatar:CUR.user.avatar||null,
-      nickname:CUR.user.nickname||null,role:'member',status:'active',notifDisabled:CUR.user.notifDisabled||false});
+    _cache.members.push({id:CUR.user.id, name:CUR.user.name, avatar:CUR.user.avatar||null,
+      nickname:CUR.user.nickname||null, role:'member', status:'active', notifDisabled:CUR.user.notifDisabled||false});
   }
+
   fillMemberSelects();
   return _cache.members;
 }
@@ -4790,32 +4806,40 @@ async function initApp(){
 async function loadGroupData(){
   if(!CUR.groupId||!CUR.user) return;
   const gid=CUR.groupId, uid_val=CUR.user.id;
-  // Queries críticas em paralelo (sem activity — carregada lazy)
   const [
     {data:tasks},{data:myTasks},{data:meetings},
-    {data:projects},{data:steps},{data:members},{data:inbox}
+    {data:projects},{data:steps},{data:memberRows},{data:inbox}
   ] = await Promise.all([
     sb.from('tasks').select('*').eq('group_id',gid).order('created_at',{ascending:false}),
     sb.from('my_tasks').select('*').eq('group_id',gid).eq('user_id',uid_val).order('created_at',{ascending:false}),
     sb.from('meetings').select('*,profiles(name,avatar)').eq('group_id',gid).order('date'),
     sb.from('projects').select('*').eq('group_id',gid).order('created_at',{ascending:false}),
-    sb.from('project_steps').select('*').order('position'),
-    sb.from('group_members').select('*,profiles(id,name,avatar,nickname,notifications_disabled)').eq('group_id',gid),
+    sb.from('project_steps').select('*').eq('group_id',gid).order('position'),
+    sb.from('group_members').select('user_id,role,status').eq('group_id',gid),
     sb.from('inbox').select('*').eq('group_id',gid).eq('user_id',uid_val).order('created_at',{ascending:false}).limit(20)
   ]);
-  // Activity carregada de forma lazy (não bloqueia UI)
-  const activity = null; // será carregado sob demanda
+
+  // Buscar perfis separadamente (evita RLS bloqueando join de outros usuários)
+  const memberUserIds=(memberRows||[]).map(m=>m.user_id).filter(Boolean);
+  const {data:profileRows} = memberUserIds.length
+    ? await sb.from('profiles').select('id,name,avatar,nickname,notifications_disabled').in('id',memberUserIds)
+    : {data:[]};
+  const profileMap={};
+  (profileRows||[]).forEach(p=>{profileMap[p.id]=p;});
+
+  const activity = null;
   _cache.tasks=(tasks||[]).map(t=>({id:t.id,title:t.title,status:t.status,priority:t.priority,frequency:t.frequency,visibility:t.visibility,integrateFor:t.integrate_for||[],createdBy:t.created_by,statusAt:t.status_at,createdAt:t.created_at,limitTime:t.description||null,dueDate:t.due_date||null,weekdays:t.weekdays||null,archived:t.archived||false,archivedAt:t.archived_at||null}));
   _cache.myTasks=(myTasks||[]).map(t=>({id:t.id,title:t.title,frequency:t.frequency,limitTime:t.limit_time,status:t.status,statusAt:t.status_at,createdAt:t.created_at,userId:t.user_id}));
   _cache.myTasksByUser={};
   (_cache.myTasks).forEach(t=>{if(!_cache.myTasksByUser[t.userId])_cache.myTasksByUser[t.userId]=[];_cache.myTasksByUser[t.userId].push(t);});
   _cache.meetings=(meetings||[]).map(m=>({id:m.id,title:m.title,description:m.description,participants:m.participants,date:m.date,time:m.time,calType:m.cal_type,owner:m.profiles?.name||'',ownerId:m.owner,createdAt:m.created_at}));
   _cache.projects=(projects||[]).map(p=>({id:p.id,name:p.name,description:p.description,color:p.color,status:p.status,sharedWith:p.shared_with||[],createdBy:p.created_by,completedAt:p.completed_at,createdAt:p.created_at,steps:(steps||[]).filter(s=>s.project_id===p.id).map(s=>({id:s.id,name:s.name,done:s.done,position:s.position,addedBy:s.added_by,createdAt:s.created_at})).sort((a,b)=>a.position-b.position)}));
-  // Mapear membros com id consistente (profiles.id tem prioridade)
-  _cache.members=(members||[]).filter(m=>m.user_id).map(m=>{
-    const p=m.profiles||{};
+
+  // Mapear membros com perfis buscados separadamente
+  _cache.members=(memberRows||[]).filter(m=>m.user_id).map(m=>{
+    const p=profileMap[m.user_id]||{};
     return {
-      id:p.id||m.user_id,
+      id:m.user_id,
       name:p.name||m.user_id.slice(0,8),
       avatar:p.avatar||null,
       role:m.role||'member',
