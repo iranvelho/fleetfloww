@@ -4753,31 +4753,31 @@ function fillMemberSelects(){
 }
 
 // Função central única para buscar e cachear membros
+// Usa 2 queries separadas (sem join) para máxima confiabilidade
 async function _fetchAndCacheMembers(){
-  if(!CUR.groupId) return;
+  if(!CUR.groupId||!CUR.user) return;
 
-  // Buscar membros e perfis — agora que a policy está correta, o join funciona
-  const {data:members, error} = await sb.from('group_members')
-    .select('user_id,role,status,profiles(id,name,avatar,nickname,notifications_disabled)')
+  // Query 1: membros do grupo
+  const {data:gmRows, error:gmErr} = await sb.from('group_members')
+    .select('user_id,role,status')
     .eq('group_id', CUR.groupId);
 
-  if(error || !members) return;
+  if(gmErr || !gmRows || !gmRows.length) return;
 
-  // Se o join falhar para algum membro, buscar perfis separadamente como fallback
-  const missingIds = members.filter(m=>m.user_id && !m.profiles).map(m=>m.user_id);
-  let extraProfiles = {};
-  if(missingIds.length){
-    const {data:pRows} = await sb.from('profiles')
-      .select('id,name,avatar,nickname,notifications_disabled')
-      .in('id', missingIds);
-    (pRows||[]).forEach(p=>{ extraProfiles[p.id]=p; });
-  }
+  // Query 2: perfis dos membros (query separada, sem join)
+  const userIds = gmRows.map(m=>m.user_id).filter(Boolean);
+  const {data:pRows} = await sb.from('profiles')
+    .select('id,name,avatar,nickname,notifications_disabled')
+    .in('id', userIds);
 
-  _cache.members = members.filter(m=>m.user_id).map(m=>{
-    const p = m.profiles || extraProfiles[m.user_id] || {};
+  const profileMap = {};
+  (pRows||[]).forEach(p=>{ profileMap[p.id]=p; });
+
+  _cache.members = gmRows.filter(m=>m.user_id).map(m=>{
+    const p = profileMap[m.user_id] || {};
     return {
       id: m.user_id,
-      name: p.name || m.user_id.slice(0,8),
+      name: p.name || ('Membro '+m.user_id.slice(0,4)),
       avatar: p.avatar || null,
       role: m.role || 'member',
       nickname: p.nickname || null,
@@ -4786,7 +4786,8 @@ async function _fetchAndCacheMembers(){
     };
   });
 
-  if(CUR.user && !_cache.members.find(m=>m.id===CUR.user.id)){
+  // Garantir que o usuário atual está no cache
+  if(!_cache.members.find(m=>m.id===CUR.user.id)){
     _cache.members.push({id:CUR.user.id, name:CUR.user.name, avatar:CUR.user.avatar||null,
       nickname:CUR.user.nickname||null, role:'member', status:'active', notifDisabled:CUR.user.notifDisabled||false});
   }
@@ -4909,7 +4910,7 @@ async function loadGroupData(){
     sb.from('meetings').select('*,profiles(name,avatar)').eq('group_id',gid).order('date'),
     sb.from('projects').select('*').eq('group_id',gid).order('created_at',{ascending:false}),
     sb.from('project_steps').select('*').order('position'),
-    sb.from('group_members').select('*,profiles(id,name,avatar,nickname,notifications_disabled)').eq('group_id',gid),
+    sb.from('group_members').select('user_id,role,status').eq('group_id',gid),
     sb.from('inbox').select('*').eq('group_id',gid).eq('user_id',uid_val).order('created_at',{ascending:false}).limit(20)
   ]);
   // Activity carregada de forma lazy (não bloqueia UI)
@@ -4921,19 +4922,20 @@ async function loadGroupData(){
   _cache.meetings=(meetings||[]).map(m=>({id:m.id,title:m.title,description:m.description,participants:m.participants,date:m.date,time:m.time,calType:m.cal_type,owner:m.profiles?.name||'',ownerId:m.owner,createdAt:m.created_at}));
   _cache.projects=(projects||[]).map(p=>({id:p.id,name:p.name,description:p.description,color:p.color,status:p.status,sharedWith:p.shared_with||[],createdBy:p.created_by,completedAt:p.completed_at,createdAt:p.created_at,steps:(steps||[]).filter(s=>s.project_id===p.id).map(s=>({id:s.id,name:s.name,done:s.done,position:s.position,addedBy:s.added_by,createdAt:s.created_at})).sort((a,b)=>a.position-b.position)}));
   // Mapear membros — com fallback caso o join retorne profiles null
-  const missingMemberIds=(members||[]).filter(m=>m.user_id&&!m.profiles).map(m=>m.user_id);
-  let extraProfiles2={};
-  if(missingMemberIds.length){
+  // Mapear membros com perfis (join já foi feito na query, ou usar extraProfiles)
+  const memberUserIds=(members||[]).map(m=>m.user_id).filter(Boolean);
+  let profileMap2={};
+  if(memberUserIds.length){
     const {data:pRows2}=await sb.from('profiles')
       .select('id,name,avatar,nickname,notifications_disabled')
-      .in('id',missingMemberIds);
-    (pRows2||[]).forEach(p=>{extraProfiles2[p.id]=p;});
+      .in('id',memberUserIds);
+    (pRows2||[]).forEach(p=>{profileMap2[p.id]=p;});
   }
   _cache.members=(members||[]).filter(m=>m.user_id).map(m=>{
-    const p=m.profiles||extraProfiles2[m.user_id]||{};
+    const p=profileMap2[m.user_id]||{};
     return {
       id:m.user_id,
-      name:p.name||m.user_id.slice(0,8),
+      name:p.name||('Membro '+m.user_id.slice(0,4)),
       avatar:p.avatar||null,
       role:m.role||'member',
       nickname:p.nickname||null,
