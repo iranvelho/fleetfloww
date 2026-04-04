@@ -7,45 +7,83 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>FleetFlow — Central de Operações</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
-// ── TIME PICKER — Input nativo com visual personalizado ──
-function tpToggle(id){
-  const native=document.getElementById(id+'-native');
-  if(native) native.showPicker ? native.showPicker() : native.click();
+// ── TIME PICKER — Picker visual de colunas ──
+const _tpState={};
+function tpInit(id){
+  const hEl=document.getElementById(id+'-h');
+  const mEl=document.getElementById(id+'-m');
+  if(!hEl||!mEl||hEl.children.length) return;
+  let hHtml='',mHtml='';
+  for(let h=0;h<24;h++){const hh=String(h).padStart(2,'0');hHtml+=`<div class="tp-opt" data-v="${hh}" onclick="tpSel('${id}','h','${hh}')">${hh}</div>`;}
+  for(let m=0;m<60;m+=5){const mm=String(m).padStart(2,'0');mHtml+=`<div class="tp-opt" data-v="${mm}" onclick="tpSel('${id}','m','${mm}')">${mm}</div>`;}
+  hEl.innerHTML=hHtml; mEl.innerHTML=mHtml;
 }
-function tpOnChange(id){
-  const native=document.getElementById(id+'-native');
-  const val=native?.value||'';
-  // Atualizar input hidden
-  const inp=document.getElementById(id); if(inp)inp.value=val;
-  // Atualizar display
-  const valEl=document.getElementById(id+'-val');
+function tpToggle(id){
+  tpInit(id);
+  const panel=document.getElementById(id+'-panel');
   const disp=document.getElementById(id+'-disp');
-  if(val){
-    if(valEl){valEl.textContent=val;valEl.classList.remove('empty');}
+  if(!panel) return;
+  const isOpen=panel.classList.contains('open');
+  document.querySelectorAll('.tp-panel.open').forEach(p=>{p.classList.remove('open');const d=document.getElementById(p.id.replace('-panel','-disp'));if(d)d.classList.remove('open');});
+  if(!isOpen){
+    panel.classList.add('open');
+    if(disp)disp.classList.add('open');
+    const cur=document.getElementById(id)?.value||'';
+    if(cur){const[h,m]=cur.split(':');setTimeout(()=>{_tpScrollTo(id,'h',h);_tpScrollTo(id,'m',m);},30);}
+  }
+}
+function _tpScrollTo(id,col,val){
+  const el=document.querySelector(`#${id}-${col} .tp-opt[data-v="${val}"]`);
+  if(el)el.scrollIntoView({block:'center',behavior:'instant'});
+}
+function tpSel(id,col,val){
+  if(!_tpState[id])_tpState[id]={h:'',m:''};
+  _tpState[id][col]=val;
+  document.querySelectorAll(`#${id}-${col} .tp-opt`).forEach(o=>o.classList.toggle('sel',o.dataset.v===val));
+  const s=_tpState[id];
+  if(s.h&&s.m){
+    const v=s.h+':'+s.m;
+    const inp=document.getElementById(id); if(inp)inp.value=v;
+    const valEl=document.getElementById(id+'-val');
+    if(valEl){valEl.textContent=v;valEl.classList.remove('empty');}
+    const disp=document.getElementById(id+'-disp');
     if(disp)disp.classList.add('has-val');
-  } else {
-    tpClear(id);
+    setTimeout(()=>{
+      const panel=document.getElementById(id+'-panel');
+      if(panel)panel.classList.remove('open');
+      if(disp)disp.classList.remove('open');
+    },300);
   }
 }
 function tpClear(id){
+  if(_tpState[id])_tpState[id]={h:'',m:''};
   const inp=document.getElementById(id); if(inp)inp.value='';
-  const native=document.getElementById(id+'-native'); if(native)native.value='';
   const valEl=document.getElementById(id+'-val'); if(valEl){valEl.textContent='--:--';valEl.classList.add('empty');}
   const disp=document.getElementById(id+'-disp'); if(disp)disp.classList.remove('has-val');
+  document.querySelectorAll(`#${id}-h .tp-opt,#${id}-m .tp-opt`).forEach(o=>o.classList.remove('sel'));
 }
 function tpSetValue(id,val){
   if(!val){tpClear(id);return;}
   const inp=document.getElementById(id); if(inp)inp.value=val;
-  const native=document.getElementById(id+'-native'); if(native)native.value=val;
-  const valEl=document.getElementById(id+'-val');
-  if(valEl){valEl.textContent=val;valEl.classList.remove('empty');}
-  const disp=document.getElementById(id+'-disp');
-  if(disp)disp.classList.add('has-val');
+  const valEl=document.getElementById(id+'-val'); if(valEl){valEl.textContent=val;valEl.classList.remove('empty');}
+  const disp=document.getElementById(id+'-disp'); if(disp)disp.classList.add('has-val');
+  const parts=val.split(':'); if(parts.length<2)return;
+  const h=parts[0],m=parts[1];
+  if(!_tpState[id])_tpState[id]={h:'',m:''};
+  _tpState[id]={h,m};
+  tpInit(id);
+  document.querySelectorAll(`#${id}-h .tp-opt`).forEach(o=>o.classList.toggle('sel',o.dataset.v===h));
+  const mRound=String(Math.round(parseInt(m)/5)*5%60).padStart(2,'0');
+  document.querySelectorAll(`#${id}-m .tp-opt`).forEach(o=>o.classList.toggle('sel',o.dataset.v===mRound));
 }
-// aliases mantidos por compatibilidade
-function tpInit(){}
+function tpOnChange(){}
 function tpFocusSeg(){}
 function tpConfirm(){}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.tp-wrap')){
+    document.querySelectorAll('.tp-panel.open').forEach(p=>{p.classList.remove('open');const d=document.getElementById(p.id.replace('-panel','-disp'));if(d)d.classList.remove('open');});
+  }
+});
 </script>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
@@ -1024,9 +1062,17 @@ select.fi{appearance:none;cursor:pointer;padding-right:28px;background-image:url
   position:absolute;inset:0;opacity:0;cursor:pointer;
   width:100%;height:100%;
 }
-/* Compatibilidade — painel não usado mais mas mantido no DOM */
-.tp-panel{display:none!important}
-.tp-head,.tp-cols,.tp-col,.tp-opt,.tp-ok,.tp-panel-display{display:none!important}
+.tp-panel{position:absolute;top:calc(100% + 4px);left:0;z-index:9999;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--rl);box-shadow:var(--shm);display:none;overflow:hidden;width:210px}
+.tp-panel.open{display:block;animation:fadeUp .15s ease}
+.tp-head{display:grid;grid-template-columns:1fr 1fr;text-align:center;padding:8px 0 6px;border-bottom:1px solid var(--border);background:var(--surface2)}
+.tp-head span{font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.07em}
+.tp-cols{display:grid;grid-template-columns:1fr 1fr}
+.tp-col{overflow-y:auto;max-height:210px;padding:4px 0}
+.tp-col::-webkit-scrollbar{width:3px}
+.tp-col::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
+.tp-opt{padding:9px 0;text-align:center;font-size:13px;font-weight:500;color:var(--tx2);cursor:pointer;margin:1px 6px;border-radius:6px;transition:all .1s}
+.tp-opt:hover{background:var(--accent-s);color:var(--accent)}
+.tp-opt.sel{background:var(--accent);color:#fff;font-weight:700}
 .comment-text{font-size:12.5px;color:var(--tx2);line-height:1.5;word-break:break-word}
 .comment-del{font-size:10.5px;color:var(--tx3);background:none;padding:0;margin-left:auto;opacity:0;}
 .comment-item:hover .comment-del{opacity:.7}
@@ -2277,53 +2323,14 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
     <div class="modal-hd"><h2>Nova Tarefa</h2><button class="modal-x" onclick="closeM('m-new-task')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
     <div class="modal-body">
       <div class="fg"><label>Título *</label><input type="text" id="nt-title" class="fi" placeholder="Descreva a tarefa..."/></div>
-      <div class="fg"><label>Visibilidade</label>
-        <select id="nt-vis" class="fi" onchange="toggleMembersField()">
-          <option value="global">🌐 Global — todos do grupo veem</option>
-          <option value="private" selected>🔒 Privada — apenas integrados veem</option>
-        </select>
-      </div>
-      <div class="fg" id="nt-members-wrap" style="display:flex"><label>Integrar membros <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">opcional</span></label><div class="member-check-grid" id="nt-members-grid"></div>
-      <div class="info-note" style="margin-top:6px;font-size:11.5px">⚠️ <strong>Integrar é obrigatório.</strong> Selecione ao menos um membro — ele será o responsável pela tarefa e o único que pode marcá-la como concluída. Sem integração, a tarefa não será atribuída a ninguém.</div>
-      </div>
-      <div class="fr">
-        <div class="fg"><label>Frequência</label><select id="nt-freq" class="fi" onchange="toggleTaskTimeField('nt')"><option value="once">Apenas esta vez</option><option value="daily">Diária</option><option value="weekly">Semanal</option><option value="monthly">Mensal</option><option value="custom">Personalizada (dias específicos)</option></select></div>
-        <div class="fg"><label>Prioridade</label><select id="nt-prio" class="fi"><option value="medium">Média</option><option value="high">Alta</option><option value="low">Baixa</option></select></div>
-      </div>
-      <div class="fg" id="nt-due-wrap"><label>Data limite <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">opcional — quando deve ser concluída</span></label><input type="date" id="nt-due" class="fi"/></div>
-      <div class="fg" id="nt-weekdays-wrap" style="display:none">
-        <label>Dias da semana <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">em quais dias deve aparecer</span></label>
-        <div class="weekday-sel" id="nt-weekdays">
-          <button type="button" class="wd-btn" data-day="1" onclick="toggleWD(this,'nt')">Seg</button>
-          <button type="button" class="wd-btn" data-day="2" onclick="toggleWD(this,'nt')">Ter</button>
-          <button type="button" class="wd-btn" data-day="3" onclick="toggleWD(this,'nt')">Qua</button>
-          <button type="button" class="wd-btn" data-day="4" onclick="toggleWD(this,'nt')">Qui</button>
-          <button type="button" class="wd-btn" data-day="5" onclick="toggleWD(this,'nt')">Sex</button>
-          <button type="button" class="wd-btn" data-day="6" onclick="toggleWD(this,'nt')">Sáb</button>
-          <button type="button" class="wd-btn" data-day="0" onclick="toggleWD(this,'nt')">Dom</button>
-        </div>
-        <div style="font-size:11px;color:var(--tx3);margin-top:4px">💡 Se nenhum dia for selecionado, aparece todos os dias</div>
-      </div>
-      <div class="fg" id="nt-time-wrap" style="display:none"><label>Horário limite <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">deve ser concluída até este horário</span></label><div class="tp-wrap"><div class="tp-display" id="nt-time-disp"><input type="time" class="tp-native" id="nt-time-native" oninput="tpOnChange('nt-time')" tabindex="-1"/><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="tp-val empty" id="nt-time-val">--:--</span><button class="tp-clear" onclick="event.stopPropagation();tpClear('nt-time')" type="button">✕</button></div><input type="hidden" id="nt-time"/></div></div>
-      <!-- Status sempre "pending" ao criar — integrado pode alterar depois -->
-      <div class="info-note" id="nt-cycle-note" style="display:none">♻️ <strong>Tarefa recorrente:</strong> A tarefa some ao iniciar o próximo ciclo — diária some à meia-noite, semanal na segunda-feira, mensal no dia 1º.</div>
+      <div class="fg"><label>Visibilidade</label><select id="nt-vis" class="fi" onchange="toggleMembersField()"><option value="global">🌐 Global — todos do grupo veem</option><option value="private" selected>🔒 Privada — apenas integrados veem</option></select></div>
+      <div class="fg" id="nt-members-wrap" style="display:flex"><label>Integrar membros <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">opcional</span></label><div class="member-check-grid" id="nt-members-grid"></div><div class="info-note" style="margin-top:6px;font-size:11.5px">⚠️ <strong>Integrar é obrigatório.</strong> Selecione ao menos um membro.</div></div>
+      <div class="fr"><div class="fg"><label>Frequência</label><select id="nt-freq" class="fi" onchange="toggleTaskTimeField('nt')"><option value="once">Apenas esta vez</option><option value="daily">Diária</option><option value="weekly">Semanal</option><option value="monthly">Mensal</option><option value="custom">Personalizada</option></select></div><div class="fg"><label>Prioridade</label><select id="nt-prio" class="fi"><option value="medium">Média</option><option value="high">Alta</option><option value="low">Baixa</option></select></div></div>
+      <div class="fg" id="nt-due-wrap"><label>Data limite</label><input type="date" id="nt-due" class="fi"/></div>
+      <div class="fg" id="nt-weekdays-wrap" style="display:none"><label>Dias da semana</label><div class="weekday-sel" id="nt-weekdays"><button type="button" class="wd-btn" data-day="1" onclick="toggleWD(this,'nt')">Seg</button><button type="button" class="wd-btn" data-day="2" onclick="toggleWD(this,'nt')">Ter</button><button type="button" class="wd-btn" data-day="3" onclick="toggleWD(this,'nt')">Qua</button><button type="button" class="wd-btn" data-day="4" onclick="toggleWD(this,'nt')">Qui</button><button type="button" class="wd-btn" data-day="5" onclick="toggleWD(this,'nt')">Sex</button><button type="button" class="wd-btn" data-day="6" onclick="toggleWD(this,'nt')">Sáb</button><button type="button" class="wd-btn" data-day="0" onclick="toggleWD(this,'nt')">Dom</button></div></div>
+      <div class="fg" id="nt-time-wrap" style="display:none"><label>Horário limite</label><div class="tp-wrap"><div class="tp-display" id="nt-time-disp" onclick="tpToggle('nt-time')" style="cursor:pointer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="tp-val empty" id="nt-time-val">--:--</span><button class="tp-clear" onclick="event.stopPropagation();tpClear('nt-time')" type="button">✕</button></div><div class="tp-panel" id="nt-time-panel"><div class="tp-head"><span>Hora</span><span>Min</span></div><div class="tp-cols"><div class="tp-col" id="nt-time-h"></div><div class="tp-col" id="nt-time-m"></div></div></div><input type="hidden" id="nt-time"/></div></div>
     </div>
-    <div class="modal-ft"><button class="btn-sec" onclick="closeM('m-new-task')">Cancelar</button><button class="btn-main" onclick="submitTask()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Criar</button></div>
-  </div>
-</div>
-
-<!-- QUICK STATUS -->
-<div class="overlay" id="m-quick-status">
-  <div class="modal" style="padding:0;overflow:hidden">
-    <div class="modal-hd" style="display:none"></div>
-    <div class="qs-header">
-      <div class="qs-task-name" id="qs-title"></div>
-      <div class="qs-task-meta" id="qs-meta"></div>
-    </div>
-    <div class="qs-divider"></div>
-    <div class="qs-label">Selecionar status</div>
-    <div class="qs-opts" id="qs-opts"></div>
-    <button class="qs-cancel" onclick="closeM('m-quick-status')">Cancelar</button>
+    <div class="modal-ft"><button class="btn-sec" onclick="closeM('m-new-task');tpClear('nt-time')">Cancelar</button><button class="btn-main" onclick="submitNewTask()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="width:14px;height:14px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Criar</button></div>
   </div>
 </div>
 
@@ -2335,81 +2342,40 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
       <input type="hidden" id="et-id"/>
       <div class="fg"><label>Título</label><input type="text" id="et-title" class="fi"/></div>
       <div class="fg"><label>Visibilidade</label><select id="et-vis" class="fi"><option value="global">🌐 Global</option><option value="private">🔒 Privada</option></select></div>
-      <div class="fg"><label>Integrar membros <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">opcional</span></label><div class="member-check-grid" id="et-members-grid"></div></div>
-      <div class="fr">
-        <div class="fg"><label>Frequência</label><select id="et-freq" class="fi" onchange="toggleTaskTimeField('et')"><option value="once">Apenas esta vez</option><option value="daily">Diária</option><option value="weekly">Semanal</option><option value="monthly">Mensal</option><option value="custom">Personalizada (dias específicos)</option></select></div>
-        <div class="fg"><label>Prioridade</label><select id="et-prio" class="fi"><option value="medium">Média</option><option value="high">Alta</option><option value="low">Baixa</option></select></div>
-      </div>
-      <div class="fg" id="et-due-wrap"><label>Data limite <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">opcional</span></label><input type="date" id="et-due" class="fi"/></div>
-      <div class="fg" id="et-weekdays-wrap" style="display:none">
-        <label>Dias da semana <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">em quais dias deve aparecer</span></label>
-        <div class="weekday-sel" id="et-weekdays">
-          <button type="button" class="wd-btn" data-day="1" onclick="toggleWD(this,'et')">Seg</button>
-          <button type="button" class="wd-btn" data-day="2" onclick="toggleWD(this,'et')">Ter</button>
-          <button type="button" class="wd-btn" data-day="3" onclick="toggleWD(this,'et')">Qua</button>
-          <button type="button" class="wd-btn" data-day="4" onclick="toggleWD(this,'et')">Qui</button>
-          <button type="button" class="wd-btn" data-day="5" onclick="toggleWD(this,'et')">Sex</button>
-          <button type="button" class="wd-btn" data-day="6" onclick="toggleWD(this,'et')">Sáb</button>
-          <button type="button" class="wd-btn" data-day="0" onclick="toggleWD(this,'et')">Dom</button>
-        </div>
-      </div>
-      <div class="fg" id="et-time-wrap"><label>Horário limite <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">deve ser concluída até este horário</span></label><div class="tp-wrap"><div class="tp-display" id="et-time-disp"><input type="time" class="tp-native" id="et-time-native" oninput="tpOnChange('et-time')" tabindex="-1"/><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="tp-val empty" id="et-time-val">--:--</span><button class="tp-clear" onclick="event.stopPropagation();tpClear('et-time')" type="button">✕</button></div><input type="hidden" id="et-time"/></div></div>
-      <div class="fg"><label>Status</label><select id="et-status" class="fi"><option value="pending">Pendente</option><option value="progress">Em andamento</option><option value="done">Concluída</option><option value="late">Vencida</option></select></div>
-    </div>
-      <div id="et-cycle-history" style="display:none;margin-top:4px;padding:12px 14px;background:var(--surface2);border-radius:10px;border:1.5px solid var(--border)"></div>
+      <div class="fg"><label>Integrar membros</label><div class="member-check-grid" id="et-members-grid"></div></div>
+      <div class="fr"><div class="fg"><label>Frequência</label><select id="et-freq" class="fi" onchange="toggleTaskTimeField('et')"><option value="once">Apenas esta vez</option><option value="daily">Diária</option><option value="weekly">Semanal</option><option value="monthly">Mensal</option><option value="custom">Personalizada</option></select></div><div class="fg"><label>Prioridade</label><select id="et-prio" class="fi"><option value="medium">Média</option><option value="high">Alta</option><option value="low">Baixa</option></select></div></div>
+      <div class="fg"><label>Status</label><select id="et-status" class="fi"><option value="pending">Pendente</option><option value="done">Concluída</option><option value="late">Vencida</option></select></div>
+      <div class="fg" id="et-due-wrap"><label>Data limite</label><input type="date" id="et-due" class="fi"/></div>
+      <div class="fg" id="et-weekdays-wrap" style="display:none"><label>Dias da semana</label><div class="weekday-sel" id="et-weekdays"><button type="button" class="wd-btn" data-day="1" onclick="toggleWD(this,'et')">Seg</button><button type="button" class="wd-btn" data-day="2" onclick="toggleWD(this,'et')">Ter</button><button type="button" class="wd-btn" data-day="3" onclick="toggleWD(this,'et')">Qua</button><button type="button" class="wd-btn" data-day="4" onclick="toggleWD(this,'et')">Qui</button><button type="button" class="wd-btn" data-day="5" onclick="toggleWD(this,'et')">Sex</button><button type="button" class="wd-btn" data-day="6" onclick="toggleWD(this,'et')">Sáb</button><button type="button" class="wd-btn" data-day="0" onclick="toggleWD(this,'et')">Dom</button></div></div>
+      <div class="fg" id="et-time-wrap"><label>Horário limite</label><div class="tp-wrap"><div class="tp-display" id="et-time-disp" onclick="tpToggle('et-time')" style="cursor:pointer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="tp-val empty" id="et-time-val">--:--</span><button class="tp-clear" onclick="event.stopPropagation();tpClear('et-time')" type="button">✕</button></div><div class="tp-panel" id="et-time-panel"><div class="tp-head"><span>Hora</span><span>Min</span></div><div class="tp-cols"><div class="tp-col" id="et-time-h"></div><div class="tp-col" id="et-time-m"></div></div></div><input type="hidden" id="et-time"/></div></div>
+      <div id="et-cycle-history" style="display:none;margin-top:8px"></div>
     </div>
     <div class="modal-ft"><button class="btn-sec" onclick="closeM('m-edit-task')">Cancelar</button><button class="btn-main" onclick="saveTask()">Salvar</button></div>
   </div>
 </div>
 
-<!-- NEW MY TASK -->
+<!-- NOVA TAREFA PESSOAL -->
 <div class="overlay" id="m-new-my">
   <div class="modal">
-    <div class="modal-hd"><h2>Nova Tarefa — Minhas Tarefas</h2><button class="modal-x" onclick="closeM('m-new-my')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div class="modal-hd"><h2>Nova Tarefa — Minhas Tarefas</h2><button class="modal-x" onclick="closeM('m-new-my');tpClear('nm-time')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
     <div class="modal-body">
       <div class="fg"><label>Título *</label><input type="text" id="nm-title" class="fi" placeholder="Ex: Conferir fretes, Verificar abastecimento..."/></div>
-      <div class="fr">
-        <div class="fg"><label>Recorrência</label>
-          <select id="nm-freq" class="fi" onchange="toggleNmDays()">
-            <option value="once">Apenas esta vez</option>
-            <option value="daily">Diária</option>
-            <option value="weekly">Semanal</option>
-            <option value="monthly">Mensal</option>
-            <option value="custom">Personalizada (dias específicos)</option>
-          </select>
-        </div>
-        <div class="fg" id="nm-time-wrap"><label>Horário limite</label><div class="tp-wrap"><div class="tp-display" id="nm-time-disp"><input type="time" class="tp-native" id="nm-time-native" oninput="tpOnChange('nm-time')" tabindex="-1"/><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="tp-val empty" id="nm-time-val">--:--</span><button class="tp-clear" onclick="event.stopPropagation();tpClear('nm-time')" type="button">✕</button></div><input type="hidden" id="nm-time"/></div></div>
-      </div>
-      <div class="fg" id="nm-days-wrap" style="display:none">
-        <label>Dias da semana <span style="font-size:10px;color:var(--tx3);font-weight:400">em quais dias deve aparecer</span></label>
-        <div class="weekday-sel" id="nm-weekdays">
-          <button type="button" class="wd-btn" data-day="1" onclick="toggleWD(this,'nm')">Seg</button>
-          <button type="button" class="wd-btn" data-day="2" onclick="toggleWD(this,'nm')">Ter</button>
-          <button type="button" class="wd-btn" data-day="3" onclick="toggleWD(this,'nm')">Qua</button>
-          <button type="button" class="wd-btn" data-day="4" onclick="toggleWD(this,'nm')">Qui</button>
-          <button type="button" class="wd-btn" data-day="5" onclick="toggleWD(this,'nm')">Sex</button>
-          <button type="button" class="wd-btn" data-day="6" onclick="toggleWD(this,'nm')">Sáb</button>
-          <button type="button" class="wd-btn" data-day="0" onclick="toggleWD(this,'nm')">Dom</button>
-        </div>
-        <div style="font-size:11px;color:var(--tx3);margin-top:4px">💡 Se nenhum dia for selecionado, aparece todos os dias</div>
-      </div>
+      <div class="fr"><div class="fg"><label>Recorrência</label><select id="nm-freq" class="fi" onchange="toggleTaskTimeField('nm')"><option value="once">Apenas esta vez</option><option value="daily">Diária</option><option value="weekly">Semanal</option><option value="monthly">Mensal</option><option value="custom">Personalizada</option></select></div><div class="fg" id="nm-time-wrap"><label>Horário limite</label><div class="tp-wrap"><div class="tp-display" id="nm-time-disp" onclick="tpToggle('nm-time')" style="cursor:pointer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="tp-val empty" id="nm-time-val">--:--</span><button class="tp-clear" onclick="event.stopPropagation();tpClear('nm-time')" type="button">✕</button></div><div class="tp-panel" id="nm-time-panel"><div class="tp-head"><span>Hora</span><span>Min</span></div><div class="tp-cols"><div class="tp-col" id="nm-time-h"></div><div class="tp-col" id="nm-time-m"></div></div></div><input type="hidden" id="nm-time"/></div></div></div>
+      <div class="fg" id="nm-weekdays-wrap" style="display:none"><label>Dias da semana</label><div class="weekday-sel" id="nm-weekdays"><button type="button" class="wd-btn" data-day="1" onclick="toggleWD(this,'nm')">Seg</button><button type="button" class="wd-btn" data-day="2" onclick="toggleWD(this,'nm')">Ter</button><button type="button" class="wd-btn" data-day="3" onclick="toggleWD(this,'nm')">Qua</button><button type="button" class="wd-btn" data-day="4" onclick="toggleWD(this,'nm')">Qui</button><button type="button" class="wd-btn" data-day="5" onclick="toggleWD(this,'nm')">Sex</button><button type="button" class="wd-btn" data-day="6" onclick="toggleWD(this,'nm')">Sáb</button><button type="button" class="wd-btn" data-day="0" onclick="toggleWD(this,'nm')">Dom</button></div></div>
       <div class="info-note">⏱ <strong>+1h de tolerância</strong> após o horário limite. Tarefas recorrentes somem após 3 dias e voltam no próximo ciclo.</div>
     </div>
-    <div class="modal-ft"><button class="btn-sec" onclick="closeM('m-new-my')">Cancelar</button><button class="btn-main" onclick="submitMyTask()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Criar</button></div>
+    <div class="modal-ft"><button class="btn-sec" onclick="closeM('m-new-my');tpClear('nm-time')">Cancelar</button><button class="btn-main" onclick="submitMyTask()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="width:14px;height:14px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Criar</button></div>
   </div>
 </div>
 
-<!-- EDIT MY TASK -->
+<!-- EDITAR TAREFA PESSOAL -->
 <div class="overlay" id="m-edit-my">
   <div class="modal">
-    <div class="modal-hd"><h2>Editar Tarefa Pessoal</h2><button class="modal-x" onclick="closeM('m-edit-my')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div class="modal-hd"><h2>Editar Tarefa</h2><button class="modal-x" onclick="closeM('m-edit-my')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
     <div class="modal-body">
       <input type="hidden" id="em-id"/>
       <div class="fg"><label>Título</label><input type="text" id="em-title" class="fi"/></div>
-      <div class="fr">
-        <div class="fg"><label>Recorrência</label><select id="em-freq" class="fi" onchange="toggleEmDays()"><option value="once">Apenas esta vez</option><option value="daily">Diária</option><option value="weekly">Semanal</option><option value="monthly">Mensal</option><option value="custom">Personalizada (dias específicos)</option></select></div>
-        <div class="fg"><label>Horário limite</label><div class="tp-wrap"><div class="tp-display" id="em-time-disp"><input type="time" class="tp-native" id="em-time-native" oninput="tpOnChange('em-time')" tabindex="-1"/><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="tp-val empty" id="em-time-val">--:--</span><button class="tp-clear" onclick="event.stopPropagation();tpClear('em-time')" type="button">✕</button></div><input type="hidden" id="em-time"/></div></div>
-      </div>
+      <div class="fr"><div class="fg"><label>Frequência</label><select id="em-freq" class="fi"><option value="once">Apenas esta vez</option><option value="daily">Diária</option><option value="weekly">Semanal</option><option value="monthly">Mensal</option></select></div><div class="fg"><label>Horário limite</label><div class="tp-wrap"><div class="tp-display" id="em-time-disp" onclick="tpToggle('em-time')" style="cursor:pointer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="tp-val empty" id="em-time-val">--:--</span><button class="tp-clear" onclick="event.stopPropagation();tpClear('em-time')" type="button">✕</button></div><div class="tp-panel" id="em-time-panel"><div class="tp-head"><span>Hora</span><span>Min</span></div><div class="tp-cols"><div class="tp-col" id="em-time-h"></div><div class="tp-col" id="em-time-m"></div></div></div><input type="hidden" id="em-time"/></div></div></div>
       <div class="fg"><label>Status</label><select id="em-status" class="fi"><option value="pending">Pendente</option><option value="done">Concluída</option><option value="late">Vencida</option></select></div>
     </div>
     <div class="modal-ft"><button class="btn-sec" onclick="closeM('m-edit-my')">Cancelar</button><button class="btn-main" onclick="saveMyTask()">Salvar</button></div>
@@ -3604,7 +3570,7 @@ function renderCubes(tasks){
     <canvas id="cube-snow-canvas"></canvas>
     <div class="cube-arena-hud" id="cube-hud">${tasks.length} TAREFA${tasks.length!==1?'S':''}</div>
   </div>`;
-  const arena = el.closest('#mw-cube-arena,#tasks-cube-arena') || document.getElementById('mw-cube-arena');
+  const arena = document.getElementById('mw-cube-arena');
 
   // Partículas de neve discreta
   (function initSnow(){
