@@ -7,23 +7,20 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>FleetFlow — Central de Operações</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
-// ── TIME PICKER — input nativo direto ──
+// ── TIME PICKER — input type=time nativo ──
+// IDs no HTML: {id}-time-input (ex: nt-time-time-input)
 function tpSetValue(id,val){
   const el=document.getElementById(id+'-time-input');
-  if(el) el.value=val||'';
+  if(el){el.value=val||'';}
 }
 function tpGetValue(id){
-  // Suporta o novo input direto ou o hidden antigo
-  const direct=document.getElementById(id+'-time-input');
-  if(direct) return direct.value;
-  const hidden=document.getElementById(id);
-  return hidden?hidden.value:'';
+  const el=document.getElementById(id+'-time-input');
+  return el?el.value:'';
 }
 function tpClear(id){
   const el=document.getElementById(id+'-time-input');
-  if(el) el.value='';
+  if(el)el.value='';
 }
-// aliases para compatibilidade com código antigo
 function tpToggle(){}
 function tpOnChange(){}
 function tpInit(){}
@@ -981,18 +978,19 @@ select.fi{appearance:none;cursor:pointer;padding-right:28px;background-image:url
 /* ── TIME PICKER ── */
 /* ── TIME PICKER — input nativo com face visual ── */
 /* ── TIME PICKER — input nativo estilizado ── */
-.tp-wrap{position:relative;width:100%}
 .tp-input-time{
   width:100%;padding:10px 14px;
   background:var(--surface2);border:1.5px solid var(--border);
-  border-radius:var(--r);font-size:13px;font-weight:600;
+  border-radius:var(--r);font-size:14px;font-weight:600;
   color:var(--tx);cursor:pointer;box-sizing:border-box;
-  font-family:inherit;
+  font-family:inherit;display:block;
+  -webkit-appearance:none;
 }
 .tp-input-time:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(217,119,6,.08)}
 .tp-input-time:hover{border-color:var(--accent)}
-/* Esconder os painéis antigos caso existam no DOM */
-.tp-panel,.tp-head,.tp-cols,.tp-col,.tp-opt,.tp-ok,.tp-panel-display,.tp-display{display:none!important}
+.tp-input-time::-webkit-calendar-picker-indicator{opacity:.6;cursor:pointer;filter:invert(0)}
+/* Esconder painéis antigos */
+.tp-panel,.tp-head,.tp-cols,.tp-col,.tp-opt,.tp-ok,.tp-panel-display,.tp-display,.tp-wrap{display:none!important}
 .comment-text{font-size:12.5px;color:var(--tx2);line-height:1.5;word-break:break-word}
 .comment-del{font-size:10.5px;color:var(--tx3);background:none;padding:0;margin-left:auto;opacity:0;}
 .comment-item:hover .comment-del{opacity:.7}
@@ -3701,61 +3699,58 @@ async function cubeDone(id){
   if(cubeMode) renderMyWork();
 }
 
-function makeCubeDraggable(el, taskId, posMap){
-  let startX, startY, startLeft, startTop, dragging=false, moved=false;
-
-  const onDown = (e) => {
-    if(e.target.closest('button')) return;
-    dragging = true; moved = false;
-    el.style.zIndex = 200;
-    const pt = e.touches ? e.touches[0] : e;
-    startX = pt.clientX;
-    startY = pt.clientY;
-    startLeft = parseInt(el.style.left)||0;
-    startTop  = parseInt(el.style.top)||0;
-    el.style.cursor = 'grabbing';
-    e.preventDefault();
-  };
-
-  const onMove = (e) => {
-    if(!dragging) return;
+// Estado global do drag — um único listener no window
+let _dragState = null;
+(function initGlobalDrag(){
+  function onMove(e){
+    if(!_dragState) return;
+    const {el, startX, startY, startLeft, startTop, posMap, taskId} = _dragState;
     const pt = e.touches ? e.touches[0] : e;
     const dx = pt.clientX - startX;
     const dy = pt.clientY - startY;
-    if(Math.abs(dx)+Math.abs(dy)>3) moved = true;
-
-    const liveArena = el.closest('#mw-cube-arena') || el.closest('#tasks-cube-arena');
-    const arenaRect = liveArena ? liveArena.getBoundingClientRect() : {width:800};
-    const maxH = liveArena ? liveArena.scrollHeight : 600;
-    const newLeft = Math.max(4, Math.min(arenaRect.width - 170, startLeft + dx));
-    const newTop  = Math.max(4, Math.min(maxH - 60, startTop + dy));
-
-    el.style.left = newLeft + 'px';
-    el.style.top  = newTop  + 'px';
+    const arena = el.closest('#mw-cube-arena,#tasks-cube-arena');
+    if(!arena) return;
+    const r = arena.getBoundingClientRect();
+    const maxH = arena.scrollHeight;
+    el.style.left = Math.max(4, Math.min(r.width-170, startLeft+dx)) + 'px';
+    el.style.top  = Math.max(4, Math.min(maxH-60,  startTop+dy))  + 'px';
     e.preventDefault();
-  };
-
-  const onUp = () => {
-    if(!dragging) return;
-    dragging = false;
+  }
+  function onUp(){
+    if(!_dragState) return;
+    const {el, posMap, taskId} = _dragState;
     el.style.zIndex = 5;
     el.style.cursor = 'grab';
-    // Salvar posição
     (posMap||_cubePositions)[taskId] = {
       x: parseInt(el.style.left)||0,
       y: parseInt(el.style.top)||0
     };
-    // Animação de snap
     el.classList.add('cube-drop-anim');
     setTimeout(()=>el.classList.remove('cube-drop-anim'), 250);
-  };
-
-  el.addEventListener('mousedown',  onDown,  {passive:false});
-  el.addEventListener('touchstart', onDown,  {passive:false});
-  window.addEventListener('mousemove', onMove,  {passive:false});
-  window.addEventListener('touchmove', onMove,  {passive:false});
+    _dragState = null;
+  }
+  window.addEventListener('mousemove', onMove, {passive:false});
+  window.addEventListener('touchmove', onMove, {passive:false});
   window.addEventListener('mouseup',  onUp);
   window.addEventListener('touchend', onUp);
+})();
+
+function makeCubeDraggable(el, taskId, posMap){
+  function onDown(e){
+    if(e.target.closest('button')) return;
+    const pt = e.touches ? e.touches[0] : e;
+    _dragState = {
+      el, taskId, posMap,
+      startX: pt.clientX, startY: pt.clientY,
+      startLeft: parseInt(el.style.left)||0,
+      startTop:  parseInt(el.style.top)||0
+    };
+    el.style.zIndex = 200;
+    el.style.cursor = 'grabbing';
+    e.preventDefault();
+  }
+  el.addEventListener('mousedown',  onDown, {passive:false});
+  el.addEventListener('touchstart', onDown, {passive:false});
 }
 
 function renderMyWork(){
@@ -4219,17 +4214,18 @@ function renderTasksCube(container, tasks){
   }
   container.innerHTML=`<div id="tasks-cube-arena"><div class="cube-arena-hud">${tasks.length} TAREFA${tasks.length!==1?'S':''}</div></div>`;
   const arena=document.getElementById('tasks-cube-arena');
-  // Usar setTimeout para garantir que o DOM renderizou e clientWidth está disponível
-  setTimeout(()=>{
-    const W = arena.clientWidth || container.clientWidth || 800;
-    const cols=Math.max(2, Math.floor(W/195));
+  // Dois requestAnimationFrame garante layout calculado antes de ler clientWidth
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    const W = arena.getBoundingClientRect().width || container.getBoundingClientRect().width || 900;
+    const cols = Math.max(2, Math.floor((W - 48) / 195));
     tasks.forEach((t,i)=>{
       if(!_tCubePos[t.id]){
-        _tCubePos[t.id]={x:24+(i%cols)*190, y:24+Math.floor(i/cols)*220};
+        const col=i%cols, row=Math.floor(i/cols);
+        _tCubePos[t.id]={x:24+col*195, y:24+row*230};
       }
       spawnTaskCube(arena,t);
     });
-  },0);
+  }));
 }
 
 let _tCubePos={};
