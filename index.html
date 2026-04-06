@@ -992,7 +992,7 @@ select.fi{appearance:none;cursor:pointer;padding-right:28px;background-image:url
 .tp-input-time:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(217,119,6,.08)}
 .tp-input-time:hover{border-color:var(--accent)}
 /* Esconder os painéis antigos caso existam no DOM */
-.tp-panel,.tp-head,.tp-cols,.tp-col,.tp-opt,.tp-ok,.tp-panel-display,.tp-display{display:none!important}
+.tp-panel,.tp-head,.tp-cols,.tp-col,.tp-opt,.tp-ok,.tp-panel-display{display:none!important}
 .comment-text{font-size:12.5px;color:var(--tx2);line-height:1.5;word-break:break-word}
 .comment-del{font-size:10.5px;color:var(--tx3);background:none;padding:0;margin-left:auto;opacity:0;}
 .comment-item:hover .comment-del{opacity:.7}
@@ -2256,7 +2256,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
         <div class="fg"><label>Frequência</label><select id="nt-freq" class="fi" onchange="toggleTaskTimeField('nt')"><option value="once">Apenas esta vez</option><option value="daily">Diária</option><option value="weekly">Semanal</option><option value="monthly">Mensal</option><option value="custom">Personalizada (dias específicos)</option></select></div>
         <div class="fg"><label>Prioridade</label><select id="nt-prio" class="fi"><option value="medium">Média</option><option value="high">Alta</option><option value="low">Baixa</option></select></div>
       </div>
-      <div class="fg" id="nt-due-wrap"><label>Data limite <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">opcional — quando deve ser concluída</span></label><input type="date" id="nt-due" class="fi"/></div>
+      <div class="fg" id="nt-due-wrap"><label>Data e hora limite <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">opcional — data e horário máximo</span></label><input type="datetime-local" id="nt-due" class="fi"/></div>
       <div class="fg" id="nt-weekdays-wrap" style="display:none">
         <label>Dias da semana <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">em quais dias deve aparecer</span></label>
         <div class="weekday-sel" id="nt-weekdays">
@@ -2306,7 +2306,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
         <div class="fg"><label>Frequência</label><select id="et-freq" class="fi" onchange="toggleTaskTimeField('et')"><option value="once">Apenas esta vez</option><option value="daily">Diária</option><option value="weekly">Semanal</option><option value="monthly">Mensal</option><option value="custom">Personalizada (dias específicos)</option></select></div>
         <div class="fg"><label>Prioridade</label><select id="et-prio" class="fi"><option value="medium">Média</option><option value="high">Alta</option><option value="low">Baixa</option></select></div>
       </div>
-      <div class="fg" id="et-due-wrap"><label>Data limite <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">opcional</span></label><input type="date" id="et-due" class="fi"/></div>
+      <div class="fg" id="et-due-wrap"><label>Data e hora limite <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">opcional</span></label><input type="datetime-local" id="et-due" class="fi"/></div>
       <div class="fg" id="et-weekdays-wrap" style="display:none">
         <label>Dias da semana <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">em quais dias deve aparecer</span></label>
         <div class="weekday-sel" id="et-weekdays">
@@ -2345,6 +2345,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
           </select>
         </div>
         <div class="fg" id="nm-time-wrap"><label>Horário limite</label><input type="time" class="tp-input-time" id="nm-time-time-input"/>
+        </div>
       </div>
       <div class="fg" id="nm-days-wrap" style="display:none">
         <label>Dias da semana <span style="font-size:10px;color:var(--tx3);font-weight:400">em quais dias deve aparecer</span></label>
