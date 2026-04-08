@@ -36,21 +36,29 @@ function tpToggle(id){
   const disp=document.getElementById(id+'-disp');
   if(!panel) return;
   const isOpen=panel.classList.contains('open');
-  document.querySelectorAll('.tp-panel.open').forEach(p=>{p.classList.remove('open');const d=document.getElementById(p.id.replace('-panel','-disp'));if(d)d.classList.remove('open');});
+  // Close all open panels
+  document.querySelectorAll('.tp-panel.open').forEach(p=>{
+    p.classList.remove('open');
+    const d=document.getElementById(p.id.replace('-panel','-disp'));
+    if(d)d.classList.remove('open');
+  });
   if(!isOpen){
-    // Position panel using fixed coords from display element
+    // Move panel to body if not already there (portal pattern)
+    if(panel.parentElement!==document.body) document.body.appendChild(panel);
+    // Position below (or above) the display field
     const rect=disp.getBoundingClientRect();
-    const panelH=260; // approximate panel height
-    const spaceBelow=window.innerHeight-rect.bottom-8;
-    if(spaceBelow>=panelH){
-      panel.style.top=(rect.bottom+4)+'px';
-    } else {
-      panel.style.top=(rect.top-panelH-4)+'px';
-    }
-    panel.style.left=rect.left+'px';
-    panel.classList.add('open'); disp.classList.add('open');
+    const panelW=224;
+    const panelH=240;
+    let top=rect.bottom+4;
+    let left=rect.left;
+    if(top+panelH>window.innerHeight-8) top=rect.top-panelH-4;
+    if(left+panelW>window.innerWidth-8) left=window.innerWidth-panelW-8;
+    panel.style.top=top+'px';
+    panel.style.left=left+'px';
+    panel.classList.add('open');
+    disp.classList.add('open');
     const s=_tpState[id]||{};
-    tpSetStep(id, s.h ? 'm' : 'h');
+    tpSetStep(id, s.h?'m':'h');
     tpUpdateHead(id);
   }
 }
