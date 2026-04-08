@@ -1072,43 +1072,38 @@ select.fi{appearance:none;cursor:pointer;padding-right:28px;background-image:url
   cursor:pointer;display:none;line-height:1.4;flex-shrink:0;
 }
 .tp-display.has-val .tp-clear{display:inline-block}
-/* Painel redesenhado */
+/* Painel compacto */
 .tp-panel{
-  position:absolute;top:calc(100% + 6px);left:0;z-index:9999;
-  background:var(--surface);border:1.5px solid var(--border);
-  border-radius:14px;box-shadow:0 8px 32px rgba(30,16,37,.16);
-  display:none;overflow:hidden;width:260px;
+  position:absolute;top:calc(100% + 4px);left:0;z-index:9999;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;box-shadow:0 6px 20px rgba(30,16,37,.13);
+  display:none;overflow:hidden;width:224px;
 }
-.tp-panel.open{display:block;animation:fadeUp .15s ease}
-/* Cabeçalho com hora selecionada em destaque */
-.tp-head{
-  display:flex;align-items:center;justify-content:center;gap:0;
-  padding:12px 16px 10px;border-bottom:1px solid var(--border);
-  background:var(--surface2);
-}
+.tp-panel.open{display:block;animation:fadeUp .12s ease}
+/* Abas hora / min */
+.tp-head{display:flex;border-bottom:1px solid var(--border);background:var(--surface2)}
 .tp-head-col{
-  display:flex;flex-direction:column;align-items:center;gap:1px;
-  padding:6px 14px;border-radius:10px;cursor:pointer;transition:background .1s;
-  flex:1;
+  flex:1;display:flex;align-items:center;justify-content:center;gap:5px;
+  padding:7px 8px;cursor:pointer;font-size:11px;font-weight:700;
+  color:var(--tx3);transition:background .1s,color .1s;
 }
-.tp-head-col.active{background:var(--accent-s)}
-.tp-head-col:hover{background:var(--accent-s)}
-.tp-head-lbl{font-size:9px;font-weight:800;color:var(--tx3);text-transform:uppercase;letter-spacing:.1em}
-.tp-head-sel{font-size:24px;font-weight:900;color:var(--tx);letter-spacing:-1px;line-height:1}
-.tp-head-sel.empty{color:var(--border2)}
-.tp-head-sep{font-size:22px;font-weight:900;color:var(--border2);line-height:1;padding:0 2px;margin-top:10px}
-/* Steps: hora e minuto */
-.tp-step{display:none;padding:10px 10px 12px}
+.tp-head-col.active{background:var(--surface);color:var(--accent);box-shadow:inset 0 -2px 0 var(--accent)}
+.tp-head-col:hover:not(.active){background:rgba(0,0,0,.03)}
+.tp-head-lbl{font-size:11px;font-weight:700}
+.tp-head-sel{font-size:13px;font-weight:800;font-variant-numeric:tabular-nums}
+.tp-head-sel.empty{opacity:.35}
+.tp-head-sep{color:var(--border2);font-weight:700;font-size:12px;padding:7px 0;background:var(--surface2);display:flex;align-items:center}
+/* Steps */
+.tp-step{display:none;padding:7px 7px 8px}
 .tp-step.active{display:block}
-.tp-step-lbl{font-size:9.5px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px;text-align:center}
-/* Grid horas: 6 col */
-.tp-grid-h{display:grid;grid-template-columns:repeat(6,1fr);gap:3px}
-/* Grid minutos: 4 col */
-.tp-grid-m{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.tp-step-lbl{font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;text-align:center}
+/* Grids compactos */
+.tp-grid-h{display:grid;grid-template-columns:repeat(6,1fr);gap:2px}
+.tp-grid-m{display:grid;grid-template-columns:repeat(4,1fr);gap:3px}
 .tp-opt{
-  padding:8px 2px;text-align:center;font-size:12px;font-weight:600;
-  color:var(--tx2);cursor:pointer;border-radius:8px;
-  transition:background .1s,color .1s;border:1.5px solid transparent;
+  padding:5px 2px;text-align:center;font-size:11.5px;font-weight:600;
+  color:var(--tx2);cursor:pointer;border-radius:6px;
+  transition:background .1s,color .1s;
 }
 .tp-opt:hover{background:var(--accent-s);color:var(--accent)}
 .tp-opt.sel{background:var(--accent);color:#fff;font-weight:700}
@@ -2388,7 +2383,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
         </div>
         <div style="font-size:11px;color:var(--tx3);margin-top:4px">💡 Se nenhum dia for selecionado, aparece todos os dias</div>
       </div>
-      <div class="fg" id="nt-time-wrap" style="display:none"><label>Horário limite <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">deve ser concluída até este horário</span></label><div class="tp-wrap"><div class="tp-display" id="nt-time-disp" onclick="tpToggle('nt-time')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="tp-val empty" id="nt-time-val">--:--</span><button class="tp-clear" onclick="event.stopPropagation();tpClear('nt-time')">✕</button></div><div class="tp-panel" id="nt-time-panel"><div class="tp-head"><div class="tp-head-col active" id="nt-time-hcol" onclick="tpSetStep('nt-time','h')"><div class="tp-head-lbl">Hora</div><div class="tp-head-sel empty" id="nt-time-head-h">--</div></div><div class="tp-head-sep">:</div><div class="tp-head-col" id="nt-time-mcol" onclick="tpSetStep('nt-time','m')"><div class="tp-head-lbl">Min</div><div class="tp-head-sel empty" id="nt-time-head-m">--</div></div></div><div class="tp-step active" id="nt-time-step-h"><div class="tp-step-lbl">Selecione a hora</div><div class="tp-grid-h" id="nt-time-h"></div></div><div class="tp-step" id="nt-time-step-m"><div class="tp-step-lbl">Selecione o minuto</div><div class="tp-grid-m" id="nt-time-m"></div></div></div><input type="hidden" id="nt-time"/></div></div>
+      <div class="fg" id="nt-time-wrap" style="display:none"><label>Horário limite <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">deve ser concluída até este horário</span></label><div class="tp-wrap"><div class="tp-display" id="nt-time-disp" onclick="tpToggle('nt-time')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="tp-val empty" id="nt-time-val">--:--</span><button class="tp-clear" onclick="event.stopPropagation();tpClear('nt-time')">✕</button></div><div class="tp-panel" id="nt-time-panel"><div class="tp-head"><div class="tp-head-col active" id="nt-time-hcol" onclick="tpSetStep('nt-time','h')"><span class="tp-head-lbl">Hora</span><span class="tp-head-sel empty" id="nt-time-head-h">--</span></div><div class="tp-head-sep">:</div><div class="tp-head-col" id="nt-time-mcol" onclick="tpSetStep('nt-time','m')"><span class="tp-head-lbl">Min</span><span class="tp-head-sel empty" id="nt-time-head-m">--</span></div></div><div class="tp-step active" id="nt-time-step-h"><div class="tp-step-lbl">Selecione a hora</div><div class="tp-grid-h" id="nt-time-h"></div></div><div class="tp-step" id="nt-time-step-m"><div class="tp-step-lbl">Selecione o minuto</div><div class="tp-grid-m" id="nt-time-m"></div></div></div><input type="hidden" id="nt-time"/></div></div>
       <!-- Status sempre "pending" ao criar — integrado pode alterar depois -->
       <div class="info-note" id="nt-cycle-note" style="display:none">♻️ <strong>Tarefa recorrente:</strong> A tarefa some ao iniciar o próximo ciclo — diária some à meia-noite, semanal na segunda-feira, mensal no dia 1º.</div>
     </div>
@@ -2437,7 +2432,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
           <button type="button" class="wd-btn" data-day="0" onclick="toggleWD(this,'et')">Dom</button>
         </div>
       </div>
-      <div class="fg" id="et-time-wrap"><label>Horário limite <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">deve ser concluída até este horário</span></label><div class="tp-wrap"><div class="tp-display" id="et-time-disp" onclick="tpToggle('et-time')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="tp-val empty" id="et-time-val">--:--</span><button class="tp-clear" onclick="event.stopPropagation();tpClear('et-time')">✕</button></div><div class="tp-panel" id="et-time-panel"><div class="tp-head"><div class="tp-head-col active" id="et-time-hcol" onclick="tpSetStep('et-time','h')"><div class="tp-head-lbl">Hora</div><div class="tp-head-sel empty" id="et-time-head-h">--</div></div><div class="tp-head-sep">:</div><div class="tp-head-col" id="et-time-mcol" onclick="tpSetStep('et-time','m')"><div class="tp-head-lbl">Min</div><div class="tp-head-sel empty" id="et-time-head-m">--</div></div></div><div class="tp-step active" id="et-time-step-h"><div class="tp-step-lbl">Selecione a hora</div><div class="tp-grid-h" id="et-time-h"></div></div><div class="tp-step" id="et-time-step-m"><div class="tp-step-lbl">Selecione o minuto</div><div class="tp-grid-m" id="et-time-m"></div></div></div><input type="hidden" id="et-time"/></div></div>
+      <div class="fg" id="et-time-wrap"><label>Horário limite <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">deve ser concluída até este horário</span></label><div class="tp-wrap"><div class="tp-display" id="et-time-disp" onclick="tpToggle('et-time')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="tp-val empty" id="et-time-val">--:--</span><button class="tp-clear" onclick="event.stopPropagation();tpClear('et-time')">✕</button></div><div class="tp-panel" id="et-time-panel"><div class="tp-head"><div class="tp-head-col active" id="et-time-hcol" onclick="tpSetStep('et-time','h')"><span class="tp-head-lbl">Hora</span><span class="tp-head-sel empty" id="et-time-head-h">--</span></div><div class="tp-head-sep">:</div><div class="tp-head-col" id="et-time-mcol" onclick="tpSetStep('et-time','m')"><span class="tp-head-lbl">Min</span><span class="tp-head-sel empty" id="et-time-head-m">--</span></div></div><div class="tp-step active" id="et-time-step-h"><div class="tp-step-lbl">Selecione a hora</div><div class="tp-grid-h" id="et-time-h"></div></div><div class="tp-step" id="et-time-step-m"><div class="tp-step-lbl">Selecione o minuto</div><div class="tp-grid-m" id="et-time-m"></div></div></div><input type="hidden" id="et-time"/></div></div>
       <div class="fg"><label>Status</label><select id="et-status" class="fi"><option value="pending">Pendente</option><option value="progress">Em andamento</option><option value="done">Concluída</option><option value="late">Vencida</option></select></div>
     </div>
       <div id="et-cycle-history" style="display:none;margin-top:4px;padding:12px 14px;background:var(--surface2);border-radius:10px;border:1.5px solid var(--border)"></div>
@@ -2462,7 +2457,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
             <option value="custom">Personalizada (dias específicos)</option>
           </select>
         </div>
-        <div class="fg" id="nm-time-wrap"><label>Horário limite</label><div class="tp-wrap"><div class="tp-display" id="nm-time-disp" onclick="tpToggle('nm-time')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="tp-val empty" id="nm-time-val">--:--</span><button class="tp-clear" onclick="event.stopPropagation();tpClear('nm-time')">✕</button></div><div class="tp-panel" id="nm-time-panel"><div class="tp-head"><div class="tp-head-col active" id="nm-time-hcol" onclick="tpSetStep('nm-time','h')"><div class="tp-head-lbl">Hora</div><div class="tp-head-sel empty" id="nm-time-head-h">--</div></div><div class="tp-head-sep">:</div><div class="tp-head-col" id="nm-time-mcol" onclick="tpSetStep('nm-time','m')"><div class="tp-head-lbl">Min</div><div class="tp-head-sel empty" id="nm-time-head-m">--</div></div></div><div class="tp-step active" id="nm-time-step-h"><div class="tp-step-lbl">Selecione a hora</div><div class="tp-grid-h" id="nm-time-h"></div></div><div class="tp-step" id="nm-time-step-m"><div class="tp-step-lbl">Selecione o minuto</div><div class="tp-grid-m" id="nm-time-m"></div></div></div><input type="hidden" id="nm-time"/></div></div>
+        <div class="fg" id="nm-time-wrap"><label>Horário limite</label><div class="tp-wrap"><div class="tp-display" id="nm-time-disp" onclick="tpToggle('nm-time')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="tp-val empty" id="nm-time-val">--:--</span><button class="tp-clear" onclick="event.stopPropagation();tpClear('nm-time')">✕</button></div><div class="tp-panel" id="nm-time-panel"><div class="tp-head"><div class="tp-head-col active" id="nm-time-hcol" onclick="tpSetStep('nm-time','h')"><span class="tp-head-lbl">Hora</span><span class="tp-head-sel empty" id="nm-time-head-h">--</span></div><div class="tp-head-sep">:</div><div class="tp-head-col" id="nm-time-mcol" onclick="tpSetStep('nm-time','m')"><span class="tp-head-lbl">Min</span><span class="tp-head-sel empty" id="nm-time-head-m">--</span></div></div><div class="tp-step active" id="nm-time-step-h"><div class="tp-step-lbl">Selecione a hora</div><div class="tp-grid-h" id="nm-time-h"></div></div><div class="tp-step" id="nm-time-step-m"><div class="tp-step-lbl">Selecione o minuto</div><div class="tp-grid-m" id="nm-time-m"></div></div></div><input type="hidden" id="nm-time"/></div></div>
       </div>
       <div class="fg" id="nm-days-wrap" style="display:none">
         <label>Dias da semana <span style="font-size:10px;color:var(--tx3);font-weight:400">em quais dias deve aparecer</span></label>
@@ -2492,7 +2487,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
       <div class="fg"><label>Título</label><input type="text" id="em-title" class="fi"/></div>
       <div class="fr">
         <div class="fg"><label>Recorrência</label><select id="em-freq" class="fi" onchange="toggleEmDays()"><option value="once">Apenas esta vez</option><option value="daily">Diária</option><option value="weekly">Semanal</option><option value="monthly">Mensal</option><option value="custom">Personalizada (dias específicos)</option></select></div>
-        <div class="fg"><label>Horário limite</label><div class="tp-wrap"><div class="tp-display" id="em-time-disp" onclick="tpToggle('em-time')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="tp-val empty" id="em-time-val">--:--</span><button class="tp-clear" onclick="event.stopPropagation();tpClear('em-time')">✕</button></div><div class="tp-panel" id="em-time-panel"><div class="tp-head"><div class="tp-head-col active" id="em-time-hcol" onclick="tpSetStep('em-time','h')"><div class="tp-head-lbl">Hora</div><div class="tp-head-sel empty" id="em-time-head-h">--</div></div><div class="tp-head-sep">:</div><div class="tp-head-col" id="em-time-mcol" onclick="tpSetStep('em-time','m')"><div class="tp-head-lbl">Min</div><div class="tp-head-sel empty" id="em-time-head-m">--</div></div></div><div class="tp-step active" id="em-time-step-h"><div class="tp-step-lbl">Selecione a hora</div><div class="tp-grid-h" id="em-time-h"></div></div><div class="tp-step" id="em-time-step-m"><div class="tp-step-lbl">Selecione o minuto</div><div class="tp-grid-m" id="em-time-m"></div></div></div><input type="hidden" id="em-time"/></div></div>
+        <div class="fg"><label>Horário limite</label><div class="tp-wrap"><div class="tp-display" id="em-time-disp" onclick="tpToggle('em-time')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="tp-val empty" id="em-time-val">--:--</span><button class="tp-clear" onclick="event.stopPropagation();tpClear('em-time')">✕</button></div><div class="tp-panel" id="em-time-panel"><div class="tp-head"><div class="tp-head-col active" id="em-time-hcol" onclick="tpSetStep('em-time','h')"><span class="tp-head-lbl">Hora</span><span class="tp-head-sel empty" id="em-time-head-h">--</span></div><div class="tp-head-sep">:</div><div class="tp-head-col" id="em-time-mcol" onclick="tpSetStep('em-time','m')"><span class="tp-head-lbl">Min</span><span class="tp-head-sel empty" id="em-time-head-m">--</span></div></div><div class="tp-step active" id="em-time-step-h"><div class="tp-step-lbl">Selecione a hora</div><div class="tp-grid-h" id="em-time-h"></div></div><div class="tp-step" id="em-time-step-m"><div class="tp-step-lbl">Selecione o minuto</div><div class="tp-grid-m" id="em-time-m"></div></div></div><input type="hidden" id="em-time"/></div></div>
       </div>
       <div class="fg"><label>Status</label><select id="em-status" class="fi"><option value="pending">Pendente</option><option value="done">Concluída</option><option value="late">Vencida</option></select></div>
     </div>
