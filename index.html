@@ -6,25 +6,80 @@
 <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJnIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj48c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjZmI5MjNjIi8+PHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjZWE1ODBjIi8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTQiIGZpbGw9InVybCgjZykiLz48dGV4dCB4PSI1MCUiIHk9IjU0JSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IlNlZ29lIFVJLHN5c3RlbS11aSxzYW5zLXNlcmlmIiBmb250LXNpemU9IjI2IiBmb250LXdlaWdodD0iODAwIiBmaWxsPSJ3aGl0ZSIgbGV0dGVyLXNwYWNpbmc9Ii0xIj5GRjwvdGV4dD48L3N2Zz4="/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>FleetFlow — Central de Operações</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-// ── TIME PICKER — input type=time nativo ──
-function tpSetValue(id,val){
-  const el=document.getElementById(id+'-time-input');
-  if(el) el.value=val||'';
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+// ── TIME PICKER JS ──
+const _tpState={};
+function tpInit(id){
+  const hEl=document.getElementById(id+'-h');
+  const mEl=document.getElementById(id+'-m');
+  if(!hEl||!mEl||hEl.children.length) return;
+  let hHtml='',mHtml='';
+  for(let h=0;h<24;h++){const hh=String(h).padStart(2,'0');hHtml+=`<div class="tp-opt" data-v="${hh}" onclick="tpSelect('${id}','h','${hh}')">${hh}</div>`;}
+  for(let m=0;m<60;m+=5){const mm=String(m).padStart(2,'0');mHtml+=`<div class="tp-opt" data-v="${mm}" onclick="tpSelect('${id}','m','${mm}')">${mm}</div>`;}
+  hEl.innerHTML=hHtml; mEl.innerHTML=mHtml;
 }
-function tpGetValue(id){
-  const el=document.getElementById(id+'-time-input');
-  return el?el.value:'';
+function tpToggle(id){
+  tpInit(id);
+  const panel=document.getElementById(id+'-panel');
+  const disp=document.getElementById(id+'-disp');
+  if(!panel) return;
+  const isOpen=panel.classList.contains('open');
+  document.querySelectorAll('.tp-panel.open').forEach(p=>{p.classList.remove('open');const d=document.getElementById(p.id.replace('-panel','-disp'));if(d)d.classList.remove('open');});
+  if(!isOpen){
+    panel.classList.add('open'); disp.classList.add('open');
+    const cur=document.getElementById(id).value;
+    if(cur){const[h,m]=cur.split(':');setTimeout(()=>{tpScrollTo(id,'h',h);tpScrollTo(id,'m',m);},50);}
+  }
+}
+function tpScrollTo(id,col,val){
+  const el=document.querySelector(`#${id}-${col} .tp-opt[data-v="${val}"]`);
+  if(el)el.scrollIntoView({block:'center',behavior:'smooth'});
+}
+function tpSelect(id,col,val){
+  if(!_tpState[id])_tpState[id]={h:'',m:''};
+  _tpState[id][col]=val;
+  document.querySelectorAll(`#${id}-${col} .tp-opt`).forEach(o=>o.classList.toggle('sel',o.dataset.v===val));
+  const s=_tpState[id];
+  if(s.h&&s.m){
+    const v=s.h+':'+s.m;
+    document.getElementById(id).value=v;
+    const valEl=document.getElementById(id+'-val');
+    if(valEl){valEl.textContent=v;valEl.classList.remove('empty');}
+    const disp=document.getElementById(id+'-disp');
+    if(disp)disp.classList.add('has-val');
+    setTimeout(()=>{
+      const panel=document.getElementById(id+'-panel');
+      if(panel)panel.classList.remove('open');
+      if(disp)disp.classList.remove('open');
+    },350);
+  }
 }
 function tpClear(id){
-  const el=document.getElementById(id+'-time-input');
-  if(el) el.value='';
+  _tpState[id]={h:'',m:''};
+  const inp=document.getElementById(id); if(inp)inp.value='';
+  const valEl=document.getElementById(id+'-val'); if(valEl){valEl.textContent='--:--';valEl.classList.add('empty');}
+  const disp=document.getElementById(id+'-disp'); if(disp)disp.classList.remove('has-val');
+  document.querySelectorAll(`#${id}-h .tp-opt,#${id}-m .tp-opt`).forEach(o=>o.classList.remove('sel'));
 }
-function tpToggle(){}
-function tpInit(){}
-function tpFocusSeg(){}
-function tpConfirm(){}
+function tpSetValue(id,val){
+  if(!val){tpClear(id);return;}
+  const parts=val.split(':'); if(parts.length<2)return;
+  const h=parts[0],m=parts[1];
+  _tpState[id]={h,m};
+  const inp=document.getElementById(id); if(inp)inp.value=val;
+  const valEl=document.getElementById(id+'-val'); if(valEl){valEl.textContent=val;valEl.classList.remove('empty');}
+  const disp=document.getElementById(id+'-disp'); if(disp)disp.classList.add('has-val');
+  tpInit(id);
+  document.querySelectorAll(`#${id}-h .tp-opt`).forEach(o=>o.classList.toggle('sel',o.dataset.v===h));
+  // Arredondar minuto para múltiplo de 5 mais próximo
+  const mRound=String(Math.round(parseInt(m)/5)*5).padStart(2,'0').replace('60','55');
+  document.querySelectorAll(`#${id}-m .tp-opt`).forEach(o=>o.classList.toggle('sel',o.dataset.v===mRound));
+}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.tp-wrap')){
+    document.querySelectorAll('.tp-panel.open').forEach(p=>{p.classList.remove('open');const d=document.getElementById(p.id.replace('-panel','-disp'));if(d)d.classList.remove('open');});
+  }
+});
 </script>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
@@ -975,20 +1030,25 @@ select.fi{appearance:none;cursor:pointer;padding-right:28px;background-image:url
 .comment-author{font-size:12px;font-weight:700;color:var(--tx)}
 .comment-time{font-size:10.5px;color:var(--tx3)}
 /* ── TIME PICKER ── */
-/* ── TIME PICKER — input nativo com face visual ── */
-/* ── TIME PICKER — input nativo estilizado ── */
-.tp-input-time{
-  width:100%;padding:10px 14px;
-  background:var(--surface2);border:1.5px solid var(--border);
-  border-radius:var(--r);font-size:13px;font-weight:500;
-  color:var(--tx);cursor:pointer;box-sizing:border-box;
-  font-family:inherit;
-}
-.tp-input-time:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(217,119,6,.08)}
-.tp-input-time:hover{border-color:var(--accent)}
-.tp-input-time::-webkit-calendar-picker-indicator{cursor:pointer;opacity:.7}
-/* Esconder painéis antigos */
-.tp-panel,.tp-head,.tp-cols,.tp-col,.tp-opt,.tp-ok,.tp-panel-display,.tp-display,.tp-wrap{display:none!important}
+.tp-wrap{position:relative;width:100%}
+.tp-display{display:flex;align-items:center;gap:8px;padding:9px 14px;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--r);cursor:pointer;transition:border-color var(--t);user-select:none;width:100%}
+.tp-display:hover,.tp-display.open{border-color:var(--accent)}
+.tp-display svg{width:15px;height:15px;color:var(--tx3);flex-shrink:0}
+.tp-val{font-size:13px;color:var(--tx);flex:1}
+.tp-val.empty{color:var(--tx3)}
+.tp-clear{font-size:11px;color:var(--tx3);padding:2px 6px;border-radius:4px;background:var(--surface);border:1px solid var(--border);cursor:pointer;display:none;line-height:1.4}
+.tp-display.has-val .tp-clear{display:inline-block}
+.tp-panel{position:absolute;top:calc(100% + 4px);left:0;z-index:9999;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--rl);box-shadow:var(--shm);display:none;overflow:hidden;width:200px}
+.tp-panel.open{display:block;animation:fadeUp .15s ease}
+.tp-head{display:grid;grid-template-columns:1fr 1fr;text-align:center;padding:8px 0 6px;border-bottom:1px solid var(--border);background:var(--surface2)}
+.tp-head span{font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.07em}
+.tp-cols{display:grid;grid-template-columns:1fr 1fr;border-top:none}
+.tp-col{overflow-y:auto;max-height:200px;padding:4px 0}
+.tp-col::-webkit-scrollbar{width:3px}
+.tp-col::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
+.tp-opt{padding:8px 0;text-align:center;font-size:13px;font-weight:500;color:var(--tx2);cursor:pointer;transition:all .1s;margin:1px 5px;border-radius:6px}
+.tp-opt:hover{background:var(--accent-s);color:var(--accent)}
+.tp-opt.sel{background:var(--accent);color:#fff;font-weight:700}
 .comment-text{font-size:12.5px;color:var(--tx2);line-height:1.5;word-break:break-word}
 .comment-del{font-size:10.5px;color:var(--tx3);background:none;padding:0;margin-left:auto;opacity:0;}
 .comment-item:hover .comment-del{opacity:.7}
@@ -1893,7 +1953,6 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
             <div class="vt">
               <button class="vb active" id="vb-list" onclick="tView='list';setVBtns();renderTasks()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>Lista</button>
               <button class="vb" id="vb-kb" onclick="tView='kanban';setVBtns();renderTasks()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="11" rx="1"/><rect x="17" y="3" width="5" height="14" rx="1"/></svg>Kanban</button>
-              <button class="vb" id="vb-cube" onclick="tView='cube';setVBtns();renderTasks()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>Cubos</button>
             </div>
             </div>
           </div>
@@ -2266,7 +2325,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
         </div>
         <div style="font-size:11px;color:var(--tx3);margin-top:4px">💡 Se nenhum dia for selecionado, aparece todos os dias</div>
       </div>
-      <div class="fg" id="nt-time-wrap" style="display:none"><label>Horário limite <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">deve ser concluída até este horário</span></label><input type="time" class="tp-input-time" id="nt-time-time-input"/>
+      <div class="fg" id="nt-time-wrap" style="display:none"><label>Horário limite <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">deve ser concluída até este horário</span></label><div class="tp-wrap"><div class="tp-display" id="nt-time-disp" onclick="tpToggle('nt-time')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="tp-val empty" id="nt-time-val">--:--</span><button class="tp-clear" onclick="event.stopPropagation();tpClear('nt-time')">✕</button></div><div class="tp-panel" id="nt-time-panel"><div class="tp-head"><span>Hora</span><span>Min</span></div><div class="tp-cols"><div class="tp-col" id="nt-time-h"></div><div class="tp-col" id="nt-time-m"></div></div></div><input type="hidden" id="nt-time"/></div></div>
       <!-- Status sempre "pending" ao criar — integrado pode alterar depois -->
       <div class="info-note" id="nt-cycle-note" style="display:none">♻️ <strong>Tarefa recorrente:</strong> A tarefa some ao iniciar o próximo ciclo — diária some à meia-noite, semanal na segunda-feira, mensal no dia 1º.</div>
     </div>
@@ -2315,7 +2374,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
           <button type="button" class="wd-btn" data-day="0" onclick="toggleWD(this,'et')">Dom</button>
         </div>
       </div>
-      <div class="fg" id="et-time-wrap"><label>Horário limite <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">deve ser concluída até este horário</span></label><input type="time" class="tp-input-time" id="et-time-time-input"/>
+      <div class="fg" id="et-time-wrap"><label>Horário limite <span style="font-size:10px;color:var(--tx3);text-transform:none;letter-spacing:0">deve ser concluída até este horário</span></label><div class="tp-wrap"><div class="tp-display" id="et-time-disp" onclick="tpToggle('et-time')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="tp-val empty" id="et-time-val">--:--</span><button class="tp-clear" onclick="event.stopPropagation();tpClear('et-time')">✕</button></div><div class="tp-panel" id="et-time-panel"><div class="tp-head"><span>Hora</span><span>Min</span></div><div class="tp-cols"><div class="tp-col" id="et-time-h"></div><div class="tp-col" id="et-time-m"></div></div></div><input type="hidden" id="et-time"/></div></div>
       <div class="fg"><label>Status</label><select id="et-status" class="fi"><option value="pending">Pendente</option><option value="progress">Em andamento</option><option value="done">Concluída</option><option value="late">Vencida</option></select></div>
     </div>
       <div id="et-cycle-history" style="display:none;margin-top:4px;padding:12px 14px;background:var(--surface2);border-radius:10px;border:1.5px solid var(--border)"></div>
@@ -2340,7 +2399,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
             <option value="custom">Personalizada (dias específicos)</option>
           </select>
         </div>
-        <div class="fg" id="nm-time-wrap"><label>Horário limite</label><input type="time" class="tp-input-time" id="nm-time-time-input"/>
+        <div class="fg" id="nm-time-wrap"><label>Horário limite</label><div class="tp-wrap"><div class="tp-display" id="nm-time-disp" onclick="tpToggle('nm-time')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="tp-val empty" id="nm-time-val">--:--</span><button class="tp-clear" onclick="event.stopPropagation();tpClear('nm-time')">✕</button></div><div class="tp-panel" id="nm-time-panel"><div class="tp-head"><span>Hora</span><span>Min</span></div><div class="tp-cols"><div class="tp-col" id="nm-time-h"></div><div class="tp-col" id="nm-time-m"></div></div></div><input type="hidden" id="nm-time"/></div></div>
       </div>
       <div class="fg" id="nm-days-wrap" style="display:none">
         <label>Dias da semana <span style="font-size:10px;color:var(--tx3);font-weight:400">em quais dias deve aparecer</span></label>
@@ -2370,7 +2429,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
       <div class="fg"><label>Título</label><input type="text" id="em-title" class="fi"/></div>
       <div class="fr">
         <div class="fg"><label>Recorrência</label><select id="em-freq" class="fi" onchange="toggleEmDays()"><option value="once">Apenas esta vez</option><option value="daily">Diária</option><option value="weekly">Semanal</option><option value="monthly">Mensal</option><option value="custom">Personalizada (dias específicos)</option></select></div>
-        <div class="fg"><label>Horário limite</label><input type="time" class="tp-input-time" id="em-time-time-input"/>
+        <div class="fg"><label>Horário limite</label><div class="tp-wrap"><div class="tp-display" id="em-time-disp" onclick="tpToggle('em-time')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="tp-val empty" id="em-time-val">--:--</span><button class="tp-clear" onclick="event.stopPropagation();tpClear('em-time')">✕</button></div><div class="tp-panel" id="em-time-panel"><div class="tp-head"><span>Hora</span><span>Min</span></div><div class="tp-cols"><div class="tp-col" id="em-time-h"></div><div class="tp-col" id="em-time-m"></div></div></div><input type="hidden" id="em-time"/></div></div>
       </div>
       <div class="fg"><label>Status</label><select id="em-status" class="fi"><option value="pending">Pendente</option><option value="done">Concluída</option><option value="late">Vencida</option></select></div>
     </div>
@@ -3597,7 +3656,7 @@ function renderCubes(tasks){
     draw();
   })();
 
-  const cols = Math.max(3, Math.floor((arena.offsetWidth||800) / 190));
+  const cols = Math.max(3, Math.floor((arena.clientWidth||600) / 190));
   tasks.forEach((t, i) => {
     if(!_cubePositions[t.id]){
       const col = i % cols, row = Math.floor(i / cols);
@@ -3697,58 +3756,60 @@ async function cubeDone(id){
   if(cubeMode) renderMyWork();
 }
 
-// Estado global do drag — um único listener no window
-let _dragState = null;
-(function initGlobalDrag(){
-  function onMove(e){
-    if(!_dragState) return;
-    const {el, startX, startY, startLeft, startTop, posMap, taskId} = _dragState;
+function makeCubeDraggable(el, taskId){
+  let startX, startY, startLeft, startTop, dragging=false, moved=false;
+  const arena = document.getElementById('mw-cube-arena');
+
+  const onDown = (e) => {
+    if(e.target.closest('button')) return;
+    dragging = true; moved = false;
+    el.style.zIndex = 200;
+    const pt = e.touches ? e.touches[0] : e;
+    startX = pt.clientX;
+    startY = pt.clientY;
+    startLeft = parseInt(el.style.left)||0;
+    startTop  = parseInt(el.style.top)||0;
+    el.style.cursor = 'grabbing';
+    e.preventDefault();
+  };
+
+  const onMove = (e) => {
+    if(!dragging) return;
     const pt = e.touches ? e.touches[0] : e;
     const dx = pt.clientX - startX;
     const dy = pt.clientY - startY;
-    const arena = el.closest('#mw-cube-arena,#tasks-cube-arena');
-    if(!arena) return;
-    const r = arena.getBoundingClientRect();
-    const maxH = arena.scrollHeight;
-    el.style.left = Math.max(4, Math.min(r.width-170, startLeft+dx)) + 'px';
-    el.style.top  = Math.max(4, Math.min(maxH-60,  startTop+dy))  + 'px';
+    if(Math.abs(dx)+Math.abs(dy)>3) moved = true;
+
+    const arenaRect = arena.getBoundingClientRect();
+    const newLeft = Math.max(0, Math.min(arenaRect.width - 165, startLeft + dx));
+    const newTop  = Math.max(0, Math.min(arena.scrollHeight - 60, startTop + dy));
+
+    el.style.left = newLeft + 'px';
+    el.style.top  = newTop  + 'px';
     e.preventDefault();
-  }
-  function onUp(){
-    if(!_dragState) return;
-    const {el, posMap, taskId} = _dragState;
+  };
+
+  const onUp = () => {
+    if(!dragging) return;
+    dragging = false;
     el.style.zIndex = 5;
     el.style.cursor = 'grab';
-    (posMap||_cubePositions)[taskId] = {
+    // Salvar posição
+    _cubePositions[taskId] = {
       x: parseInt(el.style.left)||0,
       y: parseInt(el.style.top)||0
     };
+    // Animação de snap
     el.classList.add('cube-drop-anim');
     setTimeout(()=>el.classList.remove('cube-drop-anim'), 250);
-    _dragState = null;
-  }
-  window.addEventListener('mousemove', onMove, {passive:false});
-  window.addEventListener('touchmove', onMove, {passive:false});
+  };
+
+  el.addEventListener('mousedown',  onDown,  {passive:false});
+  el.addEventListener('touchstart', onDown,  {passive:false});
+  window.addEventListener('mousemove', onMove,  {passive:false});
+  window.addEventListener('touchmove', onMove,  {passive:false});
   window.addEventListener('mouseup',  onUp);
   window.addEventListener('touchend', onUp);
-})();
-
-function makeCubeDraggable(el, taskId, posMap){
-  function onDown(e){
-    if(e.target.closest('button')) return;
-    const pt = e.touches ? e.touches[0] : e;
-    _dragState = {
-      el, taskId, posMap,
-      startX: pt.clientX, startY: pt.clientY,
-      startLeft: parseInt(el.style.left)||0,
-      startTop:  parseInt(el.style.top)||0
-    };
-    el.style.zIndex = 200;
-    el.style.cursor = 'grabbing';
-    e.preventDefault();
-  }
-  el.addEventListener('mousedown',  onDown, {passive:false});
-  el.addEventListener('touchstart', onDown, {passive:false});
 }
 
 function renderMyWork(){
@@ -3862,7 +3923,6 @@ function toggleHideDone(){
 function setVBtns(){
   $('#vb-list')?.classList.toggle('active',tView==='list');
   $('#vb-kb')?.classList.toggle('active',tView==='kanban');
-  $('#vb-cube')?.classList.toggle('active',tView==='cube');
 }
 
 // ── Calcular início do ciclo atual para cada frequência ──
@@ -3989,7 +4049,7 @@ function renderTasks(){
   const q=$('#search-in')?.value?.toLowerCase()||'';
   if(q)arr=arr.filter(t=>t.title.toLowerCase().includes(q));
   const c=$('#tasks-content');c.innerHTML='';
-  if(tView==='cube')renderTasksCube(c,arr);else if(tView==='list')renderTasksList(c,arr);else renderTasksKanban(c,arr);
+  if(tView==='list')renderTasksList(c,arr);else renderTasksKanban(c,arr);
   fillMemberFilter();
 }
 
@@ -4099,9 +4159,10 @@ function taskGroupHTML(label,tasks,gid,originType=''){
       <div class="t-wrap" style="border-radius:0;border:none"><table class="t-tbl">
         <thead><tr>
           <th>Tarefa</th>
-          ${isGlobalGroup||isMineGroup ? '<th>Responsável</th>' : ''}
-          ${isAssignedGroup ? '<th>Criado por</th>' : ''}
-          <th>Status</th><th></th>
+          ${isGlobalGroup ? '<th>Criador</th><th>Integrados</th>' : ''}
+          ${isAssignedGroup ? '<th>Integrado por</th><th>Horário limite</th>' : ''}
+          ${isMineGroup ? '<th>Integrados</th>' : ''}
+          <th>Freq.</th><th>Prioridade</th><th>Status</th><th></th>
         </tr></thead>
         <tbody>${tasks.map(t=>{
           const isMine    = t.createdBy===CUR.user.id;
@@ -4136,14 +4197,17 @@ function taskGroupHTML(label,tasks,gid,originType=''){
                 ${isPriv?'<span style="font-size:10px;color:var(--tx3);margin-left:4px">🔒</span>':''}
               </div>
             </div></td>
-            ${(isGlobalGroup||isMineGroup)?`<td><div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center">${integrados}</div></td>`:''}
-            ${isAssignedGroup?`<td><div class="tc" style="gap:5px">${memberAvatar(creatorName)}<span style="font-size:12px">${creatorName}</span></div></td>`:''}
+            ${isGlobalGroup?`<td><div class="tc" style="gap:5px">${memberAvatar(creatorName)}<span style="font-size:12px">${creatorName}</span></div></td><td><div style="display:flex;flex-wrap:wrap;gap:4px">${integrados}</div></td>`:''}
+            ${isAssignedGroup?`<td><div class="tc" style="gap:5px">${memberAvatar(creatorName)}<span style="font-size:12px">${creatorName}</span></div></td><td>${horario}</td>`:''}
+            ${isMineGroup?`<td><div style="display:flex;flex-wrap:wrap;gap:4px">${integrados}</div></td>`:''}
             <td>
-              <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-                ${sbadge(t.status)}
-                ${t.status==='late'&&t.frequency!=='once'?`<span style="font-size:9.5px;color:var(--red);font-weight:700">⏰ Vencida</span>`:''}
-                ${t.limitTime?`<span style="font-size:10.5px;color:var(--tx3)">⏱ ${t.limitTime}</span>`:''}
-              </div>
+              ${freqLabel}
+              ${t.dueDate&&t.frequency==='once'?`<div style="font-size:10.5px;color:var(--tx3);margin-top:2px">📅 até ${fmt(t.dueDate)}</div>`:''}
+            </td>
+            <td>${pbadge(t.priority)}</td>
+            <td>
+              ${sbadge(t.status)}
+              ${t.status==='late'&&t.frequency!=='once'?`<div class="task-late-badge">⏰ Venceu hoje</div>`:''}
             </td>
             <td><div style="display:flex;gap:4px;align-items:center">
               <button class="btn-sec" style="padding:4px 8px;font-size:11px;gap:4px" onclick="event.stopPropagation();openComments('${t.id}')">
@@ -4199,83 +4263,6 @@ async function unignoreTask(taskId){
 function toggleGroup(hd){
   hd.classList.toggle('collapsed');
   hd.nextElementSibling.style.display=hd.classList.contains('collapsed')?'none':'';
-}
-
-function renderTasksCube(container, tasks){
-  // Limpar posições de cubos antigos de tarefas deletadas
-  const activeIds = new Set(tasks.map(t=>t.id));
-  Object.keys(_tCubePos).forEach(k=>{ if(!activeIds.has(k)) delete _tCubePos[k]; });
-
-  if(!tasks.length){
-    container.innerHTML=`<div id="tasks-cube-arena"><div class="cube-empty"><div class="cube-empty-icon">⬡</div><div class="cube-empty-txt">Nenhuma tarefa</div></div></div>`;
-    return;
-  }
-  container.innerHTML=`<div id="tasks-cube-arena"><div class="cube-arena-hud">${tasks.length} TAREFA${tasks.length!==1?'S':''}</div></div>`;
-  const arena=document.getElementById('tasks-cube-arena');
-  // Forçar reflow para obter dimensão real
-  void arena.offsetWidth;
-  const W = arena.offsetWidth || 800;
-  const cols = Math.max(2, Math.floor((W - 48) / 190));
-  tasks.forEach((t,i)=>{
-    if(!_tCubePos[t.id]){
-      const col=i%cols, row=Math.floor(i/cols);
-      _tCubePos[t.id]={x:24+col*195, y:24+row*230};
-    }
-    spawnTaskCube(arena,t);
-  });
-}
-
-let _tCubePos={};
-
-function spawnTaskCube(arena, t){
-  const pos=_tCubePos[t.id]||{x:20,y:20};
-  const color=t.status==='late'?'#ef4444':t.status==='done'?'#22c55e':t.priority==='high'?'#ef4444':t.priority==='low'?'#22c55e':'#d97706';
-  const isDone=t.status==='done';
-  const freqMap={once:'Única',daily:'Diária',weekly:'Semanal',monthly:'Mensal',custom:'Custom'};
-  const freq=freqMap[t.frequency]||t.frequency||'';
-  const integrados=(t.integrateFor||[]).slice(0,2).join(', ')||'—';
-  const statusIco=t.status==='late'?'!':t.status==='done'?'✓':t.priority==='high'?'↑':'◉';
-  const badgeCls=t.status==='late'?'late':t.status==='done'?'done':t.status==='progress'?'grace':'pending';
-  const badgeTxt=t.status==='late'?'VENCIDA':t.status==='done'?'FEITA':t.status==='progress'?'EM ANDAMENTO':'PENDENTE';
-
-  const el=document.createElement('div');
-  el.className='task-cube';
-  el.id='tcube-'+t.id;
-  el.style.cssText=`left:${pos.x}px;top:${pos.y}px`;
-  el.style.setProperty('--cube-color',color);
-
-  el.innerHTML=`
-    <div class="cube-body" style="min-height:auto">
-      <div class="cube-accent"></div>
-      <div class="cube-status-ico">${statusIco}</div>
-      <div class="cube-title ${isDone?'done-txt':''}" style="min-height:auto;margin-bottom:8px">${t.title}</div>
-      <div style="font-size:10px;color:rgba(255,255,255,.35);margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">👥 ${integrados}</div>
-      <div class="cube-meta">
-        ${t.limitTime?`<span class="cube-time"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:10px;height:10px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${t.limitTime}</span>`:`<span class="cube-freq">${freq}</span>`}
-        <span class="cube-badge ${badgeCls}">${badgeTxt}</span>
-      </div>
-      <div class="cube-bottom" style="margin-top:8px;padding-top:6px">
-        <button class="cube-check ${isDone?'done':''}" onclick="event.stopPropagation();tCubeDone('${t.id}')" title="${isDone?'Desmarcar':'Concluir'}">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-        </button>
-        <button onclick="event.stopPropagation();openComments('${t.id}')" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:3px 7px;color:rgba(255,255,255,.5);font-size:10px;cursor:pointer">💬</button>
-        <button class="cube-del" onclick="event.stopPropagation();deleteTask('${t.id}')" title="Apagar">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
-        </button>
-      </div>
-    </div>`;
-
-  el.querySelector('.cube-body').addEventListener('click',(e)=>{
-    if(e.target.closest('button')) return;
-    openEditTask(t.id);
-  });
-  arena.appendChild(el);
-  makeCubeDraggable(el, t.id, _tCubePos);
-}
-
-async function tCubeDone(id){
-  await toggleTask(id);
-  if(tView==='cube') renderTasks();
 }
 
 function renderTasksKanban(c,arr){
@@ -4567,7 +4554,7 @@ async function openEditTask(id){
   $('#et-status').value=t.status||'pending';
   $('#et-prio').value=t.priority||'medium';
   $('#et-vis').value=t.visibility||'global';
-  (()=>{const _ti=document.getElementById('et-time-time-input');if(_ti)_ti.value=t.limitTime||''||'';})();
+  tpSetValue('et-time',t.limitTime||'');
   $('#et-due').value=t.dueDate||'';
   setSelectedDays('et', t.weekdays||[]);
   toggleTaskTimeField('et');
@@ -4607,7 +4594,7 @@ async function saveTask(){
   const title=$('#et-title').value.trim()||t.title;
   const ifor=getSelectedMembers('et-members-grid');
   const newStatus=$('#et-status').value;
-  const limitTime=tpGetValue('et-time')||null;
+  const limitTime=$('#et-time').value||null;
   if(newStatus!==t.status&&!canToggleTask(t)){
     banner('Apenas os membros integrados podem alterar o status desta tarefa.','warn');
     $('#et-status').value=t.status;return;
@@ -4622,14 +4609,14 @@ async function saveTask(){
 function openEditMy(id){
   const arr=getMyTasks();const t=arr.find(x=>x.id===id);if(!t)return;
   $('#em-id').value=id;$('#em-title').value=t.title;
-  $('#em-freq').value=t.frequency||'daily';(()=>{const _ti=document.getElementById('em-time-time-input');if(_ti)_ti.value=t.limitTime||''||'';})();
+  $('#em-freq').value=t.frequency||'daily';tpSetValue('em-time',t.limitTime||'');
   $('#em-status').value=t.status||'pending';openM('m-edit-my');
 }
 async function saveMyTask(){
   const id=$('#em-id').value;const arr=getMyTasks();const t=arr.find(x=>x.id===id);if(!t)return;
   const title=$('#em-title').value.trim()||t.title;
-  await sb.from('my_tasks').update({title,frequency:$('#em-freq').value,limit_time:tpGetValue('em-time')||null,status:$('#em-status').value}).eq('id',id);
-  t.title=title;t.frequency=$('#em-freq').value;t.limitTime=tpGetValue('em-time');t.status=$('#em-status').value;
+  await sb.from('my_tasks').update({title,frequency:$('#em-freq').value,limit_time:$('#em-time').value||null,status:$('#em-status').value}).eq('id',id);
+  t.title=title;t.frequency=$('#em-freq').value;t.limitTime=$('#em-time').value;t.status=$('#em-status').value;
   addAct('Tarefa pessoal <strong>'+title+'</strong> atualizada');
   closeM('m-edit-my');renderP(page);banner('Tarefa salva!','ok');
 }
@@ -4677,7 +4664,7 @@ async function submitTask(){
   const mnames=getSelectedMembers('nt-members-grid');
   if(!mnames.length){banner('Selecione ao menos um membro para integrar à tarefa.','warn');return;}
   showLoader('Salvando...');
-  const ntDays=getSelectedDays('nt'); const {data:t,error}=await sb.from('tasks').insert({group_id:CUR.groupId,title,integrate_for:mnames,frequency:$('#nt-freq').value,status:'pending',priority:$('#nt-prio').value,visibility:$('#nt-vis').value,created_by:CUR.user.id,description:tpGetValue('nt-time')||null,due_date:$('#nt-due').value||null,weekdays:ntDays.length?ntDays:null}).select().single();
+  const ntDays=getSelectedDays('nt'); const {data:t,error}=await sb.from('tasks').insert({group_id:CUR.groupId,title,integrate_for:mnames,frequency:$('#nt-freq').value,status:'pending',priority:$('#nt-prio').value,visibility:$('#nt-vis').value,created_by:CUR.user.id,description:$('#nt-time').value||null,due_date:$('#nt-due').value||null,weekdays:ntDays.length?ntDays:null}).select().single();
   if(error){hideLoader();banner('Erro ao criar tarefa','err');return;}
   _cache.tasks=_cache.tasks||[];
   _cache.tasks.unshift({id:t.id,title,integrateFor:mnames,frequency:t.frequency,status:t.status,priority:t.priority,visibility:t.visibility,createdBy:t.created_by,createdAt:t.created_at,limitTime:t.description||null,dueDate:t.due_date||null,weekdays:t.weekdays||null});
@@ -4690,7 +4677,7 @@ async function submitMyTask(){
   const title=$('#nm-title').value.trim();
   if(!title){banner('Informe o título','warn');return;}
   showLoader('Salvando...');
-  const nmDays=getSelectedDays('nm');const {data:t,error}=await sb.from('my_tasks').insert({group_id:CUR.groupId,user_id:CUR.user.id,title,frequency:$('#nm-freq').value,limit_time:tpGetValue('nm-time')||null,status:'pending',weekdays:nmDays.length?nmDays:null}).select().single();
+  const nmDays=getSelectedDays('nm');const {data:t,error}=await sb.from('my_tasks').insert({group_id:CUR.groupId,user_id:CUR.user.id,title,frequency:$('#nm-freq').value,limit_time:$('#nm-time').value||null,status:'pending',weekdays:nmDays.length?nmDays:null}).select().single();
   if(error){hideLoader();banner('Erro','err');return;}
   const task={id:t.id,title,frequency:t.frequency,limitTime:t.limit_time,status:'pending',createdAt:t.created_at,userId:CUR.user.id};
   _cache.myTasks=_cache.myTasks||[];_cache.myTasks.unshift(task);
@@ -7462,33 +7449,4 @@ document.addEventListener('DOMContentLoaded',async()=>{
   </div>
 </div>
 </body>
-</html>/* Cubo modo Tarefas */
-#tasks-cube-arena{
-  position:relative;width:100%;min-height:calc(100vh - 260px);
-  background:#0f0e0c;border-radius:12px;overflow:visible;
-  background-image:radial-gradient(circle,rgba(217,119,6,.18) 1px,transparent 1px);
-  background-size:28px 28px;border:1px solid rgba(217,119,6,.15);
-  user-select:none;margin-top:8px;
-}
-#tasks-cube-arena::before{content:'';position:absolute;top:0;left:0;right:0;height:80px;background:linear-gradient(180deg,rgba(217,119,6,.05) 0%,transparent 100%);pointer-events:none;z-index:0;}
-/* Cubo body escuro para arena tasks */
-#tasks-cube-arena .cube-body{
-  background:#1a1612;
-  border:1px solid rgba(217,119,6,.3);
-  box-shadow:0 4px 20px rgba(0,0,0,.5);
-}
-#tasks-cube-arena .cube-body::before{
-  background:linear-gradient(180deg,rgba(255,255,255,.04) 0%,transparent 100%);
-}
-#tasks-cube-arena .cube-title{color:#f5f0e8;}
-#tasks-cube-arena .cube-title.done-txt{color:rgba(245,240,232,.3);}
-#tasks-cube-arena .cube-time{color:rgba(217,119,6,.9);}
-#tasks-cube-arena .cube-freq{color:rgba(255,255,255,.25);}
-#tasks-cube-arena .cube-bottom{border-top-color:rgba(255,255,255,.08);}
-#tasks-cube-arena .cube-status-ico{background:rgba(217,119,6,.12);border-color:rgba(217,119,6,.25);color:#d97706;}
-#tasks-cube-arena .cube-check{border-color:rgba(217,119,6,.4);}
-#tasks-cube-arena .cube-check:hover{background:rgba(217,119,6,.15);}
-#tasks-cube-arena .cube-del{color:rgba(255,255,255,.2);}
-#tasks-cube-arena .cube-del:hover{color:#f87171;background:rgba(239,68,68,.12);}
-#tasks-cube-arena .task-cube:hover .cube-body{border-color:rgba(217,119,6,.65);box-shadow:0 0 20px rgba(217,119,6,.18),0 8px 32px rgba(0,0,0,.6);}
-
+</html>
