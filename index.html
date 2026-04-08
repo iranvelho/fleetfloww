@@ -981,14 +981,13 @@ select.fi{appearance:none;cursor:pointer;padding-right:28px;background-image:url
 .tp-input-time{
   width:100%;padding:10px 14px;
   background:var(--surface2);border:1.5px solid var(--border);
-  border-radius:var(--r);font-size:14px;font-weight:600;
+  border-radius:var(--r);font-size:13px;font-weight:500;
   color:var(--tx);cursor:pointer;box-sizing:border-box;
-  font-family:inherit;display:block;
-  -webkit-appearance:none;
+  font-family:inherit;
 }
 .tp-input-time:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(217,119,6,.08)}
 .tp-input-time:hover{border-color:var(--accent)}
-.tp-input-time::-webkit-calendar-picker-indicator{opacity:.6;cursor:pointer;filter:invert(0)}
+.tp-input-time::-webkit-calendar-picker-indicator{cursor:pointer;opacity:.7}
 /* Esconder painéis antigos */
 .tp-panel,.tp-head,.tp-cols,.tp-col,.tp-opt,.tp-ok,.tp-panel-display,.tp-display,.tp-wrap{display:none!important}
 .comment-text{font-size:12.5px;color:var(--tx2);line-height:1.5;word-break:break-word}
@@ -3599,7 +3598,7 @@ function renderCubes(tasks){
     draw();
   })();
 
-  const cols = Math.max(3, Math.floor((arena.clientWidth||600) / 190));
+  const cols = Math.max(3, Math.floor((arena.offsetWidth||800) / 190));
   tasks.forEach((t, i) => {
     if(!_cubePositions[t.id]){
       const col = i % cols, row = Math.floor(i / cols);
@@ -4214,18 +4213,16 @@ function renderTasksCube(container, tasks){
   }
   container.innerHTML=`<div id="tasks-cube-arena"><div class="cube-arena-hud">${tasks.length} TAREFA${tasks.length!==1?'S':''}</div></div>`;
   const arena=document.getElementById('tasks-cube-arena');
-  // Dois requestAnimationFrame garante layout calculado antes de ler clientWidth
-  requestAnimationFrame(()=>requestAnimationFrame(()=>{
-    const W = arena.getBoundingClientRect().width || container.getBoundingClientRect().width || 900;
-    const cols = Math.max(2, Math.floor((W - 48) / 195));
-    tasks.forEach((t,i)=>{
-      if(!_tCubePos[t.id]){
-        const col=i%cols, row=Math.floor(i/cols);
-        _tCubePos[t.id]={x:24+col*195, y:24+row*230};
-      }
-      spawnTaskCube(arena,t);
-    });
-  }));
+  // offsetWidth força reflow síncrono — retorna width real imediatamente
+  const W = arena.offsetWidth || container.offsetWidth || 800;
+  const cols = Math.max(2, Math.floor((W - 48) / 195));
+  tasks.forEach((t,i)=>{
+    if(!_tCubePos[t.id]){
+      const col=i%cols, row=Math.floor(i/cols);
+      _tCubePos[t.id]={x:24+col*195, y:24+row*230};
+    }
+    spawnTaskCube(arena,t);
+  });
 }
 
 let _tCubePos={};
@@ -7467,11 +7464,31 @@ document.addEventListener('DOMContentLoaded',async()=>{
 </body>
 </html>/* Cubo modo Tarefas */
 #tasks-cube-arena{
-  position:relative;width:100%;min-height:calc(100vh - 280px);
-  background:#0d0d0d;border-radius:12px;overflow:hidden;
-  background-image:radial-gradient(circle,rgba(217,119,6,.15) 1px,transparent 1px);
-  background-size:28px 28px;border:1px solid rgba(217,119,6,.12);
+  position:relative;width:100%;min-height:calc(100vh - 260px);
+  background:#0f0e0c;border-radius:12px;overflow:auto;
+  background-image:radial-gradient(circle,rgba(217,119,6,.18) 1px,transparent 1px);
+  background-size:28px 28px;border:1px solid rgba(217,119,6,.15);
   user-select:none;margin-top:8px;
 }
-#tasks-cube-arena::before{content:'';position:absolute;top:0;left:0;right:0;height:80px;background:linear-gradient(180deg,rgba(217,119,6,.04) 0%,transparent 100%);pointer-events:none;z-index:0;}
+#tasks-cube-arena::before{content:'';position:absolute;top:0;left:0;right:0;height:80px;background:linear-gradient(180deg,rgba(217,119,6,.05) 0%,transparent 100%);pointer-events:none;z-index:0;}
+/* Cubo body escuro para arena tasks */
+#tasks-cube-arena .cube-body{
+  background:#1a1612;
+  border:1px solid rgba(217,119,6,.3);
+  box-shadow:0 4px 20px rgba(0,0,0,.5);
+}
+#tasks-cube-arena .cube-body::before{
+  background:linear-gradient(180deg,rgba(255,255,255,.04) 0%,transparent 100%);
+}
+#tasks-cube-arena .cube-title{color:#f5f0e8;}
+#tasks-cube-arena .cube-title.done-txt{color:rgba(245,240,232,.3);}
+#tasks-cube-arena .cube-time{color:rgba(217,119,6,.9);}
+#tasks-cube-arena .cube-freq{color:rgba(255,255,255,.25);}
+#tasks-cube-arena .cube-bottom{border-top-color:rgba(255,255,255,.08);}
+#tasks-cube-arena .cube-status-ico{background:rgba(217,119,6,.12);border-color:rgba(217,119,6,.25);color:#d97706;}
+#tasks-cube-arena .cube-check{border-color:rgba(217,119,6,.4);}
+#tasks-cube-arena .cube-check:hover{background:rgba(217,119,6,.15);}
+#tasks-cube-arena .cube-del{color:rgba(255,255,255,.2);}
+#tasks-cube-arena .cube-del:hover{color:#f87171;background:rgba(239,68,68,.12);}
+#tasks-cube-arena .task-cube:hover .cube-body{border-color:rgba(217,119,6,.65);box-shadow:0 0 20px rgba(217,119,6,.18),0 8px 32px rgba(0,0,0,.6);}
 
