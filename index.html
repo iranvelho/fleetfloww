@@ -38,6 +38,16 @@ function tpToggle(id){
   const isOpen=panel.classList.contains('open');
   document.querySelectorAll('.tp-panel.open').forEach(p=>{p.classList.remove('open');const d=document.getElementById(p.id.replace('-panel','-disp'));if(d)d.classList.remove('open');});
   if(!isOpen){
+    // Position panel using fixed coords from display element
+    const rect=disp.getBoundingClientRect();
+    const panelH=260; // approximate panel height
+    const spaceBelow=window.innerHeight-rect.bottom-8;
+    if(spaceBelow>=panelH){
+      panel.style.top=(rect.bottom+4)+'px';
+    } else {
+      panel.style.top=(rect.top-panelH-4)+'px';
+    }
+    panel.style.left=rect.left+'px';
     panel.classList.add('open'); disp.classList.add('open');
     const s=_tpState[id]||{};
     tpSetStep(id, s.h ? 'm' : 'h');
@@ -1074,9 +1084,9 @@ select.fi{appearance:none;cursor:pointer;padding-right:28px;background-image:url
 .tp-display.has-val .tp-clear{display:inline-block}
 /* Painel compacto */
 .tp-panel{
-  position:absolute;top:calc(100% + 4px);left:0;z-index:9999;
+  position:fixed;z-index:99999;
   background:var(--surface);border:1px solid var(--border);
-  border-radius:10px;box-shadow:0 6px 20px rgba(30,16,37,.13);
+  border-radius:10px;box-shadow:0 6px 20px rgba(30,16,37,.18);
   display:none;overflow:hidden;width:224px;
 }
 .tp-panel.open{display:block;animation:fadeUp .12s ease}
