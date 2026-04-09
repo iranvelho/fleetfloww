@@ -75,9 +75,11 @@ function tpSelect(id,col,val){
   document.querySelectorAll(`#${id}-${col} .tp-opt`).forEach(o=>o.classList.toggle('sel',o.dataset.v===val));
   tpUpdateHead(id);
   if(col==='h'){
-    // Auto-advance to minutes step
+    // Auto-advance to minutes — never close on hour selection
     setTimeout(()=>tpSetStep(id,'m'),180);
+    return;
   }
+  // col === 'm': check if both set and close
   const s=_tpState[id];
   if(s.h&&s.m){
     const v=s.h+':'+s.m;
@@ -90,7 +92,7 @@ function tpSelect(id,col,val){
       const panel=document.getElementById(id+'-panel');
       if(panel)panel.classList.remove('open');
       if(disp)disp.classList.remove('open');
-    },300);
+    },280);
   }
 }
 function tpClear(id){
@@ -2522,7 +2524,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
       <div class="fg"><label>Participantes</label><input type="text" id="nm2-part" class="fi" placeholder="Ex: Ana, Carlos, Pedro..."/></div>
       <div class="fr">
         <div class="fg"><label>Data *</label><input type="date" id="nm2-date" class="fi"/></div>
-        <div class="fg"><label>Horário *</label><input type="time" id="nm2-time" class="fi"/></div>
+        <div class="fg"><label>Horário *</label><div class="tp-wrap"><div class="tp-display" id="nm2-time-disp" onclick="tpToggle('nm2-time')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="tp-val empty" id="nm2-time-val">--:--</span><button class="tp-clear" onclick="event.stopPropagation();tpClear('nm2-time')">✕</button></div><div class="tp-panel" id="nm2-time-panel"><div class="tp-head"><div class="tp-head-col active" id="nm2-time-hcol" onclick="tpSetStep('nm2-time','h')"><span class="tp-head-lbl">Hora</span><span class="tp-head-sel empty" id="nm2-time-head-h">--</span></div><div class="tp-head-sep">:</div><div class="tp-head-col" id="nm2-time-mcol" onclick="tpSetStep('nm2-time','m')"><span class="tp-head-lbl">Min</span><span class="tp-head-sel empty" id="nm2-time-head-m">--</span></div></div><div class="tp-step active" id="nm2-time-step-h"><div class="tp-step-lbl">Selecione a hora</div><div class="tp-grid-h" id="nm2-time-h"></div></div><div class="tp-step" id="nm2-time-step-m"><div class="tp-step-lbl">Selecione o minuto</div><div class="tp-grid-m" id="nm2-time-m"></div></div></div><input type="hidden" id="nm2-time"/></div></div>
       </div>
       <div class="fg"><label>Calendário</label><select id="nm2-cal" class="fi"><option value="general">Geral (visível para todos)</option><option value="individual">Individual (só eu)</option></select></div>
       <div class="fg"><label>Pauta / Descrição</label><textarea id="nm2-desc" class="fi" placeholder="Objetivos, tópicos a discutir..."></textarea></div>
@@ -2541,7 +2543,7 @@ tr.task-mine td:first-child{border-left:3px solid #3d6b8c}
       <div class="fg"><label>Participantes</label><input type="text" id="em2-part" class="fi"/></div>
       <div class="fr">
         <div class="fg"><label>Data</label><input type="date" id="em2-date" class="fi"/></div>
-        <div class="fg"><label>Horário</label><input type="time" id="em2-time" class="fi"/></div>
+        <div class="fg"><label>Horário</label><div class="tp-wrap"><div class="tp-display" id="em2-time-disp" onclick="tpToggle('em2-time')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="tp-val empty" id="em2-time-val">--:--</span><button class="tp-clear" onclick="event.stopPropagation();tpClear('em2-time')">✕</button></div><div class="tp-panel" id="em2-time-panel"><div class="tp-head"><div class="tp-head-col active" id="em2-time-hcol" onclick="tpSetStep('em2-time','h')"><span class="tp-head-lbl">Hora</span><span class="tp-head-sel empty" id="em2-time-head-h">--</span></div><div class="tp-head-sep">:</div><div class="tp-head-col" id="em2-time-mcol" onclick="tpSetStep('em2-time','m')"><span class="tp-head-lbl">Min</span><span class="tp-head-sel empty" id="em2-time-head-m">--</span></div></div><div class="tp-step active" id="em2-time-step-h"><div class="tp-step-lbl">Selecione a hora</div><div class="tp-grid-h" id="em2-time-h"></div></div><div class="tp-step" id="em2-time-step-m"><div class="tp-step-lbl">Selecione o minuto</div><div class="tp-grid-m" id="em2-time-m"></div></div></div><input type="hidden" id="em2-time"/></div></div>
       </div>
       <div class="fg"><label>Descrição</label><textarea id="em2-desc" class="fi"></textarea></div>
     </div>
@@ -4700,7 +4702,7 @@ async function saveMyTask(){
 function openEditMeet(id){
   const g=getG();const m=(g.meetings||[]).find(x=>x.id===id);if(!m)return;
   $('#em2-id').value=id;$('#em2-title').value=m.title;$('#em2-part').value=m.participants||'';
-  $('#em2-date').value=m.date||'';$('#em2-time').value=m.time||'';$('#em2-desc').value=m.description||'';
+  $('#em2-date').value=m.date||'';tpSetValue('em2-time',m.time||'');$('#em2-desc').value=m.description||'';
   openM('m-edit-meet');
 }
 async function saveMeet(){
@@ -4774,7 +4776,7 @@ async function submitMeet(){
   _cache.meetings.push({id:m.id,title,participants:m.participants,date,time,description:m.description,calType:m.cal_type,owner:CUR.user.name,ownerId:CUR.user.id,createdAt:m.created_at});
   addAct('Reunião agendada: <strong>'+title+'</strong>');
   addInbox('Reunião "<strong>'+title+'</strong>" agendada para '+fmt(date)+' às '+time+'.','📅','reunião');
-  hideLoader();closeM('m-new-meet');clearF('m-new-meet');renderP(page);banner('Reunião agendada!','ok');
+  hideLoader();closeM('m-new-meet');clearF('m-new-meet');tpClear('nm2-time');renderP(page);banner('Reunião agendada!','ok');
 }
 
 
